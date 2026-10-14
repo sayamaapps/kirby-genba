@@ -1,0 +1,30 @@
+<link
+  rel="stylesheet"
+  href="https://fonts.googleapis.com/css2?family=Inter"
+/>
+<p
+  class="lead"
+  style="color:red"
+>
+  Text
+</p>
+<button
+  type="button"
+  onclick="go()"
+>
+  Go
+</button>
+<script
+  src="/assets/js/app.js"
+  defer
+></script>
+<script
+  type="application/ld+json"
+>
+  {"@type":"WebSite"}
+</script>
+<script
+  type="module"
+>
+  window.inline = 1;
+</script>

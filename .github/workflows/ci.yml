@@ -1,0 +1,80 @@
+name: CI
+
+on:
+  # Feature branches are checked by the PR, main after the merge. Pure
+  # documentation changes run too.
+  push:
+    branches: [main]
+  pull_request:
+
+# A new push to the same PR cancels the outdated run.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    name: PHP ${{ matrix.php }}
+    # Runs for pushes and for pull requests from branches of this
+    # repository; pull requests from forks do not start it.
+    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        # genba-smoke reads the homepage with Dom\HTMLDocument (PHP 8.4+): its fault matrix and the
+        # smoke corpus run on 8.4 and 8.5; on 8.2 and 8.3 SmokeTest checks the clean abort (exit 2,
+        # before the first request) and the corpus runs its precheck half (SPEC decision 24).
+        php: ['8.2', '8.3', '8.4', '8.5']
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: mbstring, curl, dom
+          coverage: none
+
+      # GitHub's ubuntu runners have shellcheck: the step only prints its
+      # version (SPEC.md §11, decision 15). Installed here only on a runner
+      # without it; when that fails the test prints a visible "not linted"
+      # line, never a silent pass.
+      - name: shellcheck for bin/genba-smoke (tests/SmokeTest.php runs it)
+        run: |
+          if ! command -v shellcheck >/dev/null; then
+            sudo apt-get update -qq && sudo apt-get install -y -qq shellcheck \
+              || echo "::warning::shellcheck could not be installed on this runner — bin/genba-smoke will not be linted in this run"
+          fi
+          command -v shellcheck >/dev/null && shellcheck --version | head -2 || true
+
+      - name: Install dev dependencies (Kirby as fixture)
+        run: composer install --no-interaction --no-progress --prefer-dist --ignore-platform-req=ext-gd
+
+      - name: Tests
+        run: sh tests/run.sh
+
+      # The tools must run without Kirby, without a site and without network,
+      # and must say what is missing instead of passing (SPEC.md §3.0).
+      - name: The CLI tools fail loudly outside a project
+        run: |
+          set +e
+          out=$(cd "$RUNNER_TEMP" && "$GITHUB_WORKSPACE/bin/genba-smoke" 2>&1); status=$?
+          set -e
+          [ "$status" = "2" ] || { echo "::error::genba-smoke without GENBA_URL: expected exit 2, got $status"; echo "$out"; exit 1; }
+          set +e
+          out=$(cd "$RUNNER_TEMP" && "$GITHUB_WORKSPACE/bin/genba-links" 2>&1); status=$?
+          set -e
+          [ "$status" = "2" ] || { echo "::error::genba-links without content/site/public: expected exit 2, got $status"; echo "$out"; exit 1; }
+          set +e
+          out=$(cd "$RUNNER_TEMP" && "$GITHUB_WORKSPACE/bin/genba-precheck" 2>&1); status=$?
+          set -e
+          [ "$status" = "2" ] || { echo "::error::genba-precheck without site/: expected exit 2, got $status"; echo "$out"; exit 1; }
+          bin/genba-stamp --help >/dev/null
+          bin/genba-preflight --help >/dev/null
+          bin/genba-precheck --help >/dev/null
+          bin/genba-smoke --help >/dev/null
+          bin/genba-links --help >/dev/null

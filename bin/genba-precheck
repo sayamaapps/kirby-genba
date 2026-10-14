@@ -1,0 +1,33 @@
+#!/usr/bin/env php
+<?php
+/**
+ * genba-precheck — static pre-deploy checks under the site's Content Security
+ * Policy (inline styles, inline event handlers, embedded scripts, foreign
+ * hosts) plus "the built stylesheet is there". SPEC.md §3.3.
+ *
+ * Usage:
+ *   vendor/bin/genba-precheck [--site=DIR] [--public=DIR] [--allow=a,b] [--require=f1,f2] [--help]
+ *
+ *   --site=DIR        site root to scan (default: site)
+ *   --public=DIR      public root to scan for foreign hosts (default: public)
+ *   --allow=a,b       foreign-host substrings to accept, added to the default
+ *                     (places.googleapis.com/v1/); 'none' clears the default
+ *   --require=f1,f2   files that must exist and be non-empty
+ *                     (default: public/assets/css/tailwind.css); 'none' checks none
+ *
+ * Environment (used when the matching argument is absent):
+ *   GENBA_ALLOW           same as --allow
+ *   GENBA_REQUIRE_FILES   same as --require
+ *
+ * Exit codes: 0 passed, 1 findings or missing required files,
+ * 2 cannot run (usage error, missing directory, failed self-test).
+ *
+ * Entry point only; all logic lives in src/Precheck.php so tests can call
+ * Precheck::run(). Refuses to run outside the command line.
+ */
+if (PHP_SAPI !== 'cli') {
+    http_response_code(404);
+    exit;
+}
+require_once dirname(__DIR__) . '/src/Precheck.php';
+exit(Genba\Precheck::run(getenv(), $argv, (string) getcwd(), STDOUT, STDERR));

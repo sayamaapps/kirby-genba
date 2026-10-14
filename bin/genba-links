@@ -1,0 +1,53 @@
+#!/usr/bin/env php
+<?php
+/**
+ * Foreign-link check: verifies WHERE the YouTube IDs, Digistore product IDs and
+ * purchase links of the site source lead — not only that they answer 200.
+ *
+ * Origin (a live site, 07.08.2026): five of nine product pages
+ * carried a wrong Digistore ID. Two opened another own album, one the product of
+ * a foreign provider, two an empty or 404 page. A status-code check would have
+ * let four of the five through.
+ *
+ *   YouTube    watch, youtu.be, embed, shorts links, thumbnails and ID fields.
+ *              Checked through the oEmbed endpoint: 400/404 is deleted, 403 is
+ *              private, 401 is "embedding blocked" (a finding for embeds only).
+ *   Digistore  /product/<id>, /redir/<id>/… and ID fields (Digistoreid: …). The
+ *              product page must show an active product, and for an ID field
+ *              the product name must match the page title.
+ *   Purchase   Digistore redirects, CopeCart, ablefy/elopage, Gumroad, PayPal and
+ *              own shop hosts: the redirect chain must end with 2xx and keep the
+ *              parameters of the starting URL (aff=, cam=, …).
+ *
+ * Usage:
+ *   vendor/bin/genba-links [options] [path ...]
+ *     --digistore-field=a,b  ID fields for Digistore (default: digistoreid)
+ *     --youtube-field=a,b    ID fields for YouTube (default: videoid,youtubeid,youtubevideos)
+ *     --shop-host=h1,h2      further hosts whose links count as purchase links
+ *     --skip-counter-check   skip the network counter-check
+ *     --list-only            fetch nothing, only list what would be checked
+ *     --oembed-base=URL      oEmbed endpoint (default: https://www.youtube.com/oembed)
+ *     --digistore-base=URL   Digistore product base (default: https://www.digistore24.com/product/)
+ *     --pause=SECONDS        pause between requests to one host (default: 0.3)
+ *     --help                 show this usage
+ *   Paths default to the existing ones of content, site and public under the
+ *   current directory. Relative paths are taken from the current directory.
+ *
+ * Environment (the option wins when both are given):
+ *   GENBA_DIGISTORE_FIELDS  comma list, default digistoreid
+ *   GENBA_YOUTUBE_FIELDS    comma list, default videoid,youtubeid,youtubevideos
+ *   GENBA_SHOP_HOSTS        comma list, default none
+ *
+ * Exit codes: 0 nothing wrong (disruptions such as timeouts, 5xx, 429 or a shop
+ * 403 are ::warning:: lines and do not fail the run), 1 at least one finding or
+ * a failed counter-check, 2 cannot run (no curl, no path, bad usage).
+ * Requires ext-curl.
+ */
+if (PHP_SAPI !== 'cli') {
+    http_response_code(404);
+    exit;
+}
+
+require_once dirname(__DIR__) . '/src/Links.php';
+
+exit(Genba\Links::run(getenv(), $argv, (string) getcwd(), STDOUT, STDERR));

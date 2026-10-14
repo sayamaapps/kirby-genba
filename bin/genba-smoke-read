@@ -1,0 +1,22 @@
+#!/usr/bin/env php
+<?php
+/**
+ * The homepage reader of bin/genba-smoke: genba-smoke fetches the
+ * homepage with curl and hands the saved file to this script, which reads it
+ * with PHP 8.4's HTML5 parser (Dom\HTMLDocument) and prints one record per
+ * line — build meta, base, stylesheet and preload links, src, srcset.
+ * Internal: called by genba-smoke only, not linked into vendor/bin.
+ *
+ *   genba-smoke-read --check               exit 0 when it can read, else 2
+ *   genba-smoke-read --meta=NAME FILE      the records of FILE
+ *
+ * Exit codes: 0 read, 1 the file cannot be read, 2 cannot run (PHP below
+ * 8.4, mbstring missing, usage); it loads on PHP 8.2 to say so. Logic lives
+ * in src/Homepage.php.
+ */
+if (PHP_SAPI !== 'cli') {
+    http_response_code(404);
+    exit;
+}
+require_once dirname(__DIR__) . '/src/Homepage.php';
+exit(Genba\Homepage::run($argv, STDOUT, STDERR));

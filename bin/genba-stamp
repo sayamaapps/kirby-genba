@@ -1,0 +1,25 @@
+#!/usr/bin/env php
+<?php
+/**
+ * Writes the build stamp: the commit hash of the checkout (`git rev-parse HEAD`)
+ * to site/config/build.txt, where the site's snippet reads it and prints
+ * <meta name="build">. Run it from the project root after `composer install`
+ * and before the deploy upload (SPEC.md §3.1, §6).
+ *
+ *   vendor/bin/genba-stamp                       write the hash of HEAD
+ *   vendor/bin/genba-stamp --show                print the hash in the file
+ *   GENBA_SHA=<40 hex> vendor/bin/genba-stamp     write a given hash instead of git
+ *
+ * Settings (argument, then environment, then default):
+ *   --file=PATH   / GENBA_STAMP_FILE  default site/config/build.txt
+ *   --sha=HASH    / GENBA_SHA         default: git rev-parse HEAD
+ *
+ * Exit codes: 0 written (or shown), 1 finding (not written, not verified,
+ * git failed), 2 usage error or git not found. Logic lives in src/Stamp.php.
+ */
+if (PHP_SAPI !== 'cli') {
+    http_response_code(404);
+    exit;
+}
+require_once dirname(__DIR__) . '/src/Stamp.php';
+exit(Genba\Stamp::run(getenv(), $argv, (string) getcwd(), STDOUT, STDERR));
