@@ -780,6 +780,10 @@ try {
     genba_write($loud . '/site/templates/default.php', "<p style=\"x\">\n");
     genba_write($loud . '/site/plugins/embed/README.md', "<script>alert(1)</script>\n");
     symlink('../../templates/default.php', $loud . '/site/plugins/embed/aaa.md');
+    // Site Markdown a template prints, reached through links below plugins/ (walked first): read all the same.
+    genba_write($loud . '/site/snippets/legal/legal.md', "<script>alert(1)</script>\n");
+    symlink('../../snippets/legal/legal.md', $loud . '/site/plugins/embed/a-legal.md');
+    symlink('../snippets/legal', $loud . '/site/plugins/docs');
     genba_write($loud . '/public/assets/css/tailwind.css', "body{margin:0}\n");
     [$code, $out] = precheck_run($loud, []);
     expect(1, $code, "printed markup around PHP comments is a finding:\n$out");
@@ -797,7 +801,8 @@ try {
     contains(':1: inline style — the CSP forbids it: <p style="x">', $out, 'the template behind the .md link is read');
     holds(str_contains($out, '::error::site/plugins/embed/aaa.md:1: inline style') || str_contains($out, '::error::site/templates/default.php:1: inline style'), "the link or its target is reported:\n$out");
     contains('  --   not checked: 1 Markdown file in site/plugins (package documentation)', $out, 'only the real README is skipped, in the singular');
-    expect(10, substr_count($out, '::error::'), "exactly ten findings, nothing from the doc comment of lines 2–4 or the README:\n$out");
+    holds(preg_match('~::error::site/(plugins/embed/a-legal\.md|plugins/docs/legal\.md|snippets/legal/legal\.md):1: embedded <script>~', $out) === 1, "site Markdown behind a link below plugins/ is read:\n$out");
+    expect(11, substr_count($out, '::error::'), "exactly eleven findings, nothing from the doc comment of lines 2–4 or the README:\n$out"); 
     holds(!str_contains($out, 'not counted: site/snippets/card.php:10'), 'once beside a real handler: the line is a finding, the name is not said again');
 
     /* ---- installed into a site: Genba's own files are not site code ---- */

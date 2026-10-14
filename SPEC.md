@@ -424,7 +424,7 @@ a handler added to a browser after the list shows up there). In `.php`/`.phtml` 
 the text with every PHP comment blanked (`uncomment()`: tokenizer, every byte but `\n` a space, line
 numbers kept; the finding shows the line as written); a file with a bare `<?` is not blanked
 (short_open_tag of the checking PHP need not be the server's). Markdown files under the site root's
-`plugins/` whose real path is Markdown too are not read, counted in one `--` line
+`plugins/` whose real path is Markdown too and lies in the real `plugins/` are not read, counted in one `--` line
 (`skippedMarkdown()`, `markdownDir()`). Both attribute rules take a PHP closing tag as a boundary
 (`(^|[\s"'/]|\?>)`). The self-test fails a `names` that is not a list of non-empty lower-case
 strings, and `names` on a rule without a `(?<name>…)` group or with `each`.

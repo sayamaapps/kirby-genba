@@ -34,8 +34,8 @@ that never reach a browser.
 - **Package Markdown is not read.** Markdown files under `site/plugins/`
   (READMEs that document CSP rules) are counted in one line:
   `  --   not checked: <n> Markdown files in site/plugins (package documentation)`.
-  A symbolic link whose target is not Markdown is read; Markdown elsewhere is
-  read as before.
+  A file whose real path is not Markdown or lies outside the real
+  `site/plugins/` (a link) is read; Markdown elsewhere is read as before.
 
 ### Fixed — missed findings
 

@@ -435,15 +435,21 @@ final class Precheck
             }
             $tree = Tree::walk($root, $root, self::SKIP_ROOT_DIRS[$name] ?? [], self::SKIP_ANYWHERE, $cwd, $package === false ? null : $package, $elsewhere, $read);
             $plugins = $root . '/plugins/';
+            // The real plugins/ directory: a file only counts as package documentation when it really lies
+            // there — a link plugins/docs -> ../snippets or plugins/x/a.md -> ../../snippets/legal.md
+            // must not take the site's own Markdown out of the check.
+            $pluginsReal = realpath($root . '/plugins');
             if ($name === 'site') {
                 $this->markdownDir = self::relative($root . '/plugins', $cwd);
             }
             foreach ($tree['files'] as $path) {
                 $relative = self::relative($path, $cwd);
-                // Package documentation: a Markdown file under the site's plugins/, also by its real path
-                // (a link named .md to a template is read).
-                if ($name === 'site' && str_starts_with($path, $plugins) && self::isMarkdown($path)
-                    && self::isMarkdown((string) (realpath($path) ?: $path))) {
+                // Package documentation: a Markdown file under the site's plugins/, by its name and by its
+                // real path, which lies in the real plugins/ too (a link named .md to a template is read, and
+                // so is site Markdown reached through a link below plugins/).
+                $real = realpath($path);
+                if ($name === 'site' && $pluginsReal !== false && $real !== false && str_starts_with($path, $plugins)
+                    && str_starts_with($real, $pluginsReal . '/') && self::isMarkdown($path) && self::isMarkdown($real)) {
                     $this->skippedMarkdown++;
                     continue;
                 }
