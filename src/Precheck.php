@@ -162,6 +162,11 @@ final class Precheck
                                               "var once = key + '\\n' + detail;", "public const ONLINE = 'online';", 'let onReady = init;', '<div once="x">',
                                               "<button<?= attr(['type' => 'button', 'onclick' => false, 'data-on' => 'x'], ' ') ?>>",
                                               "<div<?= attr(['once' => \$x], ' ') ?>>"]],
+        // `on` directly followed by a PHP block (a printed name such as onclick built at runtime): the name is
+        // not known at scan time, so Genba cannot tell an event handler from anything else. A finding, with or without the `=`.
+        'inline-handler-runtime' => ['pattern' => '~(^|[\s"\'/]|\?>)on(?=<\?)~i', 'roots' => ['site'], 'sample' => '<div on<?= $event ?>="go()">', 'message' => 'inline event handler with a name built at runtime — the CSP forbids it',
+                              'positives' => ['<div on<?= $event ?>="go()">', '<p on<?php echo $e ?>>x</p>', '<div class="a"on<?= $e ?>="x()">'],
+                              'negatives' => ['<i one<?= $x ?>="y">', '<a href="?on=1">', '<p><?= $icon ?></p>']],
         // Judged per <script …> tag (`each`), not per line — `src=` anywhere on the line would
         // exempt an embedded script next to an external one, and a script whose code says
         // `el.src=`. A tag is exempt with its own src attribute or type application/ld+json.
