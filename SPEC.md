@@ -417,6 +417,15 @@ control as `negatives` of the foreign-host rule. Sites add allow entries with
 realpath of the package root) is never scanned — its source and README hold
 the rule samples — and the log says so with a `--` line.
 
+**Since 1.0.1** three things that never reach a browser are no findings. `inline-handler`
+carries `names` (`EVENT_HANDLERS`): a match counts only when its captured name (group `name`)
+— or a name attr() prints — is an event handler a browser runs, so `var once = key` and
+`const ONLINE = 'online'` are code, not attributes. In `.php`/`.phtml` files the rules read the
+text with every PHP comment blanked (`uncomment()`: tokenizer, every byte but `\n` a space, line
+numbers kept; the finding shows the line as written). Markdown files (`.md`, `.markdown`) are
+not read in either root and are counted in one `--` line (`skippedMarkdown()`). The self-test
+fails a `names` that is not a list of lower-case strings.
+
 ```php
 final class Precheck
 {

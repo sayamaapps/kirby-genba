@@ -709,6 +709,66 @@ try {
     $line = (string) $skippedLine->invoke(null, $longPath, 'broken symbolic link');
     holds(str_ends_with($line, ' characters) (broken symbolic link)'), "a skipped directory above 2048 characters keeps its reason:\n$line");
 
+    /* ---- no CSP violation: code identifiers, PHP comments, Markdown ---- */
+
+    // The handler rule counts an on… name only when a browser runs it (`names`, EVENT_HANDLERS).
+    // Without the list, a script variable called once is a finding again — the self-test says so.
+    $nameless = Precheck::RULES;
+    unset($nameless['inline-handler']['names']);
+    contains("rule inline-handler fired on its negative sample 'var once = key", implode("\n", Precheck::selfTestRules($nameless)), 'without names, `var once = key` fires: the self-test catches the missing list');
+    foreach ([['ONCLICK'], [], 'onclick', [42]] as $bad) {
+        $broken = Precheck::RULES;
+        $broken['inline-handler']['names'] = $bad;
+        expect(['rule inline-handler: names is not a list of lower-case names'], Precheck::selfTestRules($broken), 'a names list that is not lower-case strings fails the self-test: ' . var_export($bad, true));
+    }
+    holds(in_array('onclick', Precheck::EVENT_HANDLERS, true) && in_array('onbegin', Precheck::EVENT_HANDLERS, true) && !in_array('once', Precheck::EVENT_HANDLERS, true), 'EVENT_HANDLERS holds onclick and onbegin, not once');
+    expect(Precheck::EVENT_HANDLERS, array_values(array_unique(array_map('strtolower', Precheck::EVENT_HANDLERS))), 'EVENT_HANDLERS: lower case, no duplicates');
+
+    // Packages installed into a site: a script variable `once`, a class constant ONLINE, doc comments
+    // and a README that explain the rules. None of it reaches the browser as an attribute or a tag.
+    $quiet = genba_tmp('precheck-quiet');
+    $dirs[] = $quiet;
+    genba_write($quiet . '/site/plugins/counter/views/event.js', "var once = key + '\\n' + detail;\nlet onReady = init;\nonce = true;\n");
+    genba_write($quiet . '/site/plugins/calendar/src/Attendance.php', "<?php\nfinal class Attendance\n{\n    public const ONLINE = 'online';\n}\n");
+    genba_write($quiet . '/site/plugins/embed/index.php', "<?php\n/**\n * The <script> tag for embed.js, once per page.\n * Never <p style=\"x\"> or onclick=\"x\"; https://fonts.googleapis.com/css stays out.\n */\n// <script>alert(1)</script>\n# <div onclick=\"x()\">\n\$x = 1; /* <p style=\"x\"> */\n");
+    genba_write($quiet . '/site/plugins/embed/README.md', "Leave out the `<script>` and `<style>` parts.\n<p style=\"x\"> <button onclick=\"x\"> https://fonts.googleapis.com/css\n");
+    genba_write($quiet . '/site/plugins/embed/CHANGELOG.MARKDOWN', "<script>alert(1)</script>\n");
+    genba_write($quiet . '/public/notes.md', "https://fonts.gstatic.com/x\n");
+    genba_write($quiet . '/public/assets/css/tailwind.css', "body{margin:0}\n");
+    [$code, $out] = precheck_run($quiet, []);
+    expect(0, $code, "code identifiers, PHP comments and Markdown are no findings:\n$out");
+    contains('  --   not checked: 3 Markdown files (documentation, not served as HTML)', $out, 'the Markdown files of both roots are counted, visibly, any case of the extension');
+    contains('Genba precheck: PASSED (4 files scanned)', $out, 'the script, the two PHP files and the stylesheet are read, the Markdown files are not');
+
+    // What is printed stays a finding, on its own line: the HTML after a doc comment, a string that holds
+    // a comment marker, the HTML after a `//` comment that the closing tag ends, an HTML comment (sent to
+    // the browser), a real handler
+    // beside a name that runs nothing, a script in the HTML around the code.
+    $loud = genba_tmp('precheck-loud');
+    $dirs[] = $loud;
+    genba_write($loud . '/site/snippets/card.php', "<?php\n"
+        . "/**\n"
+        . " * <script>x()</script>\n"
+        . " */\n"
+        . "?>\n"
+        . "<p style=\"x\">a</p>\n"
+        . "<?php echo '/* <p style=\"x\"> */'; ?>\n"
+        . "<?php // note ?><div onclick=\"go()\">\n"
+        . "<!-- <p style=\"x\"> -->\n"
+        . "<div once=\"x\" onclick=\"go()\">\n"
+        . "<script>/* x */ init()</script>\n");
+    genba_write($loud . '/site/snippets/notes.md', "<p style=\"x\">\n");
+    genba_write($loud . '/public/assets/css/tailwind.css', "body{margin:0}\n");
+    [$code, $out] = precheck_run($loud, []);
+    expect(1, $code, "printed markup around PHP comments is a finding:\n$out");
+    foreach ([6 => 'inline style', 7 => 'inline style', 8 => 'inline event handler', 9 => 'inline style', 10 => 'inline event handler', 11 => 'embedded <script>'] as $line => $what) {
+        contains("::error::site/snippets/card.php:$line: $what", $out, "line $line: $what (the line number survives the blanked comment)");
+    }
+    expect(6, substr_count($out, '::error::'), "exactly the six printed lines, nothing from the doc comment of lines 2–4:\n$out");
+    contains("::error::site/snippets/card.php:7: inline style — the CSP forbids it: <?php echo '/* <p style=\"x\"> */'; ?>", $out, 'the finding shows the line as written, not as blanked');
+    contains("::error::site/snippets/card.php:8: inline event handler — the CSP forbids it: <?php // note ?><div onclick=\"go()\">", $out, 'the comment stands in the shown line: it is blanked for the rules only');
+    contains('  --   not checked: 1 Markdown file (documentation, not served as HTML)', $out, 'one Markdown file, in the singular');
+
     /* ---- installed into a site: Genba's own files are not site code ---- */
 
     // A site that installed Genba has it in site/plugins/genba/. Its src/Precheck.php and README.md

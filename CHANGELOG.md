@@ -12,6 +12,30 @@ All notable changes to this project are documented here. The format follows
   **[privacy text]**. Every site using the package must then review its privacy
   policy.
 
+## [1.0.1] — 2026-10-14
+
+### Fixed — `genba-precheck` false alarms in installed packages
+
+A site with other Kirby packages installed failed the pre-deploy check on lines
+that never reach a browser. No finding that the CSP forbids is dropped.
+
+- **Inline handlers are event handlers by name.** The handler rule counts an
+  `on…` name only when a browser runs it as an event handler
+  (`Precheck::EVENT_HANDLERS`: the HTML standard, SVG animation, Pointer and
+  Touch Events, CSS animations and transitions, Fullscreen, Selection, prefixed
+  and legacy names). `var once = key` in a script and `const ONLINE = 'online'`
+  in a class were findings; an `on…` name outside the list runs nothing.
+- **PHP comments are not read.** In `.php` and `.phtml` files the rules read the
+  code without its comments, blanked with PHP's tokenizer (line numbers kept,
+  the finding shows the line as written). A doc comment that mentions
+  `<script>` was a finding. Strings and HTML comments are still read.
+- **Markdown files are not read** (`.md`, `.markdown`): no browser renders them
+  as a page, and a package's README that documents CSP rules failed every site
+  that installed it. One `--` line counts them:
+  `  --   not checked: <n> Markdown files (documentation, not served as HTML)`.
+- New self-test failure for a broken rule table:
+  `rule <name>: names is not a list of lower-case names`.
+
 ## [1.0.0] — 2026-10-14
 
 First release as a Composer package. Before 1.0.0 the same operations lived as
