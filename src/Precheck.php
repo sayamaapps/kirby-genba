@@ -40,6 +40,54 @@ final class Precheck
         . '(?:=[\t\n\f\r ]*+(?:' . self::TAG_UNQUOTED . ')?)?)?)?>';
 
     /**
+     * The event handler content attributes Genba knows, lower case: the HTML standard's
+     * GlobalEventHandlers, WindowEventHandlers and Document handlers, Pointer and Touch Events, CSS
+     * animations and transitions, Fullscreen, Selection, scroll snap, SVG animation (`onbegin` …), and
+     * the engine-specific, prefixed or legacy names of WebKit, Gecko and Blink (`onwebkitendfullscreen`,
+     * `ongesturestart`, `onbeforescriptexecute`, `onmousewheel` …). A name on the list is a finding; an
+     * on… name outside it (`once`, `online`, `onready` — in code a variable or a constant) is no finding
+     * but a visible `--` line (notCounted()), so a handler the list does not know yet is never passed
+     * in silence.
+     */
+    public const EVENT_HANDLERS = [
+        'onabort', 'onactivate', 'onafterprint', 'onanimationcancel', 'onanimationend', 'onanimationiteration',
+        'onanimationstart', 'onauxclick', 'onbeforecopy', 'onbeforecut', 'onbeforeinput', 'onbeforematch',
+        'onbeforepaste', 'onbeforeprint', 'onbeforetoggle', 'onbeforeunload', 'onbeforexrselect', 'onbegin',
+        'onblur', 'oncancel', 'oncanplay', 'oncanplaythrough', 'onchange', 'onclick', 'onclose', 'oncommand',
+        'oncontentvisibilityautostatechange', 'oncontextlost', 'oncontextmenu', 'oncontextrestored', 'oncopy',
+        'oncuechange', 'oncut', 'ondblclick', 'ondrag', 'ondragend', 'ondragenter', 'ondragexit', 'ondragleave',
+        'ondragover', 'ondragstart', 'ondrop', 'ondurationchange', 'onemptied', 'onend', 'onended', 'onerror',
+        'onfocus', 'onfocusin', 'onfocusout', 'onformdata', 'onfreeze', 'onfullscreenchange', 'onfullscreenerror',
+        'ongotpointercapture', 'onhashchange', 'oninput', 'oninvalid', 'onkeydown', 'onkeypress', 'onkeyup',
+        'onlanguagechange', 'onload', 'onloadeddata', 'onloadedmetadata', 'onloadend', 'onloadstart',
+        'onlostpointercapture', 'onmessage', 'onmessageerror', 'onmousedown', 'onmouseenter', 'onmouseleave',
+        'onmousemove', 'onmouseout', 'onmouseover', 'onmouseup', 'onmousewheel', 'onmozfullscreenchange',
+        'onmozfullscreenerror', 'onoffline', 'ononline', 'onorientationchange', 'onpagehide', 'onpagereveal',
+        'onpageshow', 'onpageswap', 'onpaste', 'onpause', 'onplay', 'onplaying', 'onpointercancel', 'onpointerdown',
+        'onpointerenter', 'onpointerleave', 'onpointerlockchange', 'onpointerlockerror', 'onpointermove',
+        'onpointerout', 'onpointerover', 'onpointerrawupdate', 'onpointerup', 'onpopstate', 'onprerenderingchange',
+        'onprogress', 'onratechange', 'onreadystatechange', 'onrejectionhandled', 'onrepeat', 'onreset',
+        'onresize', 'onresume', 'onscroll', 'onscrollend', 'onscrollsnapchange', 'onscrollsnapchanging',
+        'onsearch', 'onsecuritypolicyviolation', 'onseeked', 'onseeking', 'onselect', 'onselectionchange',
+        'onselectstart', 'onshow', 'onslotchange', 'onstalled', 'onstorage', 'onsubmit', 'onsuspend',
+        'ontimeupdate', 'ontoggle', 'ontouchcancel', 'ontouchend', 'ontouchmove', 'ontouchstart',
+        'ontransitioncancel', 'ontransitionend', 'ontransitionrun', 'ontransitionstart', 'onunhandledrejection',
+        'onunload', 'onvisibilitychange', 'onvolumechange', 'onwaiting', 'onwebkitanimationend',
+        'onwebkitanimationiteration', 'onwebkitanimationstart', 'onwebkitfullscreenchange',
+        'onwebkitfullscreenerror', 'onwebkittransitionend', 'onwheel', 'onzoom',
+        // Engine-specific: WebKit (HTMLElement's handler table, media and force-touch events), Gecko, Blink.
+        'onafterscriptexecute', 'onautocomplete', 'onautocompleteerror', 'onbeforefilter', 'onbeforeload',
+        'onbeforescriptexecute', 'onencrypted', 'ongesturechange', 'ongestureend', 'ongesturestart',
+        'oninstallresult', 'onlocation', 'onmozpointerlockchange', 'onmozpointerlockerror', 'onpromptaction',
+        'onpromptdismiss', 'onstream', 'ontimezonechange', 'ontouchforcechange', 'onvalidationstatuschange',
+        'onwaitingforkey', 'onwebkitbeginfullscreen', 'onwebkitcurrentplaybacktargetiswirelesschanged',
+        'onwebkitendfullscreen', 'onwebkitkeyadded', 'onwebkitkeyerror', 'onwebkitkeymessage',
+        'onwebkitmouseforcechanged', 'onwebkitmouseforcedown', 'onwebkitmouseforceup',
+        'onwebkitmouseforcewillbegin', 'onwebkitneedkey', 'onwebkitplaybacktargetavailabilitychanged',
+        'onwebkitpresentationmodechanged',
+    ];
+
+    /**
      * Rules, in this order. Each: `pattern` (PCRE with `~` delimiters, applied per line), `roots` it scans
      * ('site' only, or 'site' and 'public'), `sample` (a line the rule MUST fire on — the self-test),
      * `message`. Optional `each` (PCRE): the line is judged per match of `each` — a tag — instead of as a
@@ -50,6 +98,9 @@ final class Precheck
      * Optional `attr` (PCRE on a lower-case attribute name): the rule also fires on a line where
      * Kirby's attr() helper may print an attribute of that name (attrNames()) — every rule that forbids an
      * attribute carries it, as every rule that exempts by one reads attr() through `exempt`.
+     * Optional `names` (list of lower-case names): a match counts only when the attribute name it
+     * captures (group `name` of `pattern`) or the name attr() prints is one of them — the handler rule
+     * takes EVENT_HANDLERS, so an identifier in code (`var once = key`) is no attribute.
      * Optional `unless` (list of PCRE patterns): a piece — the `each` match, else the line —
      * that one of them matches is NOT a finding. Optional `exempt` (with `each`): attribute
      * name => PCRE; a tag that carries one of these attributes (attributes(): read one after the other)
@@ -73,13 +124,14 @@ final class Precheck
         // rule, which never asked for a quote.
         // The boundary is what the HTML tokenizer ends an attribute name with — whitespace,
         // the closing quote of the value before (class="a"style="x", no space needed) or a `/`
-        // (<img src="x"/onerror="y">) — `(^|[\s"'/])` in both rules, as for the src of a script.
+        // (<img src="x"/onerror="y">) — and the closing tag of a PHP block right before the name (a
+        // block that prints the attribute before it): the same boundary in both rules, as for a script's src.
         // An attribute Kirby's attr() helper may print is an attribute too — `attr`,
         // the name pattern, for every rule that forbids one (attrNames(): any call, a multi-line array
         // literal, `'style' => $s ?: null` counts, `'style' => null` prints nothing). Reading attr()
         // only to free a script would let a style or an onclick printed by it pass.
-        'inline-style'    => ['pattern' => '~(^|[\s"\'/])style\s*=~i', 'attr' => '~^style$~',                                'roots' => ['site'],           'sample' => '<p style="x">',               'message' => 'inline style — the CSP forbids it',
-                              'positives' => ['<p class="a"style="color:red">', '<p/style="color:red">',
+        'inline-style'    => ['pattern' => '~(^|[\s"\'/]|\?>)style\s*=~i', 'attr' => '~^style$~',                                'roots' => ['site'],           'sample' => '<p style="x">',               'message' => 'inline style — the CSP forbids it',
+                              'positives' => ['<p class="a"style="color:red">', '<p/style="color:red">', '<p <?= $x ?>style="color:red">',
                                               "<div<?= attr(['class' => 'card', 'style' => '--accent: ' . \$page->color()], ' ') ?>>",
                                               "<div<?= Html::attr(['style' => \$s ?: null], null, ' ') ?>>", "<div<?= \$wide ? attr(['style' => \$s], ' ') : '' ?>>",
                                               "<div<?= attr([\n  'class' => 'card',\n  'style' => \$css,\n], ' ') ?>>",
@@ -95,12 +147,21 @@ final class Precheck
                                               'preconnect=https://places.googleapis.com/v1/,https://fonts.gstatic.com'],
                               // A browser API, not a host: the unanchored `fonts\.` of older copies matched it.
                               'negatives' => ['document.fonts.ready.then(remeasure)']],
-        'inline-handler'  => ['pattern' => '~(^|[\s"\'/])on[a-z]+\s*=~i', 'attr' => '~^on[a-z]+$~',                         'roots' => ['site'],           'sample' => '<button onclick="x">',        'message' => 'inline event handler — the CSP forbids it',
-                              'positives' => ['<img src="x.png"/onerror="alert(1)">', '<a href="#"onclick="x()">', 'onclick="x()"',
+        // An on… name counts only when it is an event handler Genba knows (`names`, EVENT_HANDLERS):
+        // `var once = key` in a script and `const ONLINE = 'online'` in a class are code, not attributes.
+        // Any other on… name is printed as a `--` line (notCounted()), never passed in silence.
+        // A PHP closing tag right before the name is a boundary too (a block printing the attribute before).
+        'inline-handler'  => ['pattern' => '~(^|[\s"\'/]|\?>)(?<name>on[a-z]+)\s*=~i', 'attr' => '~^on[a-z]+$~', 'names' => self::EVENT_HANDLERS, 'roots' => ['site'], 'sample' => '<button onclick="x">', 'message' => 'inline event handler — the CSP forbids it',
+                              'positives' => ['<img src="x.png"/onerror="alert(1)">', '<a href="#"onclick="x()">', 'onclick="x()"', '<A ONCLICK="x()">',
+                                              '<svg><animate onbegin="x()"/></svg>', '<body onpageshow="init()">', '<div onpointerdown="x()">',
+                                              "el.innerHTML = '<button onclick=\"go()\">';", '<div once="x" onclick="go()">',
+                                              '<button class="b"<?= $extra ?>onclick="go()">', '<video playsinline onwebkitendfullscreen="resume()">',
                                               "<button<?= attr(['type' => 'button', 'onclick' => 'toggle()'], ' ') ?>>", "<details<?= attr(['ontoggle'], ' ') ?>>",
                                               "<button<?= Html::attr('onclick', 'go()', ' ') ?>>"],
                               'negatives' => ['<i icon="x">', '<x json="y">', '<a href="?on=1">',
-                                              "<button<?= attr(['type' => 'button', 'onclick' => false, 'data-on' => 'x'], ' ') ?>>"]],
+                                              "var once = key + '\\n' + detail;", "public const ONLINE = 'online';", 'let onReady = init;', '<div once="x">',
+                                              "<button<?= attr(['type' => 'button', 'onclick' => false, 'data-on' => 'x'], ' ') ?>>",
+                                              "<div<?= attr(['once' => \$x], ' ') ?>>"]],
         // Judged per <script …> tag (`each`), not per line — `src=` anywhere on the line would
         // exempt an embedded script next to an external one, and a script whose code says
         // `el.src=`. A tag is exempt with its own src attribute or type application/ld+json.
@@ -175,6 +236,15 @@ final class Precheck
     /** @var list<string> directories the last scan() left out because they are this package itself */
     private array $skippedOwn = [];
 
+    /** Markdown files under the site's plugins/ the last scan() did not read: package documentation. */
+    private int $skippedMarkdown = 0;
+
+    /** The plugins/ directory of the site root of the last scan(), relative to $cwd: where Markdown is skipped. */
+    private string $markdownDir = '';
+
+    /** @var list<array{file: string, line: int, name: string, text: string}> on… names the last scan() did not count */
+    private array $notCounted = [];
+
     /** @var list<array{dir: string, reason: string}> every other directory the last scan() did not enter */
     private array $skipped = [];
 
@@ -209,6 +279,17 @@ final class Precheck
             }
             if (@preg_match($pattern, '') === false) {
                 $failures[] = "rule $name: pattern does not compile";
+                continue;
+            }
+            if (array_key_exists('names', $rule) && (!is_array($rule['names']) || $rule['names'] === []
+                || array_filter($rule['names'], static fn ($n): bool => !is_string($n) || $n === '' || $n !== strtolower($n)) !== [])) {
+                $failures[] = "rule $name: names is not a list of lower-case names";
+                continue;
+            }
+            // `names` judges the name a match captures: a pattern without the group would count no match,
+            // and an `each` rule judges tags, where `names` would be ignored without a word.
+            if (array_key_exists('names', $rule) && (!str_contains($pattern, '(?<name>') || isset($rule['each']))) {
+                $failures[] = "rule $name: names needs a pattern with a (?<name>…) group and no each";
                 continue;
             }
             if (!self::matches($rule, $sample, [])) {
@@ -266,6 +347,37 @@ final class Precheck
     }
 
     /**
+     * How many Markdown files (`.md`, `.markdown`) under the site root's `plugins/` the last scan() did
+     * not read — package documentation: a package's README that documents the rules (`<script>`,
+     * `style=`) would otherwise fail every site that installs it. Only when the file and the target of a
+     * symbolic link are both Markdown: `plugins/x/a.md -> ../../templates/default.php` is read. Markdown
+     * anywhere else is read like any file — a template may print one (`kirbytext(F::read(…))`).
+     */
+    public function skippedMarkdown(): int
+    {
+        return $this->skippedMarkdown;
+    }
+
+    /** The directory skippedMarkdown() counts in, relative to the scan's $cwd ('' before a scan). */
+    public function markdownDir(): string
+    {
+        return $this->markdownDir;
+    }
+
+    /**
+     * The on… names the last scan() did not count as an inline handler because they are not in
+     * EVENT_HANDLERS (`var once = key`, `const ONLINE = 'online'`): file (relative to $cwd), line, the
+     * name in lower case and the trimmed line as written. run() prints each as a `--` line, so a
+     * handler the list does not know yet is seen, not passed in silence.
+     *
+     * @return list<array{file: string, line: int, name: string, text: string}>
+     */
+    public function notCounted(): array
+    {
+        return $this->notCounted;
+    }
+
+    /**
      * Directories the last scan() did not enter for any other reason: a skipped place
      * (site/cache, public/media, node_modules, .git …) or a symbolic link it does not follow
      * (target outside the project, already scanned, broken). Relative to the scan's $cwd.
@@ -289,6 +401,9 @@ final class Precheck
         $this->seen = [];
         $this->skippedOwn = [];
         $this->skipped = [];
+        $this->skippedMarkdown = 0;
+        $this->markdownDir = '';
+        $this->notCounted = [];
         $findings = [];
         $package = realpath(dirname(__DIR__));
         // One set of real paths for both roots: a file reached again through a link
@@ -319,8 +434,25 @@ final class Precheck
                 }
             }
             $tree = Tree::walk($root, $root, self::SKIP_ROOT_DIRS[$name] ?? [], self::SKIP_ANYWHERE, $cwd, $package === false ? null : $package, $elsewhere, $read);
+            $plugins = $root . '/plugins/';
+            // The real plugins/ directory: a file only counts as package documentation when it really lies
+            // there — a link plugins/docs -> ../snippets or plugins/x/a.md -> ../../snippets/legal.md
+            // must not take the site's own Markdown out of the check.
+            $pluginsReal = realpath($root . '/plugins');
+            if ($name === 'site') {
+                $this->markdownDir = self::relative($root . '/plugins', $cwd);
+            }
             foreach ($tree['files'] as $path) {
                 $relative = self::relative($path, $cwd);
+                // Package documentation: a Markdown file under the site's plugins/, by its name and by its
+                // real path, which lies in the real plugins/ too (a link named .md to a template is read, and
+                // so is site Markdown reached through a link below plugins/).
+                $real = realpath($path);
+                if ($name === 'site' && $pluginsReal !== false && $real !== false && str_starts_with($path, $plugins)
+                    && str_starts_with($real, $pluginsReal . '/') && self::isMarkdown($path) && self::isMarkdown($real)) {
+                    $this->skippedMarkdown++;
+                    continue;
+                }
                 $handle = fopen($path, 'rb');
                 if ($handle === false) {
                     throw new RuntimeException('Cannot read file: ' . Text::clean($relative));
@@ -341,6 +473,12 @@ final class Precheck
                 // What Kirby's attr() helper prints, by line, read once per file with PHP's tokenizer —
                 // an array literal over several lines included.
                 $printed = self::attrNames(implode("\n", $lines));
+                // The rules read a PHP file without its comments (blanked, the line numbers kept): a
+                // comment is never printed. The finding shows the line as written.
+                $written = $lines;
+                if (preg_match('~\.(php|phtml)$~i', $path) === 1) {
+                    $lines = explode("\n", self::uncomment(implode("\n", $lines)));
+                }
                 foreach ($lines as $index => $line) {
                     foreach ($rules as $ruleName => $rule) {
                         $text = $line;
@@ -349,13 +487,18 @@ final class Precheck
                             $text = implode("\n", array_slice($lines, $index, self::TAG_LINES + 1));
                         }
                         if (!self::matches($rule, $text, $this->exceptions($ruleName), $printed[$index + 1] ?? [])) {
+                            // An on… name the rule does not count is said, once per name and line.
+                            foreach (self::uncounted($rule, $line, $printed[$index + 1] ?? []) as $uncounted) {
+                                $this->notCounted[] = ['file' => $relative, 'line' => $index + 1, 'name' => $uncounted,
+                                    'text' => mb_substr(trim($written[$index] ?? $line), 0, self::TEXT_MAX)];
+                            }
                             continue;
                         }
                         $findings[] = [
                             'rule' => $ruleName,
                             'file' => $relative,
                             'line' => $index + 1,
-                            'text' => mb_substr(trim($line), 0, self::TEXT_MAX),
+                            'text' => mb_substr(trim($written[$index] ?? $line), 0, self::TEXT_MAX),
                         ];
                     }
                 }
@@ -370,6 +513,9 @@ final class Precheck
         }
         usort($findings, static function (array $a, array $b): int {
             return [$a['file'], $a['line']] <=> [$b['file'], $b['line']];
+        });
+        usort($this->notCounted, static function (array $a, array $b): int {
+            return [$a['file'], $a['line'], $a['name']] <=> [$b['file'], $b['line'], $b['name']];
         });
         return $findings;
     }
@@ -492,6 +638,15 @@ final class Precheck
         }
         foreach ($precheck->skipped() as $directory) {
             fwrite($out, self::skippedLine($directory['dir'], $directory['reason']) . "\n");
+        }
+        $markdown = $precheck->skippedMarkdown();
+        if ($markdown > 0) {
+            fwrite($out, "  --   not checked: $markdown Markdown " . ($markdown === 1 ? 'file' : 'files') . ' in '
+                . Text::clean($precheck->markdownDir()) . " (package documentation)\n");
+        }
+        foreach ($precheck->notCounted() as $uncounted) {
+            fwrite($out, '  --   not counted: ' . Text::clean($uncounted['file']) . ':' . $uncounted['line'] . ": '"
+                . $uncounted['name'] . "' is not an event handler Genba knows: " . Text::clean($uncounted['text']) . "\n");
         }
         $scanned = $precheck->filesScanned();
         if ($scanned === 0) {
@@ -616,7 +771,7 @@ final class Precheck
         $unless = $rule['unless'] ?? [];
         if (is_string($rule['attr'] ?? null)) {
             foreach ($names ?? array_merge([], ...array_values(self::attrNames($line))) as $name) {
-                if (@preg_match($rule['attr'], $name) === 1) {
+                if (@preg_match($rule['attr'], $name) === 1 && self::named($rule, $name)) {
                     return true;
                 }
             }
@@ -643,6 +798,23 @@ final class Precheck
         if (!is_string($pattern) || @preg_match($pattern, $line) !== 1) {
             return false;
         }
+        if (is_array($rule['names'] ?? null)) {
+            // Only a match whose captured name is one of `names`: `once = key` beside nothing else is no
+            // finding, `<div once="x" onclick="go()">` is one.
+            if (@preg_match_all($pattern, $line, $all) === false) {
+                return true;
+            }
+            $named = false;
+            foreach ($all['name'] ?? [] as $name) {
+                if (self::named($rule, (string) $name)) {
+                    $named = true;
+                    break;
+                }
+            }
+            if (!$named) {
+                return false;
+            }
+        }
         if (self::exempt($line, $unless)) {
             return false;
         }
@@ -662,6 +834,80 @@ final class Precheck
             }
         }
         return false;
+    }
+
+    /**
+     * $text with the text of every PHP comment (`//`, `#`, block and doc comments) blanked: each byte but a
+     * line break becomes a space, so every line keeps its number. Read with PHP's tokenizer, which knows
+     * where PHP code starts and ends: a `/*` in a string or in the HTML around the code is no comment,
+     * and an HTML comment (`<!-- -->`) is sent to the browser and stays.
+     */
+    private static function uncomment(string $text): string
+    {
+        // A bare `<?` (not `<?php`, not `<?=`) opens PHP only where short_open_tag is on — and the PHP
+        // that runs this check need not be the server's. Such a file is read as it is: the louder way.
+        if (!str_contains($text, '<?') || preg_match('~<\?(?!php(?:\s|$)|=)~i', $text) === 1) {
+            return $text;
+        }
+        $result = '';
+        foreach (@token_get_all($text) ?: [] as $token) {
+            if (is_array($token) && ($token[0] === T_COMMENT || $token[0] === T_DOC_COMMENT)) {
+                $result .= (string) preg_replace('~[^\n]~', ' ', $token[1]);
+            } else {
+                $result .= is_array($token) ? $token[1] : $token;
+            }
+        }
+        return $result;
+    }
+
+    /**
+     * The names, lower case and once each, that the rule's pattern or the attr() names ($printed) on
+     * $line carry but `names` does not hold — [] for a rule without `names`.
+     *
+     * @param array<string,mixed> $rule
+     * @param list<string>        $printed
+     * @return list<string>
+     */
+    private static function uncounted(array $rule, string $line, array $printed): array
+    {
+        if (!is_array($rule['names'] ?? null) || !is_string($rule['pattern'] ?? null)) {
+            return [];
+        }
+        $found = [];
+        if (@preg_match_all($rule['pattern'], $line, $all) > 0) {
+            $found = array_map('strval', $all['name'] ?? []);
+        }
+        if (is_string($rule['attr'] ?? null)) {
+            foreach ($printed as $name) {
+                if (@preg_match($rule['attr'], $name) === 1) {
+                    $found[] = $name;
+                }
+            }
+        }
+        $names = [];
+        foreach ($found as $name) {
+            $name = strtolower($name);
+            if (!self::named($rule, $name) && !in_array($name, $names, true)) {
+                $names[] = $name;
+            }
+        }
+        return $names;
+    }
+
+    /** True when $path ends in .md or .markdown, any case. */
+    private static function isMarkdown(string $path): bool
+    {
+        return preg_match('~\.(md|markdown)$~i', $path) === 1;
+    }
+
+    /**
+     * True when the rule has no `names`, or $name (any case) is one of them.
+     *
+     * @param array<string,mixed> $rule
+     */
+    private static function named(array $rule, string $name): bool
+    {
+        return !is_array($rule['names'] ?? null) || in_array(strtolower($name), $rule['names'], true);
     }
 
     /**

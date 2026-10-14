@@ -12,6 +12,44 @@ All notable changes to this project are documented here. The format follows
   **[privacy text]**. Every site using the package must then review its privacy
   policy.
 
+## [1.1.0] — 2026-10-14
+
+### Fixed — `genba-precheck` false alarms in installed packages
+
+A site with other Kirby packages installed failed the pre-deploy check on lines
+that never reach a browser.
+
+- **Inline handlers by name.** The handler rule counts an `on…` name when it is
+  in `Precheck::EVENT_HANDLERS` (the HTML standard, SVG animation, Pointer and
+  Touch Events, CSS animations and transitions, Fullscreen, Selection, and the
+  engine-specific, prefixed and legacy names of WebKit, Gecko and Blink).
+  `var once = key` in a script and `const ONLINE = 'online'` in a class were
+  findings. Any other `on…` name is now no finding but a visible line:
+  `  --   not counted: <file>:<line>: '<name>' is not an event handler Genba knows: <line>`.
+- **PHP comments are not read.** In `.php` and `.phtml` files the rules read
+  the code without its comments, blanked with PHP's tokenizer (line numbers
+  kept, the finding shows the line as written). A doc comment that mentions
+  `<script>` was a finding. Strings and HTML comments are still read; a file
+  with a bare `<?` (short open tag) is read with its comments.
+- **Package Markdown is not read.** Markdown files under `site/plugins/`
+  (READMEs that document CSP rules) are counted in one line:
+  `  --   not checked: <n> Markdown files in site/plugins (package documentation)`.
+  A file whose real path is not Markdown or lies outside the real
+  `site/plugins/` (a link) is read; Markdown elsewhere is read as before.
+
+### Fixed — missed findings
+
+- A PHP closing tag right before `style=` or an `on…` handler ends the
+  attribute name, as whitespace does: `<p <?= $x ?>style="x">` and
+  `<button class="b"<?= $extra ?>onclick="go()">` were not reported.
+
+### Added
+
+- `Precheck::EVENT_HANDLERS`, `skippedMarkdown()`, `markdownDir()`,
+  `notCounted()`, and the rule key `names`. Two new self-test failures for a
+  broken rule table: `rule <name>: names is not a list of lower-case names`,
+  `rule <name>: names needs a pattern with a (?<name>…) group and no each`.
+
 ## [1.0.0] — 2026-10-14
 
 First release as a Composer package. Before 1.0.0 the same operations lived as

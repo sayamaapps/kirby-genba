@@ -417,6 +417,18 @@ control as `negatives` of the foreign-host rule. Sites add allow entries with
 realpath of the package root) is never scanned — its source and README hold
 the rule samples — and the log says so with a `--` line.
 
+**Since 1.1.0.** `inline-handler` carries `names` (`EVENT_HANDLERS`): a match counts when its
+captured name (group `name`) — or a name attr() prints — is an event handler Genba knows; any other
+on… name is no finding but an entry of `notCounted()`, printed as a `--` line (never a silent pass:
+a handler added to a browser after the list shows up there). In `.php`/`.phtml` files the rules read
+the text with every PHP comment blanked (`uncomment()`: tokenizer, every byte but `\n` a space, line
+numbers kept; the finding shows the line as written); a file with a bare `<?` is not blanked
+(short_open_tag of the checking PHP need not be the server's). Markdown files under the site root's
+`plugins/` whose real path is Markdown too and lies in the real `plugins/` are not read, counted in one `--` line
+(`skippedMarkdown()`, `markdownDir()`). Both attribute rules take a PHP closing tag as a boundary
+(`(^|[\s"'/]|\?>)`). The self-test fails a `names` that is not a list of non-empty lower-case
+strings, and `names` on a rule without a `(?<name>…)` group or with `each`.
+
 ```php
 final class Precheck
 {
@@ -443,6 +455,7 @@ final class Precheck
                                               '<script nonce="<?= $kirby->nonce() ?>" src="/a.js"></script>', '<script data-config=\'{"a":"b>c"}\' src="/a.js"></script>',
                                               "<script\n  src=\"/a.js\"\n></script>"]],
     ];
+    public const EVENT_HANDLERS = ['onabort', …];             // the on… names inline-handler counts (`names`)
     public const DEFAULT_ALLOW = ['places.googleapis.com/v1/'];
     public const DEFAULT_REQUIRE = ['public/assets/css/tailwind.css'];
     /** Skipped only directly under their root, name => reason: by place, not by name (site/snippets/media/ IS scanned). */
