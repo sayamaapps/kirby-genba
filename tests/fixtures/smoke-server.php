@@ -305,12 +305,17 @@ if ($path === '/robots.txt') {
     if (has('robots-head') && $method === 'HEAD') {
         respond(404, 'text/html', 'nicht gefunden');
     }
+    // closed-preview: the Sudare package's closed robots.txt (Disallow: /, no Sitemap
+    // line); closed-robots: the same rule with the sitemap still listing pages.
+    if (has('closed-preview') || has('closed-robots')) {
+        respond(200, 'text/plain; charset=utf-8', "# Closed preview\nUser-agent: *\nDisallow: /\n");
+    }
     respond(200, 'text/plain; charset=utf-8', "User-agent: *\nAllow: /\n\nSitemap: $base/sitemap.xml\n");
 }
 
 if ($path === '/sitemap.xml') {
     $foreign = has('foreign-sitemap') ? '<url><loc>https://alte-domain.example/</loc></url>' : '';
-    if (has('empty-sitemap')) {
+    if (has('empty-sitemap') || has('closed-preview')) {
         respond(200, 'application/xml', '<urlset></urlset>');
     }
     // The GET fails while HEAD is fine; the body is HTML; the body

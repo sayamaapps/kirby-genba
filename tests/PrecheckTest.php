@@ -354,6 +354,18 @@ try {
     holds(!str_contains($out, 'upper.php:2:') && !str_contains($out, 'upper.php:4:'), "<SCRIPT SRC> and the JSON-LD block are not findings:\n$out");
     contains('FAILED — 4 findings', $out, 'exactly the four upper-case findings');
 
+    // An event handler whose name is built at runtime (on followed by a PHP block) is a finding, with or without the =.
+    $runtime = genba_tmp('precheck-runtime');
+    $dirs[] = $runtime;
+    genba_write($runtime . '/site/templates/runtime.php', "<div on<?= \$event ?>=\"go()\">\n<p on<?= \$e ?>>x</p>\n<i one<?= \$x ?>=\"y\">\n");
+    genba_write($runtime . '/public/assets/css/tailwind.css', "body{margin:0}\n");
+    [$code, $out] = precheck_run($runtime, []);
+    expect(1, $code, "a runtime event handler name is a finding:\n$out");
+    contains('::error::site/templates/runtime.php:1: inline event handler with a name built at runtime', $out, 'on<?= … ?>="…" is a finding');
+    contains('::error::site/templates/runtime.php:2: inline event handler with a name built at runtime', $out, 'on<?= … ?> without = is a finding');
+    holds(!str_contains($out, 'runtime.php:3:'), "one<?= … ?> is no event handler name:\n$out");
+    contains('FAILED — 2 findings', $out, 'exactly the two runtime findings');
+
     // style= and on…= in every spelling the browser accepts — single quotes, spaces around =,
     // any event name — and NOT a PHP variable $style, a data-style attribute, icon= or json=.
     $spelled = genba_tmp('precheck-spelling');

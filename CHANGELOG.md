@@ -12,6 +12,28 @@ All notable changes to this project are documented here. The format follows
   **[privacy text]**. Every site using the package must then review its privacy
   policy.
 
+## 1.2.0 — unreleased
+
+### Added — `genba-smoke`: closed preview
+
+- **`GENBA_CLOSED_PREVIEW`** = `accept` | `fail`. A closed preview (the Sudare
+  package: `robots.txt` with `Disallow: /` and no `Sitemap:` line, `sitemap.xml`
+  an empty `<urlset>`) is accepted on a preview run, the default; `fail` makes it
+  the two findings it was before. Unset, the default is `accept` on a preview run
+  (`GENBA_EXPECT_PROTECTED=1` or `GENBA_USER` set), else `fail`. Only the combination
+  counts: `Disallow: /` with pages in the sitemap is a finding under either value,
+  and so is an empty sitemap with an open `robots.txt`. Any other value is exit 2.
+  The log prints one line: `  --   closed preview: robots.txt Disallow: / and an empty sitemap, so no sitemap pages were fetched (GENBA_CLOSED_PREVIEW=accept)`.
+- New finding under `Disallow: /` with pages: `robots.txt disallows all crawling (Disallow: /) but the sitemap lists pages — …`.
+
+### Added — `genba-precheck`: event handler names built at runtime
+
+- A new rule, `inline-handler-runtime`: an `on` directly followed by a PHP block
+  (`<div on<?= $event ?>="go()">`, with or without the `=`) is a finding,
+  `inline event handler with a name built at runtime — the CSP forbids it`.
+  A site with such a line now fails the check where it passed silently before.
+  The self-test reports five rules.
+
 ## [1.1.0] — 2026-10-14
 
 ### Fixed — `genba-precheck` false alarms in installed packages
