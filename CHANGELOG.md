@@ -12,7 +12,7 @@ All notable changes to this project are documented here. The format follows
   **[privacy text]**. Every site using the package must then review its privacy
   policy.
 
-## 1.2.0 — unreleased
+## [1.2.0] — 2026-10-14
 
 ### Added — `genba-smoke`: closed preview
 
