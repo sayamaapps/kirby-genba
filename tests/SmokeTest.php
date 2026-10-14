@@ -34,7 +34,7 @@ $genbaVariables = [
     'GENBA_WITHOUT_CREDENTIALS', 'GENBA_HTTPS_REDIRECT', 'GENBA_PANEL_ACCOUNT', 'GENBA_FOREIGN_SITEMAP',
     'GENBA_PAGES_MAX', 'GENBA_RETRIES', 'GENBA_PAUSE', 'GENBA_HTTP_URL', 'GENBA_SHA',
     'GENBA_EXPECT_PROTECTED', 'GENBA_NOT_READY', 'GENBA_PRIVATE_PATHS', 'GENBA_MAX_TIME',
-    'GENBA_SITEMAP_ORIGIN', 'CURL_CA_BUNDLE',
+    'GENBA_SITEMAP_ORIGIN', 'GENBA_CLOSED_PREVIEW', 'CURL_CA_BUNDLE',
     'HTTPS_PROXY', 'https_proxy', 'HTTP_PROXY', 'http_proxy', 'ALL_PROXY', 'all_proxy', 'NO_PROXY', 'no_proxy',
 ];
 $unset = array_fill_keys($genbaVariables, null);
@@ -277,6 +277,33 @@ try {
         'Sitemap page http://127\.0\.0\.1:\d+/kontakt\?x=1: HTTP 500 instead of 200 \(listed as https://prod\.example/kontakt\?x=1\)',
         ['GENBA_FOREIGN_SITEMAP' => 'rewrite']);
     $run('foreign sitemap, bad mode', '', 2, 'GENBA_FOREIGN_SITEMAP must be rewrite, warn or fail', ['GENBA_FOREIGN_SITEMAP' => 'maybe']);
+
+    // A closed preview (GENBA_CLOSED_PREVIEW): robots.txt Disallow: / without a
+    // Sitemap line and an empty sitemap, as the Sudare package serves them. Only
+    // that combination is accepted, and only with accept (the default on a preview).
+    $closedLine = '(?m)^  --   closed preview: robots\.txt Disallow: / and an empty sitemap, so no sitemap pages were fetched \(GENBA_CLOSED_PREVIEW=accept\)$';
+    $closedCredentials = ['GENBA_USER' => 'preview', 'GENBA_PASSWORD' => 'ge"heim\x'];
+    $closedPreview = $closedCredentials + ['GENBA_EXPECT_PROTECTED' => '1'];
+    $output = $run('closed preview accepted on a preview run', 'auth closed-preview', 0, $closedLine, $closedPreview);
+    holds(str_contains($output, 'Genba smoke: PASSED'), "a closed preview passes:\n$output");
+    expect(1, preg_match_all('~(?m)^  --   closed preview: ~', $output), 'the closed preview is named once');
+    holds(!str_contains($output, 'does not contain what it should') && !str_contains($output, 'Sitemap lists no pages'), "a closed preview has no findings for robots or sitemap:\n$output");
+    contains('  ok   GET /robots.txt: 200, text/plain', $output, 'robots.txt still answers 200 text/plain');
+    contains('  ok   HEAD /robots.txt: 200, text/plain', $output, 'robots.txt still answers 200 text/plain on HEAD');
+    contains('  ok   GET /llms.txt: 200, text/plain', $output, 'llms.txt still answers 200 text/plain');
+    $output = $run('closed preview, explicit accept', 'auth closed-preview', 0, $closedLine, $closedPreview + ['GENBA_CLOSED_PREVIEW' => 'accept']);
+    $output = $run('closed preview, explicit fail on a preview run', 'auth closed-preview', 1,
+        '(?m)^::error::/robots\.txt does not contain what it should \(pattern: \^Sitemap: \)$', $closedPreview + ['GENBA_CLOSED_PREVIEW' => 'fail']);
+    holds(str_contains($output, '::error::Sitemap lists no pages') && !str_contains($output, 'closed preview:'), "fail names both findings and no closed line:\n$output");
+    $output = $run('closed preview on a non-preview run: fail', 'closed-preview', 1,
+        '(?m)^::error::Sitemap lists no pages$');
+    holds(str_contains($output, '::error::/robots.txt does not contain what it should') && !str_contains($output, 'closed preview:'), "a closed site on a non-preview run is two findings:\n$output");
+    $run('closed robots with pages, accept still fails', 'auth closed-robots', 1,
+        '(?m)^::error::robots\.txt disallows all crawling \(Disallow: /\) but the sitemap lists pages — the live site would be closed by mistake', $closedPreview);
+    $output = $run('empty sitemap with open robots, accept still fails', 'empty-sitemap', 1,
+        '(?m)^::error::Sitemap lists no pages$', ['GENBA_CLOSED_PREVIEW' => 'accept']);
+    holds(!str_contains($output, 'closed preview:'), "an open robots.txt is no closed preview:\n$output");
+    $run('bad GENBA_CLOSED_PREVIEW', '', 2, 'GENBA_CLOSED_PREVIEW must be accept or fail', ['GENBA_CLOSED_PREVIEW' => 'yes']);
 
     // Decision 20, refined: unset, the default is rewrite on a
     // preview run (GENBA_EXPECT_PROTECTED=1 or GENBA_USER), else fail — named in the log.

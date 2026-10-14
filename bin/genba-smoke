@@ -66,6 +66,10 @@ Settings (environment variables):
                               GENBA_URL origin | a warning | a finding. Default: rewrite
                               on a preview run (GENBA_EXPECT_PROTECTED=1 or GENBA_USER
                               set), else fail; the log names the default taken
+  GENBA_CLOSED_PREVIEW        accept | fail: a closed preview (robots.txt Disallow: /
+                              and an empty sitemap, as the Sudare package serves it)
+                              is accepted, or a finding. Default: accept on a preview
+                              run (GENBA_EXPECT_PROTECTED=1 or GENBA_USER set), else fail
   GENBA_SITEMAP_ORIGIN        https://... : the one foreign origin the sitemap may list
                               (production); entries on any other origin are a finding
   GENBA_PRIVATE_PATHS         paths that must not answer 2xx, ADDED to the default list
@@ -208,6 +212,7 @@ MARKER=${GENBA_MARKER-assets/css/tailwind.css}
 HTTPS_MODE=${GENBA_HTTPS_REDIRECT:-require}
 PANEL_MODE=${GENBA_PANEL_ACCOUNT:-require}
 FOREIGN_MODE=${GENBA_FOREIGN_SITEMAP:-}
+CLOSED_MODE=${GENBA_CLOSED_PREVIEW:-}
 SITEMAP_ORIGIN=${GENBA_SITEMAP_ORIGIN:-}
 SITEMAP_ORIGIN=${SITEMAP_ORIGIN%/}
 CREDENTIALS_MODE=${GENBA_WITHOUT_CREDENTIALS:-fail}
@@ -231,6 +236,10 @@ esac
 case "$FOREIGN_MODE" in
   ''|rewrite|warn|fail) ;;
   *) cannot_run "GENBA_FOREIGN_SITEMAP must be rewrite, warn or fail" ;;
+esac
+case "$CLOSED_MODE" in
+  ''|accept|fail) ;;
+  *) cannot_run "GENBA_CLOSED_PREVIEW must be accept or fail" ;;
 esac
 case "$CREDENTIALS_MODE" in
   fail|skip) ;;
@@ -563,6 +572,15 @@ if [[ -z "$FOREIGN_MODE" ]]; then
     FOREIGN_DEFAULT="GENBA_FOREIGN_SITEMAP not set: fail (not a preview run: neither GENBA_EXPECT_PROTECTED=1 nor GENBA_USER)"
   fi
 fi
+# Unset GENBA_CLOSED_PREVIEW: the same rule. A closed preview is what the Sudare
+# package serves on purpose; on any other site it means the site is closed.
+if [[ -z "$CLOSED_MODE" ]]; then
+  if [[ "$EXPECT_PROTECTED" == 1 || -n "$USER_NAME" ]]; then
+    CLOSED_MODE=accept
+  else
+    CLOSED_MODE=fail
+  fi
+fi
 
 # --- curl ---------------------------------------------------------------------
 TMP=$(mktemp -d)
@@ -890,6 +908,28 @@ expected_type() {
   esac
 }
 
+# robots_disallows_all FILE: 0 when FILE holds a User-agent: * line and Disallow: /
+# and nothing else but a Sitemap line, comments and blank lines. Any other rule
+# (an Allow, a Disallow of one path, another User-agent) makes it 1.
+robots_disallows_all() {
+  LC_ALL=C tr -d '\r' < "$1" | LC_ALL=C awk '
+    { sub(/#.*/, ""); gsub(/^[ \t]+|[ \t]+$/, "") }
+    $0 == "" { next }
+    tolower($0) ~ /^user-agent:[ \t]*\*$/ { ua = 1; next }
+    tolower($0) ~ /^disallow:[ \t]*\/$/ { dis = 1; next }
+    tolower($0) ~ /^sitemap:[ \t]*[^ \t]/ { next }
+    { other = 1 }
+    END { exit !(ua && dis && !other) }'
+}
+
+# sitemap_has_entries: 0 when the sitemap body names a <url> or a <loc> element
+# (comments aside). An empty <urlset> names none; a prefixed <sm:url> counts too.
+sitemap_has_entries() {
+  LC_ALL=C tr -d '\n\r' < "$TMP/sitemap.xml" \
+    | LC_ALL=C sed -E "$strip_comments" \
+    | LC_ALL=C grep -aqE '<([A-Za-z_][A-Za-z0-9_.-]*:)?(url|loc)[[:space:]/>]'
+}
+
 # check_file PATH TYPES PATTERN [MAX_BYTES]: GET and HEAD must answer 200 with
 # one of the types (separated by |), and the GET body must match the pattern.
 # The body is fetched ONCE and kept as $TMP/PATH for the checks that follow —
@@ -924,7 +964,8 @@ check_file() {
       ok "$method /$path: 200, $TYPE"
     fi
   done
-  if [[ "$get_code" == 200 ]] && ! LC_ALL=C grep -aqE -- "$pattern" "$TMP/$path"; then
+  CHECK_GET_CODE=$get_code
+  if [[ "$get_code" == 200 && -n "$pattern" ]] && ! LC_ALL=C grep -aqE -- "$pattern" "$TMP/$path"; then
     fail "/$path does not contain what it should (pattern: $pattern)"
   fi
 }
@@ -1044,14 +1085,38 @@ else
 fi
 
 # 3. robots.txt, sitemap.xml, llms.txt per GET and HEAD -------------------------
-check_file robots.txt 'text/plain' '^Sitemap: '
+check_file robots.txt 'text/plain' ''
+ROBOTS_GET_CODE=$CHECK_GET_CODE
 check_file sitemap.xml 'application/xml|text/xml' '<urlset' "$BODY_MAX_BYTES"
+SITEMAP_GET_CODE=$CHECK_GET_CODE
 check_file llms.txt 'text/plain|text/markdown' '^# '
+
+# 3b. A closed preview (GENBA_CLOSED_PREVIEW=accept) ------------------------------
+# The Sudare package serves robots.txt as Disallow: / without a Sitemap line, and
+# sitemap.xml as an empty <urlset>, on purpose. Only that combination is accepted:
+# Disallow: / with pages in the sitemap would close the live site by mistake, and
+# an empty sitemap with an open robots.txt stays a finding.
+CLOSED=0
+if [[ "$CLOSED_MODE" == accept && "$ROBOTS_GET_CODE" == 200 && "$SITEMAP_GET_CODE" == 200 ]] \
+  && [[ -f "$TMP/robots.txt" && -f "$TMP/sitemap.xml" ]] \
+  && robots_disallows_all "$TMP/robots.txt" && LC_ALL=C grep -aq '<urlset' "$TMP/sitemap.xml"; then
+  if sitemap_has_entries; then
+    fail "robots.txt disallows all crawling (Disallow: /) but the sitemap lists pages — the live site would be closed by mistake (GENBA_CLOSED_PREVIEW=accept accepts Disallow: / only with an empty sitemap)"
+  else
+    CLOSED=1
+  fi
+fi
+# The pattern of check 3, for a robots.txt that is not the closed one.
+if [[ "$ROBOTS_GET_CODE" == 200 ]] && (( ! CLOSED )) && ! LC_ALL=C grep -aqE -- '^Sitemap: ' "$TMP/robots.txt"; then
+  fail "/robots.txt does not contain what it should (pattern: ^Sitemap: )"
+fi
 
 # 4. Every page of the sitemap -------------------------------------------------
 # The body of the one GET above. Missing or without <urlset> (the finding is
 # already printed), the pages cannot be checked — said out loud, never skipped.
-if [[ ! -s "$TMP/sitemap.xml" ]] || ! LC_ALL=C grep -aq '<urlset' "$TMP/sitemap.xml"; then
+if (( CLOSED )); then
+  note "closed preview: robots.txt Disallow: / and an empty sitemap, so no sitemap pages were fetched (GENBA_CLOSED_PREVIEW=accept)"
+elif [[ ! -s "$TMP/sitemap.xml" ]] || ! LC_ALL=C grep -aq '<urlset' "$TMP/sitemap.xml"; then
   fail "Sitemap not available for page check"
 else
   # A pretty-printed sitemap puts the address on its own line, some generators
