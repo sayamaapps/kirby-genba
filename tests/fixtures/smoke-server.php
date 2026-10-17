@@ -516,8 +516,11 @@ if ($path === '/http-umleitung') {
 # The Panel: a visitor who is not signed in is sent on to the login page, which
 # names two files under /media/panel (fault panel-no-files: none; panel-css-404:
 # the stylesheet is missing); panel-redirect-out: the redirect leaves /panel.
+// Kirby 5 sends the redirect as a Refresh header; panel-location: as a Location.
 if ($path === '/panel') {
-    respond(302, 'text/html; charset=utf-8', '', ['Location' => has('panel-redirect-out') ? '/elsewhere' : '/panel/login']);
+    $target = has('panel-redirect-out') ? '/elsewhere' : '/panel/login';
+    $redirect = has('panel-location') ? ['Location' => $target] : ['Refresh' => '0; url=' . $target];
+    respond(302, 'text/html; charset=utf-8', '', $redirect);
 }
 if ($path === '/panel/login') {
     $files = has('panel-no-files') ? '' : '<script src="/media/panel/js/app.js"></script>'

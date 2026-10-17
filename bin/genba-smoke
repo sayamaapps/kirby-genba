@@ -1465,8 +1465,14 @@ if [[ "$PANEL_MODE" != off ]]; then
       # redirect URL would carry the credentials of a protected preview.
       : > "$TMP/panel-head.txt"
       curl "${CURL_OPTS[@]}" -D "$TMP/panel-head.txt" -o /dev/null "$URL/panel" >/dev/null 2>&1 || true
+      # Kirby 5 sends a visitor who is not signed in on with a Refresh header
+      # ("0; url=…") rather than a Location: both count.
       panel_location=$(grep -i '^location:' "$TMP/panel-head.txt" | tail -n 1 | tr -d '\r' \
         | sed 's/^[Ll][Oo][Cc][Aa][Tt][Ii][Oo][Nn]:[[:space:]]*//' || true)
+      if [[ -z "$panel_location" ]]; then
+        panel_location=$(grep -i '^refresh:' "$TMP/panel-head.txt" | tail -n 1 | tr -d '\r' \
+          | sed -n 's/.*[Uu][Rr][Ll]=//p' | tr -d "'\"" || true)
+      fi
       panel_target=''
       case "$panel_location" in
         /panel|/panel/*|/panel\?*) panel_target="$URL$panel_location" ;;

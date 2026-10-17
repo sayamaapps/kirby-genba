@@ -227,6 +227,7 @@ try {
     $run('Panel names no files', 'panel-no-files', 1, 'names no JS or CSS under /media/panel');
     $run('Panel stylesheet 404', 'panel-css-404', 1, 'Panel file /media/panel/css/app.css: HTTP 404');
     $run('Panel redirect leaves /panel', 'panel-redirect-out', 1, "/panel: HTTP 302 to '.*elsewhere', not to a page under /panel");
+    $run('Panel redirect by Location', 'panel-location', 0, 'its 2 files arrive');
     // Check 9, GENBA_HEADERS: the rules per line, with the path of each.
     $headersOk = "Strict-Transport-Security: max-age=15552000\n"
         . "X-Content-Type-Options: nosniff\n"
