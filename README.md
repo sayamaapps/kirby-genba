@@ -553,6 +553,7 @@ Genba smoke: SKIPPED — https to <host> fails (certificate pending?)
   ok   Panel: /panel answers 200, its <n> files arrive
 ::error::/panel names no JS or CSS under /media/panel — an empty Panel page?
 ::error::Panel file <path>: HTTP <code> instead of 200[ — <curl's message>]
+::error::/panel: HTTP <code> to '<location>', not to a page under /panel
   --   response headers not checked (GENBA_HEADERS not set)
   ok   homepage <name>: exactly '<value>' (HTTP 200)
 ::error::homepage <name>: sent '<value>', expected exactly '<value>' (HTTP 200)

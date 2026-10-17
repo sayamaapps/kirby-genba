@@ -1453,9 +1453,36 @@ fi
 # 7b. Panel files: /panel answers, and the JS and CSS it names arrive ----------
 # A Panel whose files do not arrive is an empty page for the editors. The
 # files are the ones /panel names under /media/panel or /media/plugins.
+# Kirby sends a visitor who is not signed in on to the Panel's login page: one
+# redirect is followed, and only when its target lies under /panel. Any other
+# redirect is a finding, as everywhere else.
 if [[ "$PANEL_MODE" != off ]]; then
   fetch GET "$URL/panel" "$TMP/panel.html"
-  if [[ "$CODE" != 200 ]]; then
+  panel_redirect_ok=1
+  case "$CODE" in
+    301|302|303|307|308)
+      # The Location as the server sent it, read from the headers. curl's own
+      # redirect URL would carry the credentials of a protected preview.
+      : > "$TMP/panel-head.txt"
+      curl "${CURL_OPTS[@]}" -D "$TMP/panel-head.txt" -o /dev/null "$URL/panel" >/dev/null 2>&1 || true
+      panel_location=$(grep -i '^location:' "$TMP/panel-head.txt" | tail -n 1 | tr -d '\r' \
+        | sed 's/^[Ll][Oo][Cc][Aa][Tt][Ii][Oo][Nn]:[[:space:]]*//' || true)
+      panel_target=''
+      case "$panel_location" in
+        /panel|/panel/*|/panel\?*) panel_target="$URL$panel_location" ;;
+        "$URL/panel"|"$URL/panel/"*|"$URL/panel?"*) panel_target=$panel_location ;;
+      esac
+      if [[ -n "$panel_target" ]]; then
+        fetch GET "$panel_target" "$TMP/panel.html"
+      else
+        fail "/panel: HTTP $CODE to '$(log_text "$panel_location")', not to a page under /panel"
+        panel_redirect_ok=0
+      fi
+      ;;
+  esac
+  if (( panel_redirect_ok == 0 )); then
+    : # reported above
+  elif [[ "$CODE" != 200 ]]; then
     fail "/panel: HTTP $CODE instead of 200$(fetch_detail)"
   else
     LC_ALL=C grep -aoE "/media/(panel|plugins)/[^\"' )<>]+\.(js|css|mjs)" "$TMP/panel.html" 2>/dev/null \

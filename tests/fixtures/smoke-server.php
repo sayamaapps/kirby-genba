@@ -513,9 +513,13 @@ if ($path === '/http-umleitung') {
         . (has('raw-c1-redirect') ? "\x9b31mA-stra\xc3\x9f\x9be-\xc2\x9b0m-\x9b" : '')]);
 }
 
-// The Panel page names two files under /media/panel (fault panel-no-files: none;
-// panel-css-404: the stylesheet is missing).
+# The Panel: a visitor who is not signed in is sent on to the login page, which
+# names two files under /media/panel (fault panel-no-files: none; panel-css-404:
+# the stylesheet is missing); panel-redirect-out: the redirect leaves /panel.
 if ($path === '/panel') {
+    respond(302, 'text/html; charset=utf-8', '', ['Location' => has('panel-redirect-out') ? '/elsewhere' : '/panel/login']);
+}
+if ($path === '/panel/login') {
     $files = has('panel-no-files') ? '' : '<script src="/media/panel/js/app.js"></script>'
         . '<link rel="stylesheet" href="/media/panel/css/app.css">';
     respond(200, 'text/html; charset=utf-8', '<!doctype html><title>Panel</title>' . $files);
