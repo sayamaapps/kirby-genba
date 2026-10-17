@@ -12,7 +12,7 @@ All notable changes to this project are documented here. The format follows
   **[privacy text]**. Every site using the package must then review its privacy
   policy.
 
-## [Unreleased]
+## [1.3.0] — 2026-10-17
 
 ### Added — `genba-smoke` checks for headers and the Panel's files
 
