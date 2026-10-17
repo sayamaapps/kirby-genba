@@ -34,7 +34,7 @@ $genbaVariables = [
     'GENBA_WITHOUT_CREDENTIALS', 'GENBA_HTTPS_REDIRECT', 'GENBA_PANEL_ACCOUNT', 'GENBA_FOREIGN_SITEMAP',
     'GENBA_PAGES_MAX', 'GENBA_RETRIES', 'GENBA_PAUSE', 'GENBA_HTTP_URL', 'GENBA_SHA',
     'GENBA_EXPECT_PROTECTED', 'GENBA_NOT_READY', 'GENBA_PRIVATE_PATHS', 'GENBA_MAX_TIME',
-    'GENBA_SITEMAP_ORIGIN', 'GENBA_CLOSED_PREVIEW', 'CURL_CA_BUNDLE',
+    'GENBA_SITEMAP_ORIGIN', 'GENBA_CLOSED_PREVIEW', 'GENBA_HEADERS', 'CURL_CA_BUNDLE',
     'HTTPS_PROXY', 'https_proxy', 'HTTP_PROXY', 'http_proxy', 'ALL_PROXY', 'all_proxy', 'NO_PROXY', 'no_proxy',
 ];
 $unset = array_fill_keys($genbaVariables, null);
@@ -223,6 +223,27 @@ try {
     $run('Panel without account, warn', 'panel-empty', 0, '::warning::Panel without account', ['GENBA_PANEL_ACCOUNT' => 'warn']);
     $run('Panel installer open', 'panel-open', 1, 'can be installed from outside');
     $run('installer open, even in warn mode', 'panel-open', 1, 'can be installed from outside', ['GENBA_PANEL_ACCOUNT' => 'warn']);
+    $run('Panel files arrive', '', 0, 'its 2 files arrive');
+    $run('Panel names no files', 'panel-no-files', 1, 'names no JS or CSS under /media/panel');
+    $run('Panel stylesheet 404', 'panel-css-404', 1, 'Panel file /media/panel/css/app.css: HTTP 404');
+    $run('Panel redirect leaves /panel', 'panel-redirect-out', 1, "/panel: HTTP 302 to '.*elsewhere', not to a page under /panel");
+    $run('Panel redirect by Location', 'panel-location', 0, 'its 2 files arrive');
+    // Check 9, GENBA_HEADERS: the rules per line, with the path of each.
+    $headersOk = "Strict-Transport-Security: max-age=15552000\n"
+        . "X-Content-Type-Options: nosniff\n"
+        . "# Kommentare und Leerzeilen zählen nicht\n\n"
+        . "Content-Security-Policy: ~script-src 'self';\n"
+        . "/panel Content-Security-Policy: ~unsafe-inline\n"
+        . "/ Content-Security-Policy: !~unsafe-inline\n"
+        . "Referrer-Policy: *\n"
+        . "X-Robots-Tag: none";
+    $run('headers as set', 'headers', 0, 'Genba smoke: PASSED', ['GENBA_HEADERS' => $headersOk]);
+    $run('header value differs', 'headers', 1, "homepage Strict-Transport-Security: sent 'max-age=15552000', expected exactly 'max-age=1'", ['GENBA_HEADERS' => 'Strict-Transport-Security: max-age=1']);
+    $run('header not sent', '', 1, 'homepage X-Frame-Options: not sent, expected present', ['GENBA_HEADERS' => 'X-Frame-Options: *']);
+    $run('header sent, must be absent', 'headers', 1, 'homepage Referrer-Policy: sent', ['GENBA_HEADERS' => 'Referrer-Policy: none']);
+    $run('Panel CSP must not allow inline', 'headers', 1, '/panel Content-Security-Policy: sent', ['GENBA_HEADERS' => '/panel Content-Security-Policy: !~unsafe-inline']);
+    $run('rule without colon', '', 2, 'a line needs .Name: rule.', ['GENBA_HEADERS' => 'Referrer-Policy *']);
+    $run('path with a space-free bad character', '', 2, 'must be / followed by letters', ['GENBA_HEADERS' => '/a%b X-A: *']);
     $run('preview without credentials', 'auth', 1, 'HTTP 401 instead of 200 \(protected');
     $run('preview without credentials, skip', 'auth', 0, '::warning::Genba smoke: SKIPPED.*\nGenba smoke: SKIPPED — build not verified', ['GENBA_WITHOUT_CREDENTIALS' => 'skip']);
     $run('empty user and empty password, skip', 'auth', 0, '\nGenba smoke: SKIPPED — build not verified', ['GENBA_USER' => '', 'GENBA_PASSWORD' => '', 'GENBA_WITHOUT_CREDENTIALS' => 'skip']);
@@ -1141,7 +1162,8 @@ try {
     // setting, named in a fixed list of left operands. A new =~ on page text is red on every system.
     $regexCheck = static function (string $source): array {
         $problems = [];
-        $settings = ['$URL', '$EXPECTED', '$META', '$entry', '$PAGES_MAX', '$RETRIES', '$PAUSE', '$MAX_TIME', '$SITEMAP_ORIGIN'];
+        // $hdr_path and $hdr_name: the GENBA_HEADERS lines, read from the operator's setting.
+        $settings = ['$URL', '$EXPECTED', '$META', '$entry', '$PAGES_MAX', '$RETRIES', '$PAUSE', '$MAX_TIME', '$SITEMAP_ORIGIN', '$hdr_path', '$hdr_name'];
         if (preg_match('~^bytes_match\(\) \(\n((?:.*\n)*?)\)\n~m', $source, $function, PREG_OFFSET_CAPTURE) !== 1) {
             return ['bytes_match() ( … ) not found'];
         }

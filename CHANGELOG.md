@@ -12,6 +12,26 @@ All notable changes to this project are documented here. The format follows
   **[privacy text]**. Every site using the package must then review its privacy
   policy.
 
+## [1.3.0] — 2026-10-17
+
+### Added — `genba-smoke` checks for headers and the Panel's files
+
+Two checks that sites ran on their own before the smoke test existed: the
+response headers of a hardened site, and the Panel's own files.
+
+- **Check 9, `GENBA_HEADERS`.** One rule per line, `[/path] Name: rule`: a value
+  (exact), `*` (present), `none` (absent), `~text` (contains), `!~text` (does not
+  contain). One request per rule, on the rule's own path, so a Panel page can carry
+  a different Content-Security-Policy than the rest of the site. Read before the
+  first request: a broken line is a usage error (exit 2), never a silent pass.
+  Not set: a visible `--` line, as before.
+- **Check 7b, Panel files.** `/panel` must answer 200, and every JS or CSS file it
+  names under `/media/panel` or `/media/plugins` must answer 200. Off with
+  `GENBA_PANEL_ACCOUNT=off`. A site with a Panel gets this check on upgrade; a
+  page without Panel files is reported as a finding.
+
+Neither changes an existing message, exit code or meta output.
+
 ## [1.2.0] — 2026-10-14
 
 ### Added — `genba-smoke`: closed preview
