@@ -48,8 +48,8 @@ $expectedRequests = [
 /** What every precheck variant must find: one finding per rule, nothing for the external script and the JSON-LD block. */
 $expectedFindings = ['embedded-script', 'foreign-host', 'inline-handler', 'inline-style'];
 
-/** The GET requests of every run, whatever the homepage: the checks 1 to 4 and 6 to 8 (sitemap pages / and /kontakt). */
-$runRequests = '~^GET /(|genba-smoke-does-not-exist-\d+-\d+|robots\.txt|sitemap\.xml|llms\.txt|kontakt|api/system|http-umleitung)$~';
+/** The GET requests of every run, whatever the homepage: the checks 1 to 4, 6 to 8 and 7b (sitemap pages / and /kontakt, the Panel's own page and files). */
+$runRequests = '~^GET /(|genba-smoke-does-not-exist-\d+-\d+|robots\.txt|sitemap\.xml|llms\.txt|kontakt|api/system|http-umleitung|panel|media/panel/js/app\.js|media/panel/css/app\.css)$~';
 
 try {
     /* ---- genba-smoke ----------------------------------------------------- */

@@ -63,6 +63,18 @@ if (has('lower-base')) {
 }
 $base = 'http://' . $host;
 
+// Response headers (fault `headers`): the set a hardened site sends. The Panel
+// page carries its own Content-Security-Policy with inline scripts, the rest of
+// the site the strict one.
+if (has('headers')) {
+    header('Strict-Transport-Security: max-age=15552000');
+    header('X-Content-Type-Options: nosniff');
+    header('Referrer-Policy: strict-origin-when-cross-origin');
+    header("Content-Security-Policy: " . ($path === '/panel'
+        ? "script-src 'self' 'unsafe-inline' blob:; object-src 'none'"
+        : "script-src 'self'; object-src 'none'"));
+}
+
 /**
  * Sends one response and ends the request. $declared: a Content-Length other than the body's
  * (short-sitemap: more than is sent, so the client sees the transfer break).
@@ -499,6 +511,23 @@ if ($path === '/http-umleitung') {
     // in a UTF-8 locale further on, and the test is about the filter.
     respond(301, 'text/html', '', ['Location' => "https://$host/" . (has('esc-redirect') ? "\x1b[31mRED\x1b[0m" : '')
         . (has('raw-c1-redirect') ? "\x9b31mA-stra\xc3\x9f\x9be-\xc2\x9b0m-\x9b" : '')]);
+}
+
+// The Panel page names two files under /media/panel (fault panel-no-files: none;
+// panel-css-404: the stylesheet is missing).
+if ($path === '/panel') {
+    $files = has('panel-no-files') ? '' : '<script src="/media/panel/js/app.js"></script>'
+        . '<link rel="stylesheet" href="/media/panel/css/app.css">';
+    respond(200, 'text/html; charset=utf-8', '<!doctype html><title>Panel</title>' . $files);
+}
+if ($path === '/media/panel/js/app.js') {
+    respond(200, 'application/javascript', 'window.panel = true;');
+}
+if ($path === '/media/panel/css/app.css') {
+    if (has('panel-css-404')) {
+        respond(404, 'text/plain', 'nicht gefunden');
+    }
+    respond(200, 'text/css', 'body{margin:0}');
 }
 
 if (has('no-404')) {
