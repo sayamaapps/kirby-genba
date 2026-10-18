@@ -12,6 +12,27 @@ All notable changes to this project are documented here. The format follows
   **[privacy text]**. Every site using the package must then review its privacy
   policy.
 
+## [Unreleased]
+
+### Fixed — `genba-smoke` checks 9 and 7b: nothing is green that was not checked
+
+A site that passed before can fail now — in exactly the cases that passed by mistake.
+
+- **Check 9, a rule's path must answer 2xx or 3xx.** A path with a typo answered 404,
+  and the rule was checked against the error page's headers: `ok … (HTTP 404)`. Any
+  other code is now a finding, `<label>: HTTP <code> instead of 2xx or 3xx — the
+  header was not checked (path wrong?)`. 3xx stays: `/panel` answers 302.
+- **Check 9, `!~text` asks for a header that is sent.** A Content-Security-Policy that
+  got lost passed `!~unsafe-inline`. A header not sent is now `<label>: not sent,
+  expected not containing '<text>'`.
+- **Check 9, `~` or `!~` without text** is a usage error, exit 2: `GENBA_HEADERS: the
+  rule for <name> is '~' without text`. `~` alone was true of every value sent.
+- **Check 7b, Panel files are read like stylesheets.** Each must answer 200 with a
+  script type (`text/javascript`, `application/javascript`,
+  `application/x-javascript`) or `text/css` and must not be empty. A fallback route
+  that answers every path with an HTML page passed before; now `Panel file <path>:
+  HTTP 200, '<type>', <bytes> bytes — expected …, not empty`.
+
 ## [1.3.0] — 2026-10-17
 
 ### Added — `genba-smoke` checks for headers and the Panel's files

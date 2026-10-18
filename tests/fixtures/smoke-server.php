@@ -527,12 +527,18 @@ if ($path === '/panel/login') {
         . '<link rel="stylesheet" href="/media/panel/css/app.css">';
     respond(200, 'text/html; charset=utf-8', '<!doctype html><title>Panel</title>' . $files);
 }
+// panel-js-empty: the script answers 200 without a byte; panel-js-text: as text/javascript
+// (RFC 9239, newer Apache and nginx); panel-html-fallback: a fallback route answers the
+// stylesheet with an HTML page, 200.
 if ($path === '/media/panel/js/app.js') {
-    respond(200, 'application/javascript', 'window.panel = true;');
+    respond(200, has('panel-js-text') ? 'text/javascript; charset=utf-8' : 'application/javascript', has('panel-js-empty') ? '' : 'window.panel = true;');
 }
 if ($path === '/media/panel/css/app.css') {
     if (has('panel-css-404')) {
         respond(404, 'text/plain', 'nicht gefunden');
+    }
+    if (has('panel-html-fallback')) {
+        respond(200, 'text/html; charset=utf-8', '<!doctype html><title>Startseite</title>');
     }
     respond(200, 'text/css', 'body{margin:0}');
 }

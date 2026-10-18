@@ -11,7 +11,9 @@
 #   2. unknown address answers 404            6. http -> https redirect
 #   3. robots.txt, sitemap.xml, llms.txt      7. Panel: account present,
 #   4. every sitemap page                        installer locked
+#   7b. Panel: /panel answers, the JS and CSS files it names arrive
 #   8. nothing above public/ is reachable (private paths)
+#   9. response headers (GENBA_HEADERS)
 #
 # curl fetches, PHP reads: the saved homepage is read by
 # bin/genba-smoke-read (src/Homepage.php) with an HTML5 parser; bash keeps the
@@ -77,8 +79,9 @@ Settings (environment variables):
                               the entry none drops the default, none alone = off
   GENBA_HEADERS               response headers, one rule per line: "[/path] Name: rule",
                               rule = value (exact) | * (present) | none (absent) |
-                              ~text (contains) | !~text (does not contain); path
-                              default /. Unset = not checked (check 9)
+                              ~text (contains) | !~text (sent, does not contain); path
+                              default /, it must answer 2xx or 3xx. Unset = not
+                              checked (check 9)
   GENBA_PAGES_MAX             sitemap pages fetched (default: 30)
   GENBA_RETRIES               homepage attempts while a cache holds the old build (default: 3)
   GENBA_PAUSE                 seconds between attempts (default: 5)
@@ -265,6 +268,10 @@ while IFS= read -r hdr_line || [[ -n "$hdr_line" ]]; do
   hdr_rule=${hdr_rule#"${hdr_rule%%[![:space:]]*}"}
   [[ "$hdr_name" =~ ^[A-Za-z0-9-]+$ ]] || cannot_run "GENBA_HEADERS: '$hdr_name' is not a header name"
   [[ -n "$hdr_rule" ]] || cannot_run "GENBA_HEADERS: the rule for $hdr_name is empty"
+  # "~" alone would be "containing ''", true of every value sent: a rule that checks nothing.
+  if [[ "$hdr_rule" == '~' || "$hdr_rule" == '!~' ]]; then
+    cannot_run "GENBA_HEADERS: the rule for $hdr_name is '$hdr_rule' without text"
+  fi
   HDR_PATH+=("$hdr_path")
   HDR_NAME+=("$hdr_name")
   HDR_RULE+=("$hdr_rule")
@@ -1452,7 +1459,9 @@ fi
 
 # 7b. Panel files: /panel answers, and the JS and CSS it names arrive ----------
 # A Panel whose files do not arrive is an empty page for the editors. The
-# files are the ones /panel names under /media/panel or /media/plugins.
+# files are the ones /panel names under /media/panel or /media/plugins; each
+# must answer 200 with a script or stylesheet type and a body — a fallback
+# route that answers every path with an HTML page, 200, is no Panel file.
 # Kirby sends a visitor who is not signed in on to the Panel's login page: one
 # redirect is followed, and only when its target lies under /panel. Any other
 # redirect is a finding, as everywhere else.
@@ -1498,9 +1507,22 @@ if [[ "$PANEL_MODE" != off ]]; then
     while IFS= read -r panel_file; do
       [[ -n "$panel_file" ]] || continue
       panel_files=$((panel_files + 1))
+      # A fresh file per fetch, as for the stylesheets: the byte count must not be the previous file's.
+      rm -f "$TMP/panel-file"
       fetch GET "$URL$panel_file" "$TMP/panel-file"
+      case "$panel_file" in
+        *.css) panel_types='text/css' ;;
+        *) panel_types='text/javascript|application/javascript|application/x-javascript' ;;
+      esac
+      bytes=0
+      if [[ -f "$TMP/panel-file" ]]; then
+        bytes=$(wc -c < "$TMP/panel-file" | tr -d ' ')
+      fi
       if [[ "$CODE" != 200 ]]; then
         fail "Panel file $(log_text "$panel_file"): HTTP $CODE instead of 200$(fetch_detail)"
+        panel_broken=$((panel_broken + 1))
+      elif [[ "|$panel_types|" != *"|$TYPE|"* || "$bytes" == 0 ]]; then
+        fail "Panel file $(log_text "$panel_file"): HTTP $CODE, '$TYPE', $bytes bytes — expected ${panel_types//|/ or }, not empty"
         panel_broken=$((panel_broken + 1))
       fi
     done < "$TMP/panel-files.txt"
@@ -1546,7 +1568,10 @@ fi
 # 9. Response headers (GENBA_HEADERS) ------------------------------------------
 # One request per rule, with its own path. The header is read from the last
 # response block of that request (no redirect is followed). Rules: a value
-# (exact), * (present), none (absent), ~text (contains), !~text (does not contain).
+# (exact), * (present), none (absent), ~text (contains), !~text (sent and does
+# not contain). The path must answer 2xx or 3xx (the Panel answers a visitor
+# who is not signed in with 302): the headers of an error page — a typo in the
+# path, 404 — say nothing about the page the rule is meant for.
 if (( ${#HDR_NAME[@]} == 0 )); then
   note "response headers not checked (GENBA_HEADERS not set)"
 else
@@ -1563,6 +1588,10 @@ else
     [[ -n "$HDR_CODE" ]] || HDR_CODE=000
     if [[ "$HDR_CODE" == 000 ]]; then
       fail "$hdr_label: no answer (HTTP 000)$(curl_error "$TMP/headers.err" | sed 's/^/ — /')"
+      continue
+    fi
+    if [[ "$HDR_CODE" != [23]?? ]]; then
+      fail "$hdr_label: HTTP $HDR_CODE instead of 2xx or 3xx — the header was not checked (path wrong?)"
       continue
     fi
     seen=$(LC_ALL=C awk -v want="$hdr_want" '
@@ -1601,9 +1630,10 @@ else
         if [[ "$hdr_present" == 1 && "$hdr_value" == *"$hdr_text"* ]]; then hdr_ok=1; fi
         ;;
       '!~'*)
+        # Sent, and without the text: a CSP that got lost does not pass !~unsafe-inline.
         hdr_text=${hdr_rule#'!~'}
         hdr_expect="not containing '$hdr_text'"
-        if [[ "$hdr_present" == 0 || "$hdr_value" != *"$hdr_text"* ]]; then hdr_ok=1; fi
+        if [[ "$hdr_present" == 1 && "$hdr_value" != *"$hdr_text"* ]]; then hdr_ok=1; fi
         ;;
       *)
         hdr_expect="exactly '$hdr_rule'"
