@@ -33,6 +33,16 @@ A site that passed before can fail now — in exactly the cases that passed by m
   that answers every path with an HTML page passed before; now `Panel file <path>:
   HTTP 200, '<type>', <bytes> bytes — expected …, not empty`.
 
+### Fixed — `genba-precheck`: an attribute with its `=` on a line below
+
+- `<button style⏎="color:red" onclick⏎="go()">` is valid HTML: the tokenizer reads any
+  whitespace between an attribute name and its `=`, line breaks included. Both
+  rules read the file line by line and passed it. `inline-style` and
+  `inline-handler` now read a line that ends in a name with the lines below it, up
+  to the first that is not blank; the finding is the line of the name. A name with
+  no `=` after it is no finding, and a `style=` on the line below is counted on that
+  line only. A site with such markup now fails the check where it passed.
+
 ### Fixed — `genba-smoke` check 7b: the Panel's redirect target
 
 - **A target on another origin is no false alarm.** Kirby builds the target of its

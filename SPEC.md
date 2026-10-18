@@ -439,7 +439,9 @@ final class Precheck
      * ('site' only, or 'site' and 'public'), `sample` (a line the rule MUST fire on — the self-test),
      * `message`. Optional `each` (PCRE): the line is judged per match of `each` (a tag), not as a
      * whole; a tag begins at every match of `start` (PCRE, default `pattern`) on the line and may
-     * run on over the next 50 lines, a start without a tag in reach is a finding. Optional `unless` (list of PCRE patterns): a piece — the `each` match, else the line — that one
+     * run on over the next 50 lines, a start without a tag in reach is a finding. Optional `wrapped` (true, without
+     * `each`): a line that ends in a name is read with the lines below it up to the first that is not blank, and a
+     * match counts for the line it begins on. Optional `unless` (list of PCRE patterns): a piece — the `each` match, else the line — that one
      * of them matches is NOT a finding. Optional `exempt` (with `each`): attribute name => PCRE; a tag that carries
      * one of these attributes (attributes(), read one after the other) with a value the PCRE matches is NOT a finding. For `foreign-host` the constructor's allow list applies at runtime.
      * Optional `negatives`: lines the rule must NOT fire on; `positives`: further lines it MUST fire on.
@@ -521,6 +523,14 @@ one is a finding: a formatter's `<script\n  type="module">` holds no complete ta
 `<script` with no `>` in reach is never a silent pass. `<script\n  src="/a.js"\n></script>` stays free.
 Samples may hold `\n` for the lines below: `"<script\n  type=\"module\">"` and `'<script'` are `positives`, the
 wrapped external script a `negative`.
+The two attribute rules, `inline-style` and `inline-handler`, are `wrapped`: the tokenizer reads any
+whitespace between an attribute name and its `=`, line breaks included, so `<button style⏎="color:red">` sets
+a style. A line that ends in a name (`[a-z]\s*$`, case-insensitive) is handed to `matches()` with the lines
+below it up to the first that is not blank (`wrapped()`, at most `TAG_LINES`), and only a match that begins on
+the line itself counts (`ownMatches()`): the finding is the line of the name, and a `style=` on the line below
+is that line's finding, not the line above's as well. A name with no `=` after it (`<p style⏎  class="a">`, an
+empty attribute) is none. `"<button style\n=\"color:red\">"` is a `positive`, `"<p class=\"a\"\nstyle=\"x\">"` a
+`negative` — `matches()` sees the whole sample, so the negative holds the first-line rule.
 Kirby's `attr()` helper prints attributes from a PHP array — a block where an
 attribute stands (tag name or attribute name, `attributes()` collects them) that calls `attr([...])` /
 `Html::attr([...])` is read with `token_get_all()` (`attrCalls()`), and a `src` or the JSON-LD `type` in its
@@ -1400,7 +1410,10 @@ no absolute path (skipped visibly as root). The installed-copy fixture copies `s
 
 Tags over several lines: `site/templates/module.php` with `<script\n  type="module">` → `module.php:1: embedded <script>`;
 `external.php` with `<script\n  src="/a.js"\n  defer\n></script>` → no finding; `open.php` with `<script` and 60
-lines without `>` → `open.php:1: embedded <script>`; exactly 2 findings, exit 1. Allow entries: `site/templates/f.php`
+lines without `>` → `open.php:1: embedded <script>`; exactly 2 findings, exit 1. Attributes over several lines:
+`button.php` with `<button style\n="color:red" onclick\n\n  ="go()">` → `button.php:1: inline style` and
+`button.php:2: inline event handler`; `plain.php` with `<p style\n  class="a" onclick\n  hidden>` and
+`<p class="a"\nstyle="x">` → only `plain.php:5: inline style`; exactly 3 findings, exit 1. Allow entries: `site/templates/f.php`
 with `<link href="https://fonts.gstatic.com/s/x.woff2">` → exit 0 with `--allow=gstatic.com`, exit 1 without;
 `new Precheck(['places.googleapis.com/v1/', 'gstatic.com'])` still reports the two-address line. Long pieces:
 `findingLine()` (Reflection) with a path of 2 258 characters keeps `:7: inline style — the CSP forbids it: <p style="x">`

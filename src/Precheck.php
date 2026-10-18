@@ -95,6 +95,9 @@ final class Precheck
      * is found); every match of `start` (PCRE, default `pattern`) on the line is where a tag begins, and
      * the tag may run on over the next TAG_LINES lines (a tag a formatter wrapped); a start
      * without a complete tag in reach is a finding. A sample may hold "\n" to stand for the lines below.
+     * Optional `wrapped` (true, a rule without `each`): a line that ends in a name is read with the lines
+     * below it up to the first that is not blank (wrapped()), where the `=` of an attribute a formatter
+     * wrapped after its name stands; a match counts for the line it begins on (ownMatches()).
      * Optional `attr` (PCRE on a lower-case attribute name): the rule also fires on a line where
      * Kirby's attr() helper may print an attribute of that name (attrNames()) — every rule that forbids an
      * attribute carries it, as every rule that exempts by one reads attr() through `exempt`.
@@ -126,18 +129,24 @@ final class Precheck
         // the closing quote of the value before (class="a"style="x", no space needed) or a `/`
         // (<img src="x"/onerror="y">) — and the closing tag of a PHP block right before the name (a
         // block that prints the attribute before it): the same boundary in both rules, as for a script's src.
+        // Between the name and the = the tokenizer reads any whitespace, line breaks included
+        // (style⏎="x"): both rules are `wrapped`, the finding is the line of the name.
         // An attribute Kirby's attr() helper may print is an attribute too — `attr`,
         // the name pattern, for every rule that forbids one (attrNames(): any call, a multi-line array
         // literal, `'style' => $s ?: null` counts, `'style' => null` prints nothing). Reading attr()
         // only to free a script would let a style or an onclick printed by it pass.
-        'inline-style'    => ['pattern' => '~(^|[\s"\'/]|\?>)style\s*=~i', 'attr' => '~^style$~',                                'roots' => ['site'],           'sample' => '<p style="x">',               'message' => 'inline style — the CSP forbids it',
+        'inline-style'    => ['pattern' => '~(^|[\s"\'/]|\?>)style\s*=~i', 'wrapped' => true, 'attr' => '~^style$~',                                'roots' => ['site'],           'sample' => '<p style="x">',               'message' => 'inline style — the CSP forbids it',
                               'positives' => ['<p class="a"style="color:red">', '<p/style="color:red">', '<p <?= $x ?>style="color:red">',
                                               "<div<?= attr(['class' => 'card', 'style' => '--accent: ' . \$page->color()], ' ') ?>>",
                                               "<div<?= Html::attr(['style' => \$s ?: null], null, ' ') ?>>", "<div<?= \$wide ? attr(['style' => \$s], ' ') : '' ?>>",
                                               "<div<?= attr([\n  'class' => 'card',\n  'style' => \$css,\n], ' ') ?>>",
                                               // The single form and named arguments.
-                                              "<div<?= Html::attr('style', \$css, ' ') ?>>", "<div<?= attr(attr: ['style' => 'color:red'], before: ' ') ?>>"],
+                                              "<div<?= Html::attr('style', \$css, ' ') ?>>", "<div<?= attr(attr: ['style' => 'color:red'], before: ' ') ?>>",
+                                              // The = on a line below the name, a blank line between.
+                                              "<button style\n=\"color:red\">", "<p STYLE\n\n  ='color:red'>"],
                               'negatives' => ['<?php $style = \'card\'; ?>', '<div data-style="x">',
+                                              // A name without = (an empty attribute), and a style that starts on the line below: that line's.
+                                              "<p style\n  class=\"a\">", "<p class=\"a\"\nstyle=\"x\">",
                                               "<div<?= attr(['style' => null], ' ') ?>>", "<div<?= attr(['data-style' => \$s, 'class' => 'style'], ' ') ?>>",
                                               "<div<?= Html::attr('style', null, ' ') ?>>"]],
         'foreign-host'    => ['pattern' => '~(googleapis|gstatic|jimcdn|instagram\.com/embed|maps\.google|//fonts\.)~i',  'roots' => ['site', 'public'], 'sample' => 'https://fonts.gstatic.com/x', 'message' => 'foreign host — brings back the consent requirement',
@@ -151,17 +160,17 @@ final class Precheck
         // `var once = key` in a script and `const ONLINE = 'online'` in a class are code, not attributes.
         // Any other on… name is printed as a `--` line (notCounted()), never passed in silence.
         // A PHP closing tag right before the name is a boundary too (a block printing the attribute before).
-        'inline-handler'  => ['pattern' => '~(^|[\s"\'/]|\?>)(?<name>on[a-z]+)\s*=~i', 'attr' => '~^on[a-z]+$~', 'names' => self::EVENT_HANDLERS, 'roots' => ['site'], 'sample' => '<button onclick="x">', 'message' => 'inline event handler — the CSP forbids it',
+        'inline-handler'  => ['pattern' => '~(^|[\s"\'/]|\?>)(?<name>on[a-z]+)\s*=~i', 'wrapped' => true, 'attr' => '~^on[a-z]+$~', 'names' => self::EVENT_HANDLERS, 'roots' => ['site'], 'sample' => '<button onclick="x">', 'message' => 'inline event handler — the CSP forbids it',
                               'positives' => ['<img src="x.png"/onerror="alert(1)">', '<a href="#"onclick="x()">', 'onclick="x()"', '<A ONCLICK="x()">',
                                               '<svg><animate onbegin="x()"/></svg>', '<body onpageshow="init()">', '<div onpointerdown="x()">',
                                               "el.innerHTML = '<button onclick=\"go()\">';", '<div once="x" onclick="go()">',
                                               '<button class="b"<?= $extra ?>onclick="go()">', '<video playsinline onwebkitendfullscreen="resume()">',
                                               "<button<?= attr(['type' => 'button', 'onclick' => 'toggle()'], ' ') ?>>", "<details<?= attr(['ontoggle'], ' ') ?>>",
-                                              "<button<?= Html::attr('onclick', 'go()', ' ') ?>>"],
+                                              "<button<?= Html::attr('onclick', 'go()', ' ') ?>>", "<button onclick\n  =\"go()\">"],
                               'negatives' => ['<i icon="x">', '<x json="y">', '<a href="?on=1">',
                                               "var once = key + '\\n' + detail;", "public const ONLINE = 'online';", 'let onReady = init;', '<div once="x">',
                                               "<button<?= attr(['type' => 'button', 'onclick' => false, 'data-on' => 'x'], ' ') ?>>",
-                                              "<div<?= attr(['once' => \$x], ' ') ?>>"]],
+                                              "<div<?= attr(['once' => \$x], ' ') ?>>", "<button onclick\n  class=\"b\">", "<p class=\"a\"\nonclick=\"x()\">"]],
         // `on` directly followed by a PHP block (a printed name such as onclick built at runtime): the name is
         // not known at scan time, so Genba cannot tell an event handler from anything else. A finding, with or without the `=`.
         'inline-handler-runtime' => ['pattern' => '~(^|[\s"\'/]|\?>)on(?=<\?)~i', 'roots' => ['site'], 'sample' => '<div on<?= $event ?>="go()">', 'message' => 'inline event handler with a name built at runtime — the CSP forbids it',
@@ -490,10 +499,13 @@ final class Precheck
                         if (isset($rule['each']) && @preg_match($rule['pattern'], $line) === 1) {
                             // The lines below, for a tag that runs on.
                             $text = implode("\n", array_slice($lines, $index, self::TAG_LINES + 1));
+                        } elseif (($rule['wrapped'] ?? false) === true && preg_match('~[a-z]\s*$~i', $line) === 1) {
+                            // A name at the end of the line: its = may stand on a line below.
+                            $text = self::wrapped($lines, $index);
                         }
                         if (!self::matches($rule, $text, $this->exceptions($ruleName), $printed[$index + 1] ?? [])) {
                             // An on… name the rule does not count is said, once per name and line.
-                            foreach (self::uncounted($rule, $line, $printed[$index + 1] ?? []) as $uncounted) {
+                            foreach (self::uncounted($rule, $text, $printed[$index + 1] ?? []) as $uncounted) {
                                 $this->notCounted[] = ['file' => $relative, 'line' => $index + 1, 'name' => $uncounted,
                                     'text' => mb_substr(trim($written[$index] ?? $line), 0, self::TEXT_MAX)];
                             }
@@ -758,7 +770,8 @@ final class Precheck
      * <script> on it) — or has no end in reach: $line may carry the lines below it,
      * joined with "\n", and the tag (a match of `each` that begins exactly at the start) may run
      * on over them; a start without one is a finding, never a silent pass. Without `each`, the
-     * pattern must match the line and no `unless` pattern may. $extra are the allow substrings
+     * pattern must match the line and no `unless` pattern may; $line may carry the lines below it
+     * too (`wrapped`), and only a match that begins on the line itself counts (ownMatches()). $extra are the allow substrings
      * (foreign-host), compared without regard to case like the patterns.
      *
      * A rule with `attr` also fires when Kirby's attr() helper may print an attribute whose name
@@ -803,15 +816,19 @@ final class Precheck
         if (!is_string($pattern) || @preg_match($pattern, $line) !== 1) {
             return false;
         }
+        $found = self::ownMatches($pattern, $line);
+        if ($found === null) {
+            return true;
+        }
+        if ($found === []) {
+            return false;
+        }
         if (is_array($rule['names'] ?? null)) {
             // Only a match whose captured name is one of `names`: `once = key` beside nothing else is no
             // finding, `<div once="x" onclick="go()">` is one.
-            if (@preg_match_all($pattern, $line, $all) === false) {
-                return true;
-            }
             $named = false;
-            foreach ($all['name'] ?? [] as $name) {
-                if (self::named($rule, (string) $name)) {
+            foreach ($found as $match) {
+                if (self::named($rule, (string) ($match['name'][0] ?? ''))) {
                     $named = true;
                     break;
                 }
@@ -830,15 +847,49 @@ final class Precheck
         // allowed address next to a forbidden one on the same line (a CSP header, a list of URLs)
         // hid the forbidden one. The line is free only when every match of the pattern is allowed:
         // an allow entry stands in the same address (allowed()).
-        if (@preg_match_all($pattern, $line, $all, PREG_OFFSET_CAPTURE) === false) {
-            return false;
-        }
-        foreach ($all[0] as [$text, $offset]) {
+        foreach ($found as $match) {
+            [$text, $offset] = $match[0];
             if (!self::allowed($line, (int) $offset, strlen((string) $text), $extra)) {
                 return true;
             }
         }
         return false;
+    }
+
+    /**
+     * The matches of $pattern in $text that begin on its first line, as preg_match_all() gives them with
+     * PREG_SET_ORDER | PREG_OFFSET_CAPTURE; null when the pattern cannot be applied. $text may carry the
+     * lines below it (`wrapped`): a match that begins there is the finding of that line, not of this one.
+     *
+     * @return list<array<int|string, array{0: string, 1: int}>>|null
+     */
+    private static function ownMatches(string $pattern, string $text): ?array
+    {
+        if (@preg_match_all($pattern, $text, $all, PREG_SET_ORDER | PREG_OFFSET_CAPTURE) === false) {
+            return null;
+        }
+        $end = strcspn($text, "\n");
+        return array_values(array_filter($all, static fn (array $match): bool => $match[0][1] < $end));
+    }
+
+    /**
+     * Line $index with the lines below it, joined with "\n", up to the first that is not blank and at most
+     * TAG_LINES further: where the = of an attribute whose name ends the line may stand — the tokenizer
+     * reads any whitespace between a name and its =, line breaks included.
+     *
+     * @param list<string> $lines
+     */
+    private static function wrapped(array $lines, int $index): string
+    {
+        $text = $lines[$index];
+        $last = min(count($lines) - 1, $index + self::TAG_LINES);
+        for ($i = $index + 1; $i <= $last; $i++) {
+            $text .= "\n" . $lines[$i];
+            if (trim($lines[$i]) !== '') {
+                break;
+            }
+        }
+        return $text;
     }
 
     /**
@@ -879,8 +930,8 @@ final class Precheck
             return [];
         }
         $found = [];
-        if (@preg_match_all($rule['pattern'], $line, $all) > 0) {
-            $found = array_map('strval', $all['name'] ?? []);
+        foreach (self::ownMatches($rule['pattern'], $line) ?? [] as $match) {
+            $found[] = (string) ($match['name'][0] ?? '');
         }
         if (is_string($rule['attr'] ?? null)) {
             foreach ($printed as $name) {

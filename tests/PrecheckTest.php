@@ -602,6 +602,23 @@ try {
     holds(!str_contains($out, 'external.php'), "a wrapped external script (src on the next line) is not a finding:\n$out");
     contains('FAILED — 2 findings', $out, 'exactly the two findings');
 
+    // An attribute whose = a formatter put on a line below its name (style⏎="…", onclick⏎⏎  ="…") is
+    // the attribute the browser reads: a finding on the line of the name, as the same tag on one line
+    // is. A name with no = after it (an empty attribute) is none, and a match that begins on the line
+    // below is counted there, once — not on the line above as well.
+    $split = genba_tmp('precheck-split');
+    $dirs[] = $split;
+    genba_write($split . '/site/templates/button.php', "<button style\n=\"color:red\" onclick\n\n  =\"go()\">Go</button>\n");
+    genba_write($split . '/site/templates/plain.php', "<p style\n  class=\"a\" onclick\n  hidden>x</p>\n<p class=\"a\"\nstyle=\"x\">\n");
+    genba_write($split . '/public/assets/css/tailwind.css', "body{margin:0}\n");
+    [$code, $out] = precheck_run($split, []);
+    expect(1, $code, "an attribute with its = on a line below is judged:\n$out");
+    contains('::error::site/templates/button.php:1: inline style — the CSP forbids it: <button style', $out, 'style⏎= is a finding, on the line of the name');
+    contains('::error::site/templates/button.php:2: inline event handler — the CSP forbids it: ="color:red" onclick', $out, 'onclick⏎⏎= is a finding, on the line of the name');
+    contains('::error::site/templates/plain.php:5: inline style', $out, 'a style on the line below is a finding there');
+    holds(preg_match('~plain\.php:[1-4]:~', $out) === 0, "a name without = and the line above a finding are no findings:\n$out");
+    contains('FAILED — 3 findings', $out, 'exactly the three findings');
+
     // Symbolic links: followed inside the project, reported when they lead outside, loop or dangle.
     // A link to a FILE outside the project is reported the same way, and its content is never read.
     $linked = genba_tmp('precheck-links');
