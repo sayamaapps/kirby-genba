@@ -260,8 +260,8 @@ try {
     // gives no answer, a header !~ asks about that is not sent at all (a lost CSP), a ~ or !~ without text.
     $run('header rule on a path that answers 404', 'headers', 1, '/typo-pfad X-Content-Type-Options: HTTP 404 instead of 2xx or 3xx', ['GENBA_HEADERS' => '/typo-pfad X-Content-Type-Options: nosniff']);
     $run('header !~ on a header not sent', '', 1, "homepage Content-Security-Policy: not sent, expected not containing 'unsafe-inline'", ['GENBA_HEADERS' => 'Content-Security-Policy: !~unsafe-inline']);
-    $run('header ~ without text', 'headers', 2, "GENBA_HEADERS: the rule for X-Content-Type-Options is '~' without text", ['GENBA_HEADERS' => 'X-Content-Type-Options: ~']);
-    $run('header !~ without text', 'headers', 2, "GENBA_HEADERS: the rule for X-Content-Type-Options is '!~' without text", ['GENBA_HEADERS' => 'X-Content-Type-Options: !~']);
+    $run('header ~ without text', 'headers', 2, "GENBA_HEADERS: the rule for X-Content-Type-Options is '\\~' without text", ['GENBA_HEADERS' => 'X-Content-Type-Options: ~']);
+    $run('header !~ without text', 'headers', 2, "GENBA_HEADERS: the rule for X-Content-Type-Options is '!\\~' without text", ['GENBA_HEADERS' => 'X-Content-Type-Options: !~']);
     $run('preview without credentials', 'auth', 1, 'HTTP 401 instead of 200 \(protected');
     $run('preview without credentials, skip', 'auth', 0, '::warning::Genba smoke: SKIPPED.*\nGenba smoke: SKIPPED — build not verified', ['GENBA_WITHOUT_CREDENTIALS' => 'skip']);
     $run('empty user and empty password, skip', 'auth', 0, '\nGenba smoke: SKIPPED — build not verified', ['GENBA_USER' => '', 'GENBA_PASSWORD' => '', 'GENBA_WITHOUT_CREDENTIALS' => 'skip']);
