@@ -689,7 +689,7 @@ warn() { echo "::warning::$*"; }
 ok() { echo "  ok   $*"; }
 note() { echo "  --   $*"; }
 
-# fetch METHOD URL FILE [MAX_BYTES] -> sets CODE (HTTP status, 000 when there
+# fetch METHOD URL FILE [MAX_BYTES] [HEADERS] -> sets CODE (HTTP status, 000 when there
 # is none — or when curl did not finish the transfer), TYPE (lower-case media
 # type without parameters), FETCH_RC (curl's exit code; 6 = the name does not
 # resolve, 63 = the body is larger than MAX_BYTES — curl stopped, or the body
@@ -701,19 +701,24 @@ note() { echo "  --   $*"; }
 # disk is a cut one or none, so CODE is 000 and FILE is removed, never read.
 # 63 is the one exception: the caller reads the size finding itself. Never -L:
 # a redirect is a finding in itself, and credentials must never follow one.
+# HEADERS: a file for the response headers (curl -D), so a caller reads a
+# redirect's target from the same request instead of asking twice.
 fetch() {
-  local method=$1 target=$2 file=$3 max_bytes=${4:-} result ctype
-  local -a limit=()
+  local method=$1 target=$2 file=$3 max_bytes=${4:-} headers=${5:-} result ctype
+  local -a limit=() dump=()
   if [[ -n "$max_bytes" ]]; then
     limit=(--max-filesize "$max_bytes")
+  fi
+  if [[ -n "$headers" ]]; then
+    dump=(-D "$headers")
   fi
   FETCH_RC=0
   FETCH_ERROR=''
   # ${limit[@]+…}: an empty array counts as unbound (nounset) in bash 3.2.
   if [[ "$method" == HEAD ]]; then
-    result=$(curl "${CURL_OPTS[@]}" ${limit[@]+"${limit[@]}"} -I -o "$file" -w '%{http_code}\t%{content_type}' "$target" 2>"$TMP/curl.err") || FETCH_RC=$?
+    result=$(curl "${CURL_OPTS[@]}" ${limit[@]+"${limit[@]}"} ${dump[@]+"${dump[@]}"} -I -o "$file" -w '%{http_code}\t%{content_type}' "$target" 2>"$TMP/curl.err") || FETCH_RC=$?
   else
-    result=$(curl "${CURL_OPTS[@]}" ${limit[@]+"${limit[@]}"} -o "$file" -w '%{http_code}\t%{content_type}' "$target" 2>"$TMP/curl.err") || FETCH_RC=$?
+    result=$(curl "${CURL_OPTS[@]}" ${limit[@]+"${limit[@]}"} ${dump[@]+"${dump[@]}"} -o "$file" -w '%{http_code}\t%{content_type}' "$target" 2>"$TMP/curl.err") || FETCH_RC=$?
   fi
   # curl below 8.4 stops at --max-filesize only when the size is announced
   # (Content-Length); a body sent without one — chunked or over HTTP/2, as
@@ -1466,33 +1471,50 @@ fi
 # redirect is followed, and only when its target lies under /panel. Any other
 # redirect is a finding, as everywhere else.
 if [[ "$PANEL_MODE" != off ]]; then
-  fetch GET "$URL/panel" "$TMP/panel.html"
+  # One request: its body is the Panel page, its headers name a redirect's
+  # target as the server sent it. curl's own redirect URL would carry the
+  # credentials of a protected preview.
+  : > "$TMP/panel-head.txt"
+  fetch GET "$URL/panel" "$TMP/panel.html" '' "$TMP/panel-head.txt"
   panel_redirect_ok=1
   case "$CODE" in
     301|302|303|307|308)
-      # The Location as the server sent it, read from the headers. curl's own
-      # redirect URL would carry the credentials of a protected preview.
-      : > "$TMP/panel-head.txt"
-      curl "${CURL_OPTS[@]}" -D "$TMP/panel-head.txt" -o /dev/null "$URL/panel" >/dev/null 2>&1 || true
       # Kirby 5 sends a visitor who is not signed in on with a Refresh header
-      # ("0; url=…") rather than a Location: both count.
-      panel_location=$(grep -i '^location:' "$TMP/panel-head.txt" | tail -n 1 | tr -d '\r' \
-        | sed 's/^[Ll][Oo][Cc][Aa][Tt][Ii][Oo][Nn]:[[:space:]]*//' || true)
+      # ("0; url=…") rather than a Location: both count. The target of a
+      # Refresh starts right after the url= that follows the seconds and runs
+      # to the end, quotes around it dropped — an url= in its query is part of it.
+      panel_location=$(LC_ALL=C grep -ai '^location:' "$TMP/panel-head.txt" | tail -n 1 | LC_ALL=C tr -d '\r' \
+        | LC_ALL=C sed 's/^[Ll][Oo][Cc][Aa][Tt][Ii][Oo][Nn]:[[:space:]]*//' || true)
       if [[ -z "$panel_location" ]]; then
-        panel_location=$(grep -i '^refresh:' "$TMP/panel-head.txt" | tail -n 1 | tr -d '\r' \
-          | sed -n 's/.*[Uu][Rr][Ll]=//p' | tr -d "'\"" || true)
+        panel_location=$(LC_ALL=C grep -ai '^refresh:' "$TMP/panel-head.txt" | tail -n 1 | LC_ALL=C tr -d '\r' \
+          | LC_ALL=C sed -n -E 's/^[Rr][Ee][Ff][Rr][Ee][Ss][Hh]:[[:space:]]*[0-9.]*[[:space:]]*[;,]?[[:space:]]*([Uu][Rr][Ll][[:space:]]*=[[:space:]]*)?//p' || true)
+        case "$panel_location" in
+          \"*) panel_location=${panel_location#\"}; panel_location=${panel_location%%\"*} ;;
+          \'*) panel_location=${panel_location#\'}; panel_location=${panel_location%%\'*} ;;
+        esac
       fi
-      panel_target=''
-      case "$panel_location" in
-        /panel|/panel/*|/panel\?*) panel_target="$URL$panel_location" ;;
-        "$URL/panel"|"$URL/panel/"*|"$URL/panel?"*) panel_target=$panel_location ;;
+      # Kirby writes the target absolute, from its url option: on staging the
+      # production origin, or localhost where GENBA_URL says 127.0.0.1. Only
+      # the path counts — under /panel of GENBA_URL — and it is fetched on the
+      # GENBA_URL origin, as a rewritten sitemap entry is; another origin is
+      # said in a -- line.
+      panel_target=$(resolve "$URL/panel" "$panel_location")
+      panel_path=$(LC_ALL=C sed -E 's|^[a-zA-Z][a-zA-Z0-9+.-]*://[^/?#]*||' <<<"$panel_target")
+      panel_path=$(resolve "$ORIGIN/" "/${panel_path#/}")
+      panel_path=${panel_path#"$ORIGIN"}
+      panel_root="${URL#"$ORIGIN"}/panel"
+      case "$panel_path" in
+        "$panel_root"|"$panel_root/"*|"$panel_root?"*)
+          if ! same_origin "$panel_target"; then
+            note "/panel sends on to $(log_text "$panel_location") — checked as $(log_text "$panel_path") on $ORIGIN (Kirby's url option names another origin)"
+          fi
+          fetch GET "$ORIGIN$panel_path" "$TMP/panel.html"
+          ;;
+        *)
+          fail "/panel: HTTP $CODE to '$(log_text "$panel_location")', not to a page under /panel"
+          panel_redirect_ok=0
+          ;;
       esac
-      if [[ -n "$panel_target" ]]; then
-        fetch GET "$panel_target" "$TMP/panel.html"
-      else
-        fail "/panel: HTTP $CODE to '$(log_text "$panel_location")', not to a page under /panel"
-        panel_redirect_ok=0
-      fi
       ;;
   esac
   if (( panel_redirect_ok == 0 )); then

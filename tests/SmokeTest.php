@@ -228,6 +228,13 @@ try {
     $run('Panel stylesheet 404', 'panel-css-404', 1, 'Panel file /media/panel/css/app.css: HTTP 404');
     $run('Panel redirect leaves /panel', 'panel-redirect-out', 1, "/panel: HTTP 302 to '.*elsewhere', not to a page under /panel");
     $run('Panel redirect by Location', 'panel-location', 0, 'its 2 files arrive');
+    // Kirby builds the target from its url option: on staging the production origin, or localhost
+    // against 127.0.0.1. Its path counts, fetched on GENBA_URL, said in a -- line; /panel once.
+    $run('Panel redirect to another origin', 'panel-absolute', 0, "(?s)  --   /panel sends on to https://prod\\.example/panel/login — checked as /panel/login on http://127\\.0\\.0\\.1:[0-9]+ .*its 2 files arrive");
+    expect(1, substr_count((string) file_get_contents($requestLog), "GET /panel\n"), 'check 7b asks for /panel once');
+    // The target starts right after url=: an url= in its query is no second target.
+    $run('Panel redirect with url= in its query', 'panel-refresh-query', 1, "/panel: HTTP 302 to '/elsewhere\\?next=url=/panel/login', not to a page under /panel");
+    $run('Panel redirect target in quotes', 'panel-refresh-quoted', 0, 'its 2 files arrive');
     // A Panel file is read like a stylesheet: a 200 HTML page in its place (a fallback route) or an
     // empty body is no Panel file.
     $run('Panel stylesheet is an HTML page', 'panel-html-fallback', 1, "Panel file /media/panel/css/app.css: HTTP 200, 'text/html', [0-9]+ bytes — expected text/css, not empty");
