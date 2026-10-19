@@ -228,6 +228,18 @@ try {
     $run('Panel stylesheet 404', 'panel-css-404', 1, 'Panel file /media/panel/css/app.css: HTTP 404');
     $run('Panel redirect leaves /panel', 'panel-redirect-out', 1, "/panel: HTTP 302 to '.*elsewhere', not to a page under /panel");
     $run('Panel redirect by Location', 'panel-location', 0, 'its 2 files arrive');
+    // Kirby builds the target from its url option: on staging the production origin, or localhost
+    // against 127.0.0.1. Its path counts, fetched on GENBA_URL, said in a -- line; /panel once.
+    $run('Panel redirect to another origin', 'panel-absolute', 0, "(?s)  --   /panel sends on to https://prod\\.example/panel/login — checked as /panel/login on http://127\\.0\\.0\\.1:[0-9]+ .*its 2 files arrive");
+    expect(1, substr_count((string) file_get_contents($requestLog), "GET /panel\n"), 'check 7b asks for /panel once');
+    // The target starts right after url=: an url= in its query is no second target.
+    $run('Panel redirect with url= in its query', 'panel-refresh-query', 1, "/panel: HTTP 302 to '/elsewhere\\?next=url=/panel/login', not to a page under /panel");
+    $run('Panel redirect target in quotes', 'panel-refresh-quoted', 0, 'its 2 files arrive');
+    // A Panel file is read like a stylesheet: a 200 HTML page in its place (a fallback route) or an
+    // empty body is no Panel file.
+    $run('Panel stylesheet is an HTML page', 'panel-html-fallback', 1, "Panel file /media/panel/css/app.css: HTTP 200, 'text/html', [0-9]+ bytes — expected text/css, not empty");
+    $run('Panel script is empty', 'panel-js-empty', 1, "Panel file /media/panel/js/app.js: HTTP 200, 'application/javascript', 0 bytes — expected text/javascript or application/javascript or application/x-javascript, not empty");
+    $run('Panel script as text/javascript', 'panel-js-text', 0, 'its 2 files arrive');
     // Check 9, GENBA_HEADERS: the rules per line, with the path of each.
     $headersOk = "Strict-Transport-Security: max-age=15552000\n"
         . "X-Content-Type-Options: nosniff\n"
@@ -244,6 +256,12 @@ try {
     $run('Panel CSP must not allow inline', 'headers', 1, '/panel Content-Security-Policy: sent', ['GENBA_HEADERS' => '/panel Content-Security-Policy: !~unsafe-inline']);
     $run('rule without colon', '', 2, 'a line needs .Name: rule.', ['GENBA_HEADERS' => 'Referrer-Policy *']);
     $run('path with a space-free bad character', '', 2, 'must be / followed by letters', ['GENBA_HEADERS' => '/a%b X-A: *']);
+    // Nothing in check 9 is green that was not checked: a rule's path that answers 404 (a typo) or
+    // gives no answer, a header !~ asks about that is not sent at all (a lost CSP), a ~ or !~ without text.
+    $run('header rule on a path that answers 404', 'headers', 1, '/typo-pfad X-Content-Type-Options: HTTP 404 instead of 2xx or 3xx', ['GENBA_HEADERS' => '/typo-pfad X-Content-Type-Options: nosniff']);
+    $run('header !~ on a header not sent', '', 1, "homepage Content-Security-Policy: not sent, expected not containing 'unsafe-inline'", ['GENBA_HEADERS' => 'Content-Security-Policy: !~unsafe-inline']);
+    $run('header ~ without text', 'headers', 2, "GENBA_HEADERS: the rule for X-Content-Type-Options is '\\~' without text", ['GENBA_HEADERS' => 'X-Content-Type-Options: ~']);
+    $run('header !~ without text', 'headers', 2, "GENBA_HEADERS: the rule for X-Content-Type-Options is '!\\~' without text", ['GENBA_HEADERS' => 'X-Content-Type-Options: !~']);
     $run('preview without credentials', 'auth', 1, 'HTTP 401 instead of 200 \(protected');
     $run('preview without credentials, skip', 'auth', 0, '::warning::Genba smoke: SKIPPED.*\nGenba smoke: SKIPPED — build not verified', ['GENBA_WITHOUT_CREDENTIALS' => 'skip']);
     $run('empty user and empty password, skip', 'auth', 0, '\nGenba smoke: SKIPPED — build not verified', ['GENBA_USER' => '', 'GENBA_PASSWORD' => '', 'GENBA_WITHOUT_CREDENTIALS' => 'skip']);

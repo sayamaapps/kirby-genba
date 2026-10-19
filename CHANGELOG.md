@@ -12,6 +12,50 @@ All notable changes to this project are documented here. The format follows
   **[privacy text]**. Every site using the package must then review its privacy
   policy.
 
+## [1.4.0] — 2026-10-19
+
+### Fixed — `genba-smoke` checks 9 and 7b: nothing is green that was not checked
+
+A site that passed before can fail now — in exactly the cases that passed by mistake.
+
+- **Check 9, a rule's path must answer 2xx or 3xx.** A path with a typo answered 404,
+  and the rule was checked against the error page's headers: `ok … (HTTP 404)`. Any
+  other code is now a finding, `<label>: HTTP <code> instead of 2xx or 3xx — the
+  header was not checked (path wrong?)`. 3xx stays: `/panel` answers 302.
+- **Check 9, `!~text` asks for a header that is sent.** A Content-Security-Policy that
+  got lost passed `!~unsafe-inline`. A header not sent is now `<label>: not sent,
+  expected not containing '<text>'`.
+- **Check 9, `~` or `!~` without text** is a usage error, exit 2: `GENBA_HEADERS: the
+  rule for <name> is '~' without text`. `~` alone was true of every value sent.
+- **Check 7b, Panel files are read like stylesheets.** Each must answer 200 with a
+  script type (`text/javascript`, `application/javascript`,
+  `application/x-javascript`) or `text/css` and must not be empty. A fallback route
+  that answers every path with an HTML page passed before; now `Panel file <path>:
+  HTTP 200, '<type>', <bytes> bytes — expected …, not empty`.
+
+### Fixed — `genba-precheck`: an attribute with its `=` on a line below
+
+- `<button style⏎="color:red" onclick⏎="go()">` is valid HTML: the tokenizer reads any
+  whitespace between an attribute name and its `=`, line breaks included. Both
+  rules read the file line by line and passed it. `inline-style` and
+  `inline-handler` now read a line that ends in a name with the lines below it, up
+  to the first that is not blank; the finding is the line of the name. A name with
+  no `=` after it is no finding, and a `style=` on the line below is counted on that
+  line only. A site with such markup now fails the check where it passed.
+
+### Fixed — `genba-smoke` check 7b: the Panel's redirect target
+
+- **A target on another origin is no false alarm.** Kirby builds the target of its
+  `Refresh: 0; url=…` from its `url` option. On staging with the production URL, or
+  with `localhost` against `127.0.0.1`, it names another origin, and the run failed
+  with `/panel: HTTP 302 to 'https://…/panel/login', not to a page under /panel`. Now
+  its path counts: under `/panel` it is fetched on the `GENBA_URL` origin, said in a
+  `--` line, `/panel sends on to <target> — checked as <path> on <origin> (Kirby's url
+  option names another origin)`.
+- **The target of a `Refresh` starts right after the first `url=`.** An `url=` in its
+  query (`/elsewhere?next=url=/panel/login`) was read as the target and passed.
+- `/panel` is asked once; on a redirect it was asked twice.
+
 ## [1.3.0] — 2026-10-17
 
 ### Added — `genba-smoke` checks for headers and the Panel's files
@@ -30,7 +74,11 @@ response headers of a hardened site, and the Panel's own files.
   `GENBA_PANEL_ACCOUNT=off`. A site with a Panel gets this check on upgrade; a
   page without Panel files is reported as a finding.
 
-Neither changes an existing message, exit code or meta output.
+Check 9 changes nothing until `GENBA_HEADERS` is set. Check 7b runs on upgrade: a
+site whose Panel files do not arrive fails (exit 1) where it passed before — and so,
+by mistake, did a site whose Kirby `url` option names another origin than
+`GENBA_URL` (fixed in the next release). No existing message changes. *(Corrected:
+this entry first said that neither check changes an exit code.)*
 
 ## [1.2.0] — 2026-10-14
 

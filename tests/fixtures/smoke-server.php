@@ -517,9 +517,19 @@ if ($path === '/http-umleitung') {
 # names two files under /media/panel (fault panel-no-files: none; panel-css-404:
 # the stylesheet is missing); panel-redirect-out: the redirect leaves /panel.
 // Kirby 5 sends the redirect as a Refresh header; panel-location: as a Location.
+// panel-absolute: the target absolute, built from Kirby's url option — on staging the
+// production origin; panel-refresh-query: a target outside /panel with url= in its query;
+// panel-refresh-quoted: the target in quotes after URL= in capitals.
 if ($path === '/panel') {
     $target = has('panel-redirect-out') ? '/elsewhere' : '/panel/login';
-    $redirect = has('panel-location') ? ['Location' => $target] : ['Refresh' => '0; url=' . $target];
+    if (has('panel-absolute')) {
+        $target = 'https://prod.example/panel/login';
+    }
+    if (has('panel-refresh-query')) {
+        $target = '/elsewhere?next=url=/panel/login';
+    }
+    $refresh = has('panel-refresh-quoted') ? "0;URL='$target'" : '0; url=' . $target;
+    $redirect = has('panel-location') ? ['Location' => $target] : ['Refresh' => $refresh];
     respond(302, 'text/html; charset=utf-8', '', $redirect);
 }
 if ($path === '/panel/login') {
@@ -527,12 +537,18 @@ if ($path === '/panel/login') {
         . '<link rel="stylesheet" href="/media/panel/css/app.css">';
     respond(200, 'text/html; charset=utf-8', '<!doctype html><title>Panel</title>' . $files);
 }
+// panel-js-empty: the script answers 200 without a byte; panel-js-text: as text/javascript
+// (RFC 9239, newer Apache and nginx); panel-html-fallback: a fallback route answers the
+// stylesheet with an HTML page, 200.
 if ($path === '/media/panel/js/app.js') {
-    respond(200, 'application/javascript', 'window.panel = true;');
+    respond(200, has('panel-js-text') ? 'text/javascript; charset=utf-8' : 'application/javascript', has('panel-js-empty') ? '' : 'window.panel = true;');
 }
 if ($path === '/media/panel/css/app.css') {
     if (has('panel-css-404')) {
         respond(404, 'text/plain', 'nicht gefunden');
+    }
+    if (has('panel-html-fallback')) {
+        respond(200, 'text/html; charset=utf-8', '<!doctype html><title>Startseite</title>');
     }
     respond(200, 'text/css', 'body{margin:0}');
 }
