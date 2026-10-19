@@ -250,7 +250,8 @@ final class Links
                 $video = $t[1];
             } elseif ($path === '/watch' && is_string($query['v'] ?? null) && preg_match("/^$id$/", $query['v'])) {
                 $video = $query['v'];
-            } elseif (preg_match("~^/(embed|shorts|live|v)/($id)(/|$)~", $path, $t)) {
+            } elseif (preg_match("~^/(embed|shorts|live|v)/($id)(/|$)~", $path, $t) && $t[2] !== 'videoseries') {
+                // /embed/videoseries?list=… is a playlist: the word has 11 letters, like an ID.
                 $video = $t[2];
                 $embed = $t[1] === 'embed' || $t[1] === 'v';
             } elseif (preg_match("~^/vi(_webp)?/($id)/~", $path, $t)) {

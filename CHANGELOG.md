@@ -23,6 +23,13 @@ All notable changes to this project are documented here. The format follows
   may be empty; their type is still checked. The Panel's own files must still not be
   empty.
 
+### Fixed — `genba-links`: a playlist embed is no video
+
+- `https://www.youtube-nocookie.com/embed/videoseries?list=…` embeds a playlist, but
+  `videoseries` has 11 letters and was read as a video ID: `Video videoseries does not
+  exist (oEmbed 404)`. A package that builds playlist embeds in its code failed every
+  daily run. `/embed/videoseries` is no video reference now.
+
 ## [1.4.0] — 2026-10-19
 
 ### Fixed — `genba-smoke` checks 9 and 7b: nothing is green that was not checked
