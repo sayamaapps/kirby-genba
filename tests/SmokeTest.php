@@ -240,6 +240,8 @@ try {
     $run('Panel stylesheet is an HTML page', 'panel-html-fallback', 1, "Panel file /media/panel/css/app.css: HTTP 200, 'text/html', [0-9]+ bytes — expected text/css, not empty");
     $run('Panel script is empty', 'panel-js-empty', 1, "Panel file /media/panel/js/app.js: HTTP 200, 'application/javascript', 0 bytes — expected text/javascript or application/javascript or application/x-javascript, not empty");
     $run('Panel script as text/javascript', 'panel-js-text', 0, 'its 2 files arrive');
+    // Kirby's plugin bundles are empty when no plugin brings Panel code: no finding.
+    $run('Panel plugin bundles empty', 'panel-plugins-empty', 0, 'its 4 files arrive');
     // Check 9, GENBA_HEADERS: the rules per line, with the path of each.
     $headersOk = "Strict-Transport-Security: max-age=15552000\n"
         . "X-Content-Type-Options: nosniff\n"
@@ -1046,7 +1048,9 @@ try {
     // expired certificate, never by a later request. A real https fake site
     // (tests/fixtures/tls-server.php), trusted through CURL_CA_BUNDLE; plain
     // http ($base, fault auth) answers 401, so a wrong decision reads
-    // "SKIPPED — certificate pending?" and exits 0.
+    // "SKIPPED — certificate pending?" and exits 0. curl words it "SSL certificate
+    // problem: certificate has expired" or, newer, "SSL certificate OpenSSL verify
+    // result: certificate has expired (10)".
     if (!extension_loaded('openssl')) {
         echo "  --   openssl extension missing, the https not-ready runs are not tested\n";
     } else {
@@ -1104,7 +1108,7 @@ try {
                 usleep(100000);
             }
             $tlsRun('expired certificate: a finding, not pending', 'protected', 1,
-                '(?m)^::error::Without credentials https://127\.0\.0\.1:\d+/ gives no answer \(HTTP 000\) — curl: \(60\) SSL certificate problem: certificate has expired', $preview, $expired);
+                '(?m)^::error::Without credentials https://127\.0\.0\.1:\d+/ gives no answer \(HTTP 000\) — curl: \(60\) SSL certificate .*certificate has expired', $preview, $expired);
         } finally {
             genba_remove_tree($expiredDir);
             genba_remove_tree($certDir);

@@ -12,6 +12,24 @@ All notable changes to this project are documented here. The format follows
   **[privacy text]**. Every site using the package must then review its privacy
   policy.
 
+## [1.4.1] — 2026-10-19
+
+### Fixed — `genba-smoke` check 7b: Kirby's empty plugin bundles are no finding
+
+- 1.4.0 read every Panel file as "must not be empty". Kirby names
+  `/media/plugins/index.css` and `/media/plugins/index.js` on every Panel page and
+  answers them with 0 bytes when no plugin brings Panel code — so a sound site failed
+  with `Panel file /media/plugins/index.css: HTTP 200, 'text/css', 0 bytes`. Those two
+  may be empty; their type is still checked. The Panel's own files must still not be
+  empty.
+
+### Fixed — `genba-links`: a playlist embed is no video
+
+- `https://www.youtube-nocookie.com/embed/videoseries?list=…` embeds a playlist, but
+  `videoseries` has 11 letters and was read as a video ID: `Video videoseries does not
+  exist (oEmbed 404)`. A package that builds playlist embeds in its code failed every
+  daily run. `/embed/videoseries` is no video reference now.
+
 ## [1.4.0] — 2026-10-19
 
 ### Fixed — `genba-smoke` checks 9 and 7b: nothing is green that was not checked

@@ -31,6 +31,9 @@ try {
         'https://img.youtube.com/vi/2jTm0NZQ-Wg/maxresdefault.jpg' => ['youtube', '2jTm0NZQ-Wg'],
         'https://www.youtube.com/channel/UCBRboOIpQLe33Rwb0l9dqVw' => null,
         'https://www.youtube-nocookie.com/embed/' => null,
+        // A playlist embed: videoseries has 11 letters, like an ID, and is none.
+        'https://www.youtube-nocookie.com/embed/videoseries?list=' => null,
+        'https://www.youtube.com/embed/videoseries?list=PLx0sYbCqOb8TBPRdmBHs5Iftvv9TPboYG' => null,
         'https://www.digistore24.com/product/536437' => ['digistore', '536437'],
         'https://www.digistore24.com/product/536437/123456' => ['digistore', '536437'],
         'https://www.digistore24.com/redir/536437/sayama/' => ['purchase', 'https://www.digistore24.com/redir/536437/sayama/'],

@@ -535,7 +535,18 @@ if ($path === '/panel') {
 if ($path === '/panel/login') {
     $files = has('panel-no-files') ? '' : '<script src="/media/panel/js/app.js"></script>'
         . '<link rel="stylesheet" href="/media/panel/css/app.css">';
+    if (has('panel-plugins-empty')) {
+        $files .= '<link rel="stylesheet" href="/media/plugins/index.css?0"><script src="/media/plugins/index.js?0"></script>';
+    }
     respond(200, 'text/html; charset=utf-8', '<!doctype html><title>Panel</title>' . $files);
+}
+// panel-plugins-empty: the page also names Kirby's plugin bundles, which answer 200
+// without a byte when no plugin brings Panel code (?0: no plugin file).
+if ($path === '/media/plugins/index.css') {
+    respond(200, 'text/css; charset=UTF-8', '');
+}
+if ($path === '/media/plugins/index.js') {
+    respond(200, 'application/javascript; charset=UTF-8', '');
 }
 // panel-js-empty: the script answers 200 without a byte; panel-js-text: as text/javascript
 // (RFC 9239, newer Apache and nginx); panel-html-fallback: a fallback route answers the
