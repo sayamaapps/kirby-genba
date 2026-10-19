@@ -971,7 +971,7 @@ would be a line of 3 394.
 `GENBA_YOUTUBE_FIELDS` or `GENBA_SHOP_HOSTS` counts as unset (GitHub Actions
 yields `""` for an unset `${{ vars.X }}`); an option with an empty value
 (`--digistore-field=`) is a usage error, exit 2. User agent:
-`Mozilla/5.0 (compatible; Genba link check; +https://github.com/simsimmal/kirby-genba)`.
+`Mozilla/5.0 (compatible; Genba link check; +https://github.com/sayamaapps/kirby-genba)`.
 The `words()` filler list keeps `sayama` and `digistore24` (they are brand
 words that never distinguish products).
 
@@ -1194,7 +1194,7 @@ each site drops ~750 lines of copied scripts and tests.
 Rejected:
 
 1. **A reusable composite GitHub Action** in this repository
-   (`uses: simsimmal/kirby-genba/.github/actions/deploy-checks@v1`). It would
+   (`uses: sayamaapps/kirby-genba/.github/actions/deploy-checks@v1`). It would
    duplicate what Composer already delivers, add a second version to pin
    (action tag vs. package version), require the repository to be public or
    the Actions "access from other repositories" setting, and carry fork-PR
