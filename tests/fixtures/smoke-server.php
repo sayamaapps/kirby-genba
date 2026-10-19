@@ -29,6 +29,8 @@
  * prod-link, huge-home, huge-home-stream, and variant:<name> (the homepage from
  * tests/fixtures/html-variants/<name>.html, with its own stylesheet holding a url(DATA:,y.woff2)).
  * Faults of the stylesheet: esc-ctype; of the http redirect: esc-redirect, raw-c1-redirect.
+ * Panel and API under other slugs (panel.slug, api.slug): panel-slug (the Panel at /kontrolle, /panel
+ * answers 404), api-slug (the API at /schnittstelle, /api answers 404).
  * ctrl-url: control characters and bytes that are no UTF-8 in addresses (homepage, stylesheet,
  * sitemap). A Location with CR or LF and a cut homepage need tests/fixtures/raw-server.php.
  */
@@ -493,7 +495,9 @@ if (has('private-open') && in_array($path, ['/site/config/config.php', '/.env', 
     respond(200, 'text/plain', $path === '/.env' ? "SECRET=1\n" : '');
 }
 
-if ($path === '/api/system') {
+// api-slug: the API under its own api.slug (/schnittstelle); /api answers 404 then.
+$apiRoot = has('api-slug') ? '/schnittstelle' : '/api';
+if ($path === $apiRoot . '/system') {
     $installed = (has('panel-empty') || has('panel-open')) ? 'false' : 'true';
     $installable = has('panel-open') ? 'true' : 'false';
     respond(200, 'application/json',
@@ -520,19 +524,21 @@ if ($path === '/http-umleitung') {
 // panel-absolute: the target absolute, built from Kirby's url option — on staging the
 // production origin; panel-refresh-query: a target outside /panel with url= in its query;
 // panel-refresh-quoted: the target in quotes after URL= in capitals.
-if ($path === '/panel') {
-    $target = has('panel-redirect-out') ? '/elsewhere' : '/panel/login';
+// panel-slug: the Panel under its own panel.slug (/kontrolle); /panel answers 404 then.
+$panelRoot = has('panel-slug') ? '/kontrolle' : '/panel';
+if ($path === $panelRoot) {
+    $target = has('panel-redirect-out') ? '/elsewhere' : $panelRoot . '/login';
     if (has('panel-absolute')) {
-        $target = 'https://prod.example/panel/login';
+        $target = 'https://prod.example' . $panelRoot . '/login';
     }
     if (has('panel-refresh-query')) {
-        $target = '/elsewhere?next=url=/panel/login';
+        $target = '/elsewhere?next=url=' . $panelRoot . '/login';
     }
     $refresh = has('panel-refresh-quoted') ? "0;URL='$target'" : '0; url=' . $target;
     $redirect = has('panel-location') ? ['Location' => $target] : ['Refresh' => $refresh];
     respond(302, 'text/html; charset=utf-8', '', $redirect);
 }
-if ($path === '/panel/login') {
+if ($path === $panelRoot . '/login') {
     $files = has('panel-no-files') ? '' : '<script src="/media/panel/js/app.js"></script>'
         . '<link rel="stylesheet" href="/media/panel/css/app.css">';
     if (has('panel-plugins-empty')) {

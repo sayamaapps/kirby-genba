@@ -12,6 +12,21 @@ All notable changes to this project are documented here. The format follows
   **[privacy text]**. Every site using the package must then review its privacy
   policy.
 
+## [Unreleased]
+
+### Added — `genba-smoke`: Panel and API address for a site with its own slug
+
+- `GENBA_PANEL_PATH` (default `/panel`) names the Panel for checks 7 and 7b, and
+  `GENBA_API_PATH` (default `/api`) the API for check 7 (`<path>/system`). A site
+  with its own `panel.slug` or `api.slug` got a false alarm (`/panel: HTTP 404
+  instead of 200`); the only way out was `GENBA_PANEL_ACCOUNT=off`, which also
+  switched off check 7. The messages of these checks name the configured path.
+- A value that is not a path below the site root (no leading slash, a trailing
+  slash, `..`, a query, characters outside `A-Za-z0-9_~-`) is a usage error, exit 2:
+  `GENBA_PANEL_PATH must be a path below the site root: <value>`.
+- Defaults unchanged: every message, exit code and check is the same without the
+  new variables.
+
 ## [1.4.1] — 2026-10-19
 
 ### Fixed — `genba-smoke` check 7b: Kirby's empty plugin bundles are no finding
