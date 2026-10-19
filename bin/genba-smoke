@@ -1536,6 +1536,11 @@ if [[ "$PANEL_MODE" != off ]]; then
         *.css) panel_types='text/css' ;;
         *) panel_types='text/javascript|application/javascript|application/x-javascript' ;;
       esac
+      # Kirby's plugin bundles are empty when no plugin brings Panel code.
+      panel_need=', not empty'
+      case "$panel_file" in
+        /media/plugins/index.css|/media/plugins/index.js) panel_need='' ;;
+      esac
       bytes=0
       if [[ -f "$TMP/panel-file" ]]; then
         bytes=$(wc -c < "$TMP/panel-file" | tr -d ' ')
@@ -1543,8 +1548,8 @@ if [[ "$PANEL_MODE" != off ]]; then
       if [[ "$CODE" != 200 ]]; then
         fail "Panel file $(log_text "$panel_file"): HTTP $CODE instead of 200$(fetch_detail)"
         panel_broken=$((panel_broken + 1))
-      elif [[ "|$panel_types|" != *"|$TYPE|"* || "$bytes" == 0 ]]; then
-        fail "Panel file $(log_text "$panel_file"): HTTP $CODE, '$TYPE', $bytes bytes — expected ${panel_types//|/ or }, not empty"
+      elif [[ "|$panel_types|" != *"|$TYPE|"* || ( "$bytes" == 0 && -n "$panel_need" ) ]]; then
+        fail "Panel file $(log_text "$panel_file"): HTTP $CODE, '$TYPE', $bytes bytes — expected ${panel_types//|/ or }$panel_need"
         panel_broken=$((panel_broken + 1))
       fi
     done < "$TMP/panel-files.txt"

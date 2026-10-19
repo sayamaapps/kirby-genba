@@ -12,6 +12,17 @@ All notable changes to this project are documented here. The format follows
   **[privacy text]**. Every site using the package must then review its privacy
   policy.
 
+## [1.4.1] — 2026-10-19
+
+### Fixed — `genba-smoke` check 7b: Kirby's empty plugin bundles are no finding
+
+- 1.4.0 read every Panel file as "must not be empty". Kirby names
+  `/media/plugins/index.css` and `/media/plugins/index.js` on every Panel page and
+  answers them with 0 bytes when no plugin brings Panel code — so a sound site failed
+  with `Panel file /media/plugins/index.css: HTTP 200, 'text/css', 0 bytes`. Those two
+  may be empty; their type is still checked. The Panel's own files must still not be
+  empty.
+
 ## [1.4.0] — 2026-10-19
 
 ### Fixed — `genba-smoke` checks 9 and 7b: nothing is green that was not checked

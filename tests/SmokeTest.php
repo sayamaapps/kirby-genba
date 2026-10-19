@@ -240,6 +240,8 @@ try {
     $run('Panel stylesheet is an HTML page', 'panel-html-fallback', 1, "Panel file /media/panel/css/app.css: HTTP 200, 'text/html', [0-9]+ bytes — expected text/css, not empty");
     $run('Panel script is empty', 'panel-js-empty', 1, "Panel file /media/panel/js/app.js: HTTP 200, 'application/javascript', 0 bytes — expected text/javascript or application/javascript or application/x-javascript, not empty");
     $run('Panel script as text/javascript', 'panel-js-text', 0, 'its 2 files arrive');
+    // Kirby's plugin bundles are empty when no plugin brings Panel code: no finding.
+    $run('Panel plugin bundles empty', 'panel-plugins-empty', 0, 'its 4 files arrive');
     // Check 9, GENBA_HEADERS: the rules per line, with the path of each.
     $headersOk = "Strict-Transport-Security: max-age=15552000\n"
         . "X-Content-Type-Options: nosniff\n"
