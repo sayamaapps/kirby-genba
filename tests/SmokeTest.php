@@ -1048,7 +1048,9 @@ try {
     // expired certificate, never by a later request. A real https fake site
     // (tests/fixtures/tls-server.php), trusted through CURL_CA_BUNDLE; plain
     // http ($base, fault auth) answers 401, so a wrong decision reads
-    // "SKIPPED — certificate pending?" and exits 0.
+    // "SKIPPED — certificate pending?" and exits 0. curl words it "SSL certificate
+    // problem: certificate has expired" or, newer, "SSL certificate OpenSSL verify
+    // result: certificate has expired (10)".
     if (!extension_loaded('openssl')) {
         echo "  --   openssl extension missing, the https not-ready runs are not tested\n";
     } else {
@@ -1106,7 +1108,7 @@ try {
                 usleep(100000);
             }
             $tlsRun('expired certificate: a finding, not pending', 'protected', 1,
-                '(?m)^::error::Without credentials https://127\.0\.0\.1:\d+/ gives no answer \(HTTP 000\) — curl: \(60\) SSL certificate problem: certificate has expired', $preview, $expired);
+                '(?m)^::error::Without credentials https://127\.0\.0\.1:\d+/ gives no answer \(HTTP 000\) — curl: \(60\) SSL certificate .*certificate has expired', $preview, $expired);
         } finally {
             genba_remove_tree($expiredDir);
             genba_remove_tree($certDir);
