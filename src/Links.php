@@ -73,7 +73,7 @@ final class Links
     public const DEFAULT_YOUTUBE_FIELDS = ['videoid', 'youtubeid', 'youtubevideos'];
     public const DEFAULT_OEMBED_BASE = 'https://www.youtube.com/oembed';
     public const DEFAULT_DIGISTORE_BASE = 'https://www.digistore24.com/product/';
-    public const USER_AGENT = 'Mozilla/5.0 (compatible; Genba link check; +https://github.com/simsimmal/kirby-genba)';
+    public const USER_AGENT = 'Mozilla/5.0 (compatible; Genba link check; +https://github.com/sayamaapps/kirby-genba)';
 
     private const PURCHASE_HOSTS = [
         'copecart.com', 'ablefy.io', 'elopage.com', 'gumroad.com', 'paypal.me', 'paypal.com',

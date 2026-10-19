@@ -38,7 +38,7 @@ visitor's browser:
   endpoint. Credentials for a protected preview are used for these requests only.
 - **genba-links** contacts YouTube (oEmbed), Digistore24 and the shop hosts named
   in the site's own content. It sends only those public URLs and its user agent
-  string, `Mozilla/5.0 (compatible; Genba link check; +https://github.com/simsimmal/kirby-genba)`.
+  string, `Mozilla/5.0 (compatible; Genba link check; +https://github.com/sayamaapps/kirby-genba)`.
   No visitor data exists at that point.
 
 Staging credentials for a protected preview pass to `curl` through a

@@ -46,7 +46,7 @@ Composer installs the plugin into `site/plugins/genba/` (via `getkirby/composer-
 Until the package is on Packagist, add the repository first:
 
 ```json
-"repositories": [{ "type": "vcs", "url": "https://github.com/simsimmal/kirby-genba" }]
+"repositories": [{ "type": "vcs", "url": "https://github.com/sayamaapps/kirby-genba" }]
 ```
 
 Manual installation (download into `site/plugins/genba/`) gives the Kirby part only. The tools in `vendor/bin/` come with Composer.
@@ -318,7 +318,7 @@ Static checks of the built site under the Content Security Policy, plus a check 
 | `--require=f1,f2`, `GENBA_REQUIRE_FILES` | `public/assets/css/tailwind.css` | Comma list of files that must exist and not be empty; it replaces the default. The literal `none` turns the file check off, and the log says so, naming where it came from (`--require=none` or `GENBA_REQUIRE_FILES=none`). Next to other entries, `none` drops the default and the other entries count, as with `--allow`: `--require=none,public/x.css` checks `public/x.css`, not a file called `none`. A list without a single file (`--require=,`) is a usage error, exit 2. |
 | `--help` | — | Usage on stdout, exit 0 — unless another argument is a usage error: that wins, exit 2, whatever the order |
 
-The default allow entry is the server-side endpoint of [Koe](https://github.com/simsimmal/kirby-koe) (`places.googleapis.com/v1/`), which runs on the server and never in a page. Add more with `--allow` or `GENBA_ALLOW`.
+The default allow entry is the server-side endpoint of [Koe](https://github.com/sayamaapps/kirby-koe) (`places.googleapis.com/v1/`), which runs on the server and never in a page. Add more with `--allow` or `GENBA_ALLOW`.
 
 The rules, in this order:
 
@@ -655,7 +655,7 @@ Disruptions (timeouts, 5xx, 429) are reported as warnings and do not turn the ru
 | `--help` | — | Usage on stdout, exit 0 — unless another argument is a usage error: that wins, exit 2, whatever the order |
 | paths | `content`, `site`, `public` under the working directory | Directories or files to scan |
 
-The user agent sent with every request is `Mozilla/5.0 (compatible; Genba link check; +https://github.com/simsimmal/kirby-genba)`.
+The user agent sent with every request is `Mozilla/5.0 (compatible; Genba link check; +https://github.com/sayamaapps/kirby-genba)`.
 
 **Exit codes:** 0 no findings (disruptions and "no references found" included) · 1 findings, or the counter-check failed (last line `Genba links: FAILED — counter-check failed, no reference was checked`) · 2 cannot run: none of the paths exist, a directory or file under them cannot be read, the PHP extension `curl` or `mbstring` is missing, or a usage error (`::error::Unknown argument: <argument>`, an empty `--digistore-field=`, an empty path argument `""` — `::error::Path argument is empty (omit it for the default paths)`: an unset `${{ vars.X }}` must not read the whole working directory). The reason for an exit 2 is on stderr; stdout ends with `Genba links: FAILED — cannot run`.
 

@@ -4,7 +4,7 @@
     "type": "kirby-plugin",
     "license": "MIT",
     "keywords": ["kirby", "kirby-plugin", "kirby-5", "deployment", "smoke-test", "ci", "operations", "link-check"],
-    "homepage": "https://github.com/simsimmal/kirby-genba",
+    "homepage": "https://github.com/sayamaapps/kirby-genba",
     "authors": [
         {
             "name": "Simon Räder",
@@ -12,8 +12,8 @@
         }
     ],
     "support": {
-        "issues": "https://github.com/simsimmal/kirby-genba/issues",
-        "source": "https://github.com/simsimmal/kirby-genba"
+        "issues": "https://github.com/sayamaapps/kirby-genba/issues",
+        "source": "https://github.com/sayamaapps/kirby-genba"
     },
     "require": {
         "php": "^8.2",
