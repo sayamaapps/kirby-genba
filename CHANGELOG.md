@@ -12,7 +12,7 @@ All notable changes to this project are documented here. The format follows
   **[privacy text]**. Every site using the package must then review its privacy
   policy.
 
-## [Unreleased]
+## [1.5.0] — 2026-10-20
 
 ### Added — `genba-smoke`: Panel and API address for a site with its own slug
 
