@@ -31,7 +31,7 @@ $empty = null;
 // not resolve" runs would read differently behind a real proxy.
 $genbaVariables = [
     'GENBA_URL', 'GENBA_EXPECTED_BUILD', 'GENBA_META', 'GENBA_MARKER', 'GENBA_USER', 'GENBA_PASSWORD',
-    'GENBA_WITHOUT_CREDENTIALS', 'GENBA_HTTPS_REDIRECT', 'GENBA_PANEL_ACCOUNT', 'GENBA_FOREIGN_SITEMAP',
+    'GENBA_WITHOUT_CREDENTIALS', 'GENBA_HTTPS_REDIRECT', 'GENBA_PANEL_ACCOUNT', 'GENBA_PANEL_PATH', 'GENBA_API_PATH', 'GENBA_FOREIGN_SITEMAP',
     'GENBA_PAGES_MAX', 'GENBA_RETRIES', 'GENBA_PAUSE', 'GENBA_HTTP_URL', 'GENBA_SHA',
     'GENBA_EXPECT_PROTECTED', 'GENBA_NOT_READY', 'GENBA_PRIVATE_PATHS', 'GENBA_MAX_TIME',
     'GENBA_SITEMAP_ORIGIN', 'GENBA_CLOSED_PREVIEW', 'GENBA_HEADERS', 'CURL_CA_BUNDLE',
@@ -242,6 +242,28 @@ try {
     $run('Panel script as text/javascript', 'panel-js-text', 0, 'its 2 files arrive');
     // Kirby's plugin bundles are empty when no plugin brings Panel code: no finding.
     $run('Panel plugin bundles empty', 'panel-plugins-empty', 0, 'its 4 files arrive');
+    // GENBA_PANEL_PATH and GENBA_API_PATH: a site with its own panel.slug or api.slug. The default
+    // paths are unchanged: a Panel under another slug is still a finding without the variable.
+    $run('Panel under another slug, default path', 'panel-slug', 1, '(?m)^::error::/panel: HTTP 404 instead of 200');
+    $run('Panel under another slug, GENBA_PANEL_PATH', 'panel-slug', 0, '(?m)^  ok   Panel: /kontrolle answers 200, its 2 files arrive$',
+        ['GENBA_PANEL_PATH' => '/kontrolle']);
+    // GENBA_PANEL_ACCOUNT=off turns 7 and 7b off, so the path is not read at all.
+    $run('Panel under another slug, account check off', 'panel-slug', 0, '(?m)^  --   Panel not checked \(GENBA_PANEL_ACCOUNT=off\)$',
+        ['GENBA_PANEL_PATH' => '/kontrolle', 'GENBA_PANEL_ACCOUNT' => 'off']);
+    $run('Panel under another slug, a wrong GENBA_PANEL_PATH', 'panel-slug', 1, '(?m)^::error::/panel: HTTP 404 instead of 200', ['GENBA_PANEL_PATH' => '/panel']);
+    $run('Panel redirect out of its own slug', 'panel-slug panel-redirect-out', 1, "/kontrolle: HTTP 302 to '.*elsewhere', not to a page under /kontrolle", ['GENBA_PANEL_PATH' => '/kontrolle']);
+    $run('API under another slug, default path', 'api-slug', 1, '(?m)^::error::/api/system: HTTP 404 without isInstalled/isInstallable');
+    $run('API under another slug, GENBA_API_PATH', 'api-slug', 0, '(?m)^  ok   Panel set up \(account present, installer locked\)$', ['GENBA_API_PATH' => '/schnittstelle']);
+    $run('API and Panel under other slugs', 'api-slug panel-slug', 0, '(?m)^  ok   Panel: /kontrolle answers 200',
+        ['GENBA_API_PATH' => '/schnittstelle', 'GENBA_PANEL_PATH' => '/kontrolle']);
+    // The paths are validated before the first request: a path below the site root, letters, digits, _ ~ - and / between segments.
+    $run('GENBA_PANEL_PATH without slash', '', 2, 'GENBA_PANEL_PATH must be a path below the site root: panel', ['GENBA_PANEL_PATH' => 'panel']);
+    $run('GENBA_PANEL_PATH with trailing slash', '', 2, 'GENBA_PANEL_PATH must be a path below the site root: /panel/', ['GENBA_PANEL_PATH' => '/panel/']);
+    $run('GENBA_PANEL_PATH is the root', '', 2, 'GENBA_PANEL_PATH must be a path below the site root: /', ['GENBA_PANEL_PATH' => '/']);
+    $run('GENBA_PANEL_PATH with dot segment', '', 2, 'GENBA_PANEL_PATH must be a path below the site root: /\.\./etc', ['GENBA_PANEL_PATH' => '/../etc']);
+    $run('GENBA_PANEL_PATH with a query', '', 2, 'GENBA_PANEL_PATH must be a path below the site root: /panel\?x=1', ['GENBA_PANEL_PATH' => '/panel?x=1']);
+    $run('GENBA_API_PATH without slash', '', 2, 'GENBA_API_PATH must be a path below the site root: api', ['GENBA_API_PATH' => 'api']);
+    $run('GENBA_API_PATH with a space', '', 2, 'GENBA_API_PATH must be a path below the site root: /a b', ['GENBA_API_PATH' => '/a b']);
     // Check 9, GENBA_HEADERS: the rules per line, with the path of each.
     $headersOk = "Strict-Transport-Security: max-age=15552000\n"
         . "X-Content-Type-Options: nosniff\n"
@@ -1185,7 +1207,8 @@ try {
     $regexCheck = static function (string $source): array {
         $problems = [];
         // $hdr_path and $hdr_name: the GENBA_HEADERS lines, read from the operator's setting.
-        $settings = ['$URL', '$EXPECTED', '$META', '$entry', '$PAGES_MAX', '$RETRIES', '$PAUSE', '$MAX_TIME', '$SITEMAP_ORIGIN', '$hdr_path', '$hdr_name'];
+        // $PANEL_PATH and $API_PATH: GENBA_PANEL_PATH and GENBA_API_PATH, validated above.
+        $settings = ['$URL', '$EXPECTED', '$META', '$entry', '$PAGES_MAX', '$RETRIES', '$PAUSE', '$MAX_TIME', '$SITEMAP_ORIGIN', '$hdr_path', '$hdr_name', '$PANEL_PATH', '$API_PATH'];
         if (preg_match('~^bytes_match\(\) \(\n((?:.*\n)*?)\)\n~m', $source, $function, PREG_OFFSET_CAPTURE) !== 1) {
             return ['bytes_match() ( … ) not found'];
         }

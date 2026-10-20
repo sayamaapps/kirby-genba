@@ -63,6 +63,10 @@ Settings (environment variables):
                               SKIPPED, visibly; decided once, on the first request
   GENBA_HTTPS_REDIRECT        require (default) | warn | off
   GENBA_PANEL_ACCOUNT         require (default) | warn | off
+  GENBA_PANEL_PATH            address of the Panel, /path (default: /panel), for a site
+                              with its own panel.slug; letters, digits, _ ~ -, / between
+  GENBA_API_PATH              address of the Panel API, /path (default: /api), for a site
+                              with its own api.slug; the same rule
   GENBA_FOREIGN_SITEMAP       rewrite | warn | fail: sitemap entries on another
                               origin (staging listing production) are fetched on the
                               GENBA_URL origin | a warning | a finding. Default: rewrite
@@ -240,6 +244,15 @@ case "$PANEL_MODE" in
   require|warn|off) ;;
   *) cannot_run "GENBA_PANEL_ACCOUNT must be require, warn or off" ;;
 esac
+# GENBA_PANEL_PATH and GENBA_API_PATH: the addresses of the Panel and its API on a
+# site with its own panel.slug or api.slug. One path below the site root: a slash,
+# then segments of letters, digits, _ ~ - separated by single slashes (no trailing
+# slash, no dot segment, no query). Validated on every run, as the other settings.
+PANEL_PATH=${GENBA_PANEL_PATH:-/panel}
+API_PATH=${GENBA_API_PATH:-/api}
+path_re='^/[A-Za-z0-9_~-]+(/[A-Za-z0-9_~-]+)*$'
+[[ "$PANEL_PATH" =~ $path_re ]] || cannot_run "GENBA_PANEL_PATH must be a path below the site root: $PANEL_PATH"
+[[ "$API_PATH" =~ $path_re ]] || cannot_run "GENBA_API_PATH must be a path below the site root: $API_PATH"
 # GENBA_HEADERS: one rule per line, "[/path] Name: rule" (README, check 9).
 # Read here, before the first request, so a broken line is a usage error and
 # never a silent pass. Blank lines and lines starting with # are skipped.
@@ -1443,15 +1456,15 @@ done
 if [[ "$PANEL_MODE" == off ]]; then
   note "Panel not checked (GENBA_PANEL_ACCOUNT=off)"
 else
-  fetch GET "$URL/api/system" "$TMP/system.json"
+  fetch GET "$URL$API_PATH/system" "$TMP/system.json"
   installed=$(LC_ALL=C grep -aoE '"isInstalled":(true|false)' "$TMP/system.json" 2>/dev/null | head -n 1 | LC_ALL=C cut -d: -f2 || true)
   installable=$(LC_ALL=C grep -aoE '"isInstallable":(true|false)' "$TMP/system.json" 2>/dev/null | head -n 1 | LC_ALL=C cut -d: -f2 || true)
   if [[ "$CODE" != 200 || -z "$installed" || -z "$installable" ]]; then
-    fail "/api/system: HTTP $CODE without isInstalled/isInstallable — is this Kirby's Panel API?$(fetch_detail)"
+    fail "$API_PATH/system: HTTP $CODE without isInstalled/isInstallable — is this Kirby's Panel API?$(fetch_detail)"
   elif [[ "$installable" == true ]]; then
     fail "Panel can be installed from outside (panel.install on?) — any visitor could become admin"
   elif [[ "$installed" != true ]]; then
-    message="Panel without account: /panel shows the installer. Create the account on the server first"
+    message="Panel without account: $PANEL_PATH shows the installer. Create the account on the server first"
     if [[ "$PANEL_MODE" == require ]]; then
       fail "$message"
     else
@@ -1475,7 +1488,7 @@ if [[ "$PANEL_MODE" != off ]]; then
   # target as the server sent it. curl's own redirect URL would carry the
   # credentials of a protected preview.
   : > "$TMP/panel-head.txt"
-  fetch GET "$URL/panel" "$TMP/panel.html" '' "$TMP/panel-head.txt"
+  fetch GET "$URL$PANEL_PATH" "$TMP/panel.html" '' "$TMP/panel-head.txt"
   panel_redirect_ok=1
   case "$CODE" in
     301|302|303|307|308)
@@ -1498,20 +1511,20 @@ if [[ "$PANEL_MODE" != off ]]; then
       # the path counts — under /panel of GENBA_URL — and it is fetched on the
       # GENBA_URL origin, as a rewritten sitemap entry is; another origin is
       # said in a -- line.
-      panel_target=$(resolve "$URL/panel" "$panel_location")
+      panel_target=$(resolve "$URL$PANEL_PATH" "$panel_location")
       panel_path=$(LC_ALL=C sed -E 's|^[a-zA-Z][a-zA-Z0-9+.-]*://[^/?#]*||' <<<"$panel_target")
       panel_path=$(resolve "$ORIGIN/" "/${panel_path#/}")
       panel_path=${panel_path#"$ORIGIN"}
-      panel_root="${URL#"$ORIGIN"}/panel"
+      panel_root="${URL#"$ORIGIN"}$PANEL_PATH"
       case "$panel_path" in
         "$panel_root"|"$panel_root/"*|"$panel_root?"*)
           if ! same_origin "$panel_target"; then
-            note "/panel sends on to $(log_text "$panel_location") — checked as $(log_text "$panel_path") on $ORIGIN (Kirby's url option names another origin)"
+            note "$PANEL_PATH sends on to $(log_text "$panel_location") — checked as $(log_text "$panel_path") on $ORIGIN (Kirby's url option names another origin)"
           fi
           fetch GET "$ORIGIN$panel_path" "$TMP/panel.html"
           ;;
         *)
-          fail "/panel: HTTP $CODE to '$(log_text "$panel_location")', not to a page under /panel"
+          fail "$PANEL_PATH: HTTP $CODE to '$(log_text "$panel_location")', not to a page under $PANEL_PATH"
           panel_redirect_ok=0
           ;;
       esac
@@ -1520,7 +1533,7 @@ if [[ "$PANEL_MODE" != off ]]; then
   if (( panel_redirect_ok == 0 )); then
     : # reported above
   elif [[ "$CODE" != 200 ]]; then
-    fail "/panel: HTTP $CODE instead of 200$(fetch_detail)"
+    fail "$PANEL_PATH: HTTP $CODE instead of 200$(fetch_detail)"
   else
     LC_ALL=C grep -aoE "/media/(panel|plugins)/[^\"' )<>]+\.(js|css|mjs)" "$TMP/panel.html" 2>/dev/null \
       | LC_ALL=C sort -u > "$TMP/panel-files.txt" || true
@@ -1554,9 +1567,9 @@ if [[ "$PANEL_MODE" != off ]]; then
       fi
     done < "$TMP/panel-files.txt"
     if (( panel_files == 0 )); then
-      fail "/panel names no JS or CSS under /media/panel — an empty Panel page?"
+      fail "$PANEL_PATH names no JS or CSS under /media/panel — an empty Panel page?"
     elif (( panel_broken == 0 )); then
-      ok "Panel: /panel answers 200, its $panel_files files arrive"
+      ok "Panel: $PANEL_PATH answers 200, its $panel_files files arrive"
     fi
   fi
 fi
