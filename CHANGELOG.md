@@ -9,7 +9,7 @@ All notable changes to this project are documented here. The format follows
   **major** version. Sites and their workflows match on these; a routine update
   must not change what a check reports or how a workflow reads its result.
 
-## [Unreleased]
+## [1.5.1] — 2026-10-20
 
 ### Fixed — `genba-smoke` check 7b: Kirby's reload after an update is no finding
 
