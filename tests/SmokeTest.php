@@ -232,6 +232,14 @@ try {
     // against 127.0.0.1. Its path counts, fetched on GENBA_URL, said in a -- line; /panel once.
     $run('Panel redirect to another origin', 'panel-absolute', 0, "(?s)  --   /panel sends on to https://prod\\.example/panel/login — checked as /panel/login on http://127\\.0\\.0\\.1:[0-9]+ .*its 2 files arrive");
     expect(1, substr_count((string) file_get_contents($requestLog), "GET /panel\n"), 'check 7b asks for /panel once');
+    // Kirby links the Panel's files on the first Panel page after an update and sends that page
+    // back to itself: the one reload is followed, said in a -- line; a page that keeps doing it is
+    // a finding, asked for twice, not more.
+    $run('Panel page reloads itself once', 'panel-reload', 0, "(?s)  --   /panel/login sends on to itself \\(Kirby links the Panel files on the first call after an update\\) — asked once more\n.*its 2 files arrive");
+    expect(2, substr_count((string) file_get_contents($requestLog), "GET /panel/login\n"), 'check 7b asks for the reloaded page twice');
+    $run('Panel page reloads itself again', 'panel-reload-loop', 1, '(?m)^::error::/panel: HTTP 302 instead of 200$');
+    expect(2, substr_count((string) file_get_contents($requestLog), "GET /panel/login\n"), 'check 7b follows the reload once, not more');
+    $run('Panel page under its own slug reloads itself once', 'panel-slug panel-reload', 0, '(?m)^  ok   Panel: /kontrolle answers 200, its 2 files arrive$', ['GENBA_PANEL_PATH' => '/kontrolle']);
     // The target starts right after url=: an url= in its query is no second target.
     $run('Panel redirect with url= in its query', 'panel-refresh-query', 1, "/panel: HTTP 302 to '/elsewhere\\?next=url=/panel/login', not to a page under /panel");
     $run('Panel redirect target in quotes', 'panel-refresh-quoted', 0, 'its 2 files arrive');
