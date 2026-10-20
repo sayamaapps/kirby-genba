@@ -943,9 +943,7 @@ GitHub shows the `::` lines as annotations.
 
 ## Privacy
 
-Genba sets no cookies, uses no browser storage and loads nothing from a third party in a visitor's browser. The Kirby part prints a commit hash of the site's own code. The tools run in CI, not in a visitor's browser, and they process no visitor data. The smoke test fetches the site's own pages as a client. The link check contacts YouTube (oEmbed), Digistore24 and the shop hosts named in the site's own content, and sends only those public URLs and the user agent string. Staging credentials pass to `curl` through a file, never as an argument, never over http.
-
-[PRIVACY.md](PRIVACY.md) describes the implementation in English. [DATENSCHUTZ.md](DATENSCHUTZ.md) holds the German text block for a site's privacy policy. Both describe the implementation and are not legal advice.
+Genba is a tool for the people who run the site and processes no visitor data: it sets no cookies, uses no browser storage and makes no request to a third party from a visitor's browser. There is nothing to add to a site's privacy policy. The build stamp is one file, `site/config/build.txt`, written by CI before the upload; it holds only a commit hash.
 
 ## Development
 

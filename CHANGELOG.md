@@ -8,9 +8,12 @@ All notable changes to this project are documented here. The format follows
   environment variable name, or to the `<meta name="build">` output** is a
   **major** version. Sites and their workflows match on these; a routine update
   must not change what a check reports or how a workflow reads its result.
-- **A change to the privacy text** (`DATENSCHUTZ.md` / `PRIVACY.md`) is marked
-  **[privacy text]**. Every site using the package must then review its privacy
-  policy.
+
+## [Unreleased]
+
+### Removed
+
+- **`DATENSCHUTZ.md` and `PRIVACY.md`.** Genba processes no visitor data, so it has no place in a site's privacy policy. The README says so under "Privacy".
 
 ## [1.5.0] — 2026-10-20
 

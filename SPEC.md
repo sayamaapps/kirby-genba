@@ -31,7 +31,7 @@ comments and task prompts.
 | Where the pieces run | `../kirby-starter/.github/workflows/deploy-vorschau.yml` (praeflug, build, stylesheet check, stamp, PHP tests, vorpruefung, deploy, reachability, smoke test), `tests.yml` (counter-checks on every push), `fremdlinks.yml` (daily 05:17 UTC); the deploy workflow of one live site, lines 285–295 and 770–785 (live variant: stamp verified with grep, `HTTPS_UMLEITUNG` pflicht/warnen by `OEFFENTLICH`) |
 | package.json | `../kirby-starter/package.json` script `praeflug` (no-op echo; one live site: `node scripts/schriften.mjs`) |
 | Boundaries, NOT duplicated | the weekly fleet check outside this repository (reads `<meta name="build">`), a live site's own daily health check (site-specific) |
-| Family conventions | `../kirby-noren` (SPEC, README, CHANGELOG, PRIVACY, DATENSCHUTZ, tests/helpers.php), `../kirby-koe` (bin/koe-fetch, src/Fetch.php: CLI `run($env, $argv, …, $out, $err)` pattern), `../kirby-kizami`, `../kirby-fude/.github/workflows/ci.yml` (fork guard) |
+| Family conventions | `../kirby-noren` (SPEC, README, CHANGELOG, privacy notes, tests/helpers.php), `../kirby-koe` (bin/koe-fetch, src/Fetch.php: CLI `run($env, $argv, …, $out, $err)` pattern), `../kirby-kizami`, `../kirby-fude/.github/workflows/ci.yml` (fork guard) |
 
 ---
 
@@ -43,7 +43,7 @@ comments and task prompts.
   no 8.3+ functions). Run with `ASDF_PHP_VERSION=8.5.3 php …` (asdf otherwise
   says "No version is set"). Composer: `ASDF_PHP_VERSION=8.5.3 composer`.
 - Code, identifiers, comments, messages, README in **English**. German only
-  in `translations/de.php` and `DATENSCHUTZ.md`. The CLI tools print English.
+  in `translations/de.php`. The CLI tools print English.
 - **Only edit files your task owns (§2).** Need a change in a file you do not
   own (a helper, a translation key, index.php, a stub signature)? Write it into
   `NOTES-<task>.md` in the package root: file, problem, proposed change. Do not
@@ -132,9 +132,7 @@ kirby-genba/
 │   ├── fixtures/precheck-variants/  precheck   (template variants for genba-precheck, §9.4)
 │   └── LinksTest.php                links      (§9.6)
 ├── README.md                        docs   (§10)
-├── CHANGELOG.md                     docs
-├── PRIVACY.md                       docs
-└── DATENSCHUTZ.md                   docs
+└── CHANGELOG.md                     docs
 ```
 
 `bin/*` files must keep their executable bit (`chmod +x`); Composer links them
@@ -1804,23 +1802,12 @@ section of its tool (`## genba-<tool>`; Tree's in precheck's and links'), whites
   what was missing so far), options table (§4), your own markup
   (`genbaBuildInfo()`), "Switching from the starter copies" (table §8 plus the
   files a site deletes), boundaries (the fleet check weekly from outside,
-  site-specific healthchecks stay), privacy (link to PRIVACY.md), development
+  site-specific healthchecks stay), privacy (short statement), development
   (`composer install`, `composer test`), license.
 - **CHANGELOG.md**: Keep a Changelog, SemVer, `## [1.0.0] — <release date>`, with
   "Changed — renamed to English (breaking)" (table §8), "Added", "Changed
   behaviour" (the list at the end of §8, numbered), "Unchanged (data
-  continuity)" (`site/config/build.txt`, `<meta name="build">`), and a
-  `[privacy text]` marker like noren's.
-- **PRIVACY.md** (English) + **DATENSCHUTZ.md** (German text block):
-  "describes the implementation, not legal advice". Content: the Kirby part
-  prints a commit hash of the site's own code into the HTML — no visitor data,
-  no cookies, no storage, no third-party request. The tools run in CI, not in
-  the visitor's browser: the smoke test fetches the site's own pages as a
-  client; the link check contacts YouTube (oEmbed), Digistore24 and the
-  shops named in the site's own content, sending only those public URLs and
-  the user agent string — no visitor data exists at that point. Credentials
-  for a protected preview are passed to curl through a file, never as an
-  argument, never over http.
+  continuity)" (`site/config/build.txt`, `<meta name="build">`).
 
 ---
 
