@@ -960,6 +960,25 @@ resolve() {
   printf '%s%s%s\n' "$origin" "$path" "$query"
 }
 
+# redirect_location HEADERS -> the target of a redirect as the server sent it:
+# the last Location header, else the target of a Refresh header ("0; url=…").
+# That target starts right after the url= that follows the seconds and runs to
+# the end, quotes around it dropped — an url= in its query is part of it.
+redirect_location() {
+  local location
+  location=$(LC_ALL=C grep -ai '^location:' "$1" | tail -n 1 | LC_ALL=C tr -d '\r' \
+    | LC_ALL=C sed 's/^[Ll][Oo][Cc][Aa][Tt][Ii][Oo][Nn]:[[:space:]]*//' || true)
+  if [[ -z "$location" ]]; then
+    location=$(LC_ALL=C grep -ai '^refresh:' "$1" | tail -n 1 | LC_ALL=C tr -d '\r' \
+      | LC_ALL=C sed -n -E 's/^[Rr][Ee][Ff][Rr][Ee][Ss][Hh]:[[:space:]]*[0-9.]*[[:space:]]*[;,]?[[:space:]]*([Uu][Rr][Ll][[:space:]]*=[[:space:]]*)?//p' || true)
+    case "$location" in
+      \"*) location=${location#\"}; location=${location%%\"*} ;;
+      \'*) location=${location#\'}; location=${location%%\'*} ;;
+    esac
+  fi
+  printf '%s\n' "$location"
+}
+
 # expected_type URL -> the Content-Type an asset of that kind must have.
 expected_type() {
   case "$(LC_ALL=C sed -E 's#[?].*##' <<<"$1" | LC_ALL=C tr '[:upper:]' '[:lower:]')" in
@@ -1481,7 +1500,8 @@ fi
 # must answer 200 with a script or stylesheet type and a body — a fallback
 # route that answers every path with an HTML page, 200, is no Panel file.
 # Kirby sends a visitor who is not signed in on to the Panel's login page: one
-# redirect is followed, and only when its target lies under /panel. Any other
+# redirect is followed, and only when its target lies under /panel — and the
+# reload to itself Kirby sends from that page once after an update. Any other
 # redirect is a finding, as everywhere else.
 if [[ "$PANEL_MODE" != off ]]; then
   # One request: its body is the Panel page, its headers name a redirect's
@@ -1493,19 +1513,8 @@ if [[ "$PANEL_MODE" != off ]]; then
   case "$CODE" in
     301|302|303|307|308)
       # Kirby 5 sends a visitor who is not signed in on with a Refresh header
-      # ("0; url=…") rather than a Location: both count. The target of a
-      # Refresh starts right after the url= that follows the seconds and runs
-      # to the end, quotes around it dropped — an url= in its query is part of it.
-      panel_location=$(LC_ALL=C grep -ai '^location:' "$TMP/panel-head.txt" | tail -n 1 | LC_ALL=C tr -d '\r' \
-        | LC_ALL=C sed 's/^[Ll][Oo][Cc][Aa][Tt][Ii][Oo][Nn]:[[:space:]]*//' || true)
-      if [[ -z "$panel_location" ]]; then
-        panel_location=$(LC_ALL=C grep -ai '^refresh:' "$TMP/panel-head.txt" | tail -n 1 | LC_ALL=C tr -d '\r' \
-          | LC_ALL=C sed -n -E 's/^[Rr][Ee][Ff][Rr][Ee][Ss][Hh]:[[:space:]]*[0-9.]*[[:space:]]*[;,]?[[:space:]]*([Uu][Rr][Ll][[:space:]]*=[[:space:]]*)?//p' || true)
-        case "$panel_location" in
-          \"*) panel_location=${panel_location#\"}; panel_location=${panel_location%%\"*} ;;
-          \'*) panel_location=${panel_location#\'}; panel_location=${panel_location%%\'*} ;;
-        esac
-      fi
+      # ("0; url=…") rather than a Location: both count (redirect_location).
+      panel_location=$(redirect_location "$TMP/panel-head.txt")
       # Kirby writes the target absolute, from its url option: on staging the
       # production origin, or localhost where GENBA_URL says 127.0.0.1. Only
       # the path counts — under /panel of GENBA_URL — and it is fetched on the
@@ -1521,7 +1530,24 @@ if [[ "$PANEL_MODE" != off ]]; then
           if ! same_origin "$panel_target"; then
             note "$PANEL_PATH sends on to $(log_text "$panel_location") — checked as $(log_text "$panel_path") on $ORIGIN (Kirby's url option names another origin)"
           fi
-          fetch GET "$ORIGIN$panel_path" "$TMP/panel.html"
+          : > "$TMP/panel-head.txt"
+          fetch GET "$ORIGIN$panel_path" "$TMP/panel.html" '' "$TMP/panel-head.txt"
+          # On the first Panel page after an update Kirby links the Panel's
+          # files into media/panel and sends the visitor back to the same
+          # address (a Location, absolute from its url option, without the
+          # query). That one reload is followed; a page that sends on to itself
+          # again, or anywhere else, is the finding below.
+          case "$CODE" in
+            301|302|303|307|308)
+              reload_location=$(redirect_location "$TMP/panel-head.txt")
+              reload_path=$(resolve "$ORIGIN$panel_path" "$reload_location" \
+                | LC_ALL=C sed -E 's|^[a-zA-Z][a-zA-Z0-9+.-]*://[^/?#]*||; s|[?].*||')
+              if [[ -n "$reload_location" && "$reload_path" == "${panel_path%%\?*}" ]]; then
+                note "$(log_text "$panel_path") sends on to itself (Kirby links the Panel files on the first call after an update) — asked once more"
+                fetch GET "$ORIGIN$panel_path" "$TMP/panel.html"
+              fi
+              ;;
+          esac
           ;;
         *)
           fail "$PANEL_PATH: HTTP $CODE to '$(log_text "$panel_location")', not to a page under $PANEL_PATH"

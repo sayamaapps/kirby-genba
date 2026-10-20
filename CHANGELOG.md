@@ -11,6 +11,17 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed — `genba-smoke` check 7b: Kirby's reload after an update is no finding
+
+- On the first Panel page after an update (a new Kirby version, an empty
+  `media/panel`) Kirby links the Panel's files and sends the page back to its
+  own address. Check 7b followed only the redirect to the login page and
+  reported the reload: `/panel: HTTP 302 instead of 200` on the first run after
+  every Kirby update, green on the next. A page that sends on to itself is now
+  asked once more, said in a `--` line (`<path> sends on to itself (Kirby links
+  the Panel files on the first call after an update) — asked once more`); a
+  second reload is the finding as before. Messages and exit codes unchanged.
+
 ### Removed
 
 - **`DATENSCHUTZ.md` and `PRIVACY.md`.** Genba processes no visitor data, so it has no place in a site's privacy policy. The README says so under "Privacy".

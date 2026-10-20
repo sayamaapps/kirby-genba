@@ -538,7 +538,14 @@ if ($path === $panelRoot) {
     $redirect = has('panel-location') ? ['Location' => $target] : ['Refresh' => $refresh];
     respond(302, 'text/html; charset=utf-8', '', $redirect);
 }
+// panel-reload: the first call after an update — Kirby links the Panel's files into
+// media/panel and sends the login page back to itself, absolute, with a Location (counted in
+// the request log); panel-reload-loop: on every call.
 if ($path === $panelRoot . '/login') {
+    $calls = $requestLog !== '' ? substr_count((string) file_get_contents($requestLog), "GET $panelRoot/login\n") : 0;
+    if (has('panel-reload-loop') || (has('panel-reload') && $calls === 1)) {
+        respond(302, 'text/html; charset=UTF-8', '', ['Location' => $base . $panelRoot . '/login']);
+    }
     $files = has('panel-no-files') ? '' : '<script src="/media/panel/js/app.js"></script>'
         . '<link rel="stylesheet" href="/media/panel/css/app.css">';
     if (has('panel-plugins-empty')) {
