@@ -29,6 +29,8 @@
  * prod-link, huge-home, huge-home-stream, and variant:<name> (the homepage from
  * tests/fixtures/html-variants/<name>.html, with its own stylesheet holding a url(DATA:,y.woff2)).
  * Faults of the stylesheet: esc-ctype; of the http redirect: esc-redirect, raw-c1-redirect.
+ * Panel and API under other slugs (panel.slug, api.slug): panel-slug (the Panel at /kontrolle, /panel
+ * answers 404), api-slug (the API at /schnittstelle, /api answers 404).
  * ctrl-url: control characters and bytes that are no UTF-8 in addresses (homepage, stylesheet,
  * sitemap). A Location with CR or LF and a cut homepage need tests/fixtures/raw-server.php.
  */
@@ -62,6 +64,18 @@ if (has('lower-base')) {
     $host = strtolower($host);
 }
 $base = 'http://' . $host;
+
+// Response headers (fault `headers`): the set a hardened site sends. The Panel
+// page carries its own Content-Security-Policy with inline scripts, the rest of
+// the site the strict one.
+if (has('headers')) {
+    header('Strict-Transport-Security: max-age=15552000');
+    header('X-Content-Type-Options: nosniff');
+    header('Referrer-Policy: strict-origin-when-cross-origin');
+    header("Content-Security-Policy: " . ($path === '/panel'
+        ? "script-src 'self' 'unsafe-inline' blob:; object-src 'none'"
+        : "script-src 'self'; object-src 'none'"));
+}
 
 /**
  * Sends one response and ends the request. $declared: a Content-Length other than the body's
@@ -481,7 +495,9 @@ if (has('private-open') && in_array($path, ['/site/config/config.php', '/.env', 
     respond(200, 'text/plain', $path === '/.env' ? "SECRET=1\n" : '');
 }
 
-if ($path === '/api/system') {
+// api-slug: the API under its own api.slug (/schnittstelle); /api answers 404 then.
+$apiRoot = has('api-slug') ? '/schnittstelle' : '/api';
+if ($path === $apiRoot . '/system') {
     $installed = (has('panel-empty') || has('panel-open')) ? 'false' : 'true';
     $installable = has('panel-open') ? 'true' : 'false';
     respond(200, 'application/json',
@@ -499,6 +515,66 @@ if ($path === '/http-umleitung') {
     // in a UTF-8 locale further on, and the test is about the filter.
     respond(301, 'text/html', '', ['Location' => "https://$host/" . (has('esc-redirect') ? "\x1b[31mRED\x1b[0m" : '')
         . (has('raw-c1-redirect') ? "\x9b31mA-stra\xc3\x9f\x9be-\xc2\x9b0m-\x9b" : '')]);
+}
+
+# The Panel: a visitor who is not signed in is sent on to the login page, which
+# names two files under /media/panel (fault panel-no-files: none; panel-css-404:
+# the stylesheet is missing); panel-redirect-out: the redirect leaves /panel.
+// Kirby 5 sends the redirect as a Refresh header; panel-location: as a Location.
+// panel-absolute: the target absolute, built from Kirby's url option — on staging the
+// production origin; panel-refresh-query: a target outside /panel with url= in its query;
+// panel-refresh-quoted: the target in quotes after URL= in capitals.
+// panel-slug: the Panel under its own panel.slug (/kontrolle); /panel answers 404 then.
+$panelRoot = has('panel-slug') ? '/kontrolle' : '/panel';
+if ($path === $panelRoot) {
+    $target = has('panel-redirect-out') ? '/elsewhere' : $panelRoot . '/login';
+    if (has('panel-absolute')) {
+        $target = 'https://prod.example' . $panelRoot . '/login';
+    }
+    if (has('panel-refresh-query')) {
+        $target = '/elsewhere?next=url=' . $panelRoot . '/login';
+    }
+    $refresh = has('panel-refresh-quoted') ? "0;URL='$target'" : '0; url=' . $target;
+    $redirect = has('panel-location') ? ['Location' => $target] : ['Refresh' => $refresh];
+    respond(302, 'text/html; charset=utf-8', '', $redirect);
+}
+// panel-reload: the first call after an update — Kirby links the Panel's files into
+// media/panel and sends the login page back to itself, absolute, with a Location (counted in
+// the request log); panel-reload-loop: on every call.
+if ($path === $panelRoot . '/login') {
+    $calls = $requestLog !== '' ? substr_count((string) file_get_contents($requestLog), "GET $panelRoot/login\n") : 0;
+    if (has('panel-reload-loop') || (has('panel-reload') && $calls === 1)) {
+        respond(302, 'text/html; charset=UTF-8', '', ['Location' => $base . $panelRoot . '/login']);
+    }
+    $files = has('panel-no-files') ? '' : '<script src="/media/panel/js/app.js"></script>'
+        . '<link rel="stylesheet" href="/media/panel/css/app.css">';
+    if (has('panel-plugins-empty')) {
+        $files .= '<link rel="stylesheet" href="/media/plugins/index.css?0"><script src="/media/plugins/index.js?0"></script>';
+    }
+    respond(200, 'text/html; charset=utf-8', '<!doctype html><title>Panel</title>' . $files);
+}
+// panel-plugins-empty: the page also names Kirby's plugin bundles, which answer 200
+// without a byte when no plugin brings Panel code (?0: no plugin file).
+if ($path === '/media/plugins/index.css') {
+    respond(200, 'text/css; charset=UTF-8', '');
+}
+if ($path === '/media/plugins/index.js') {
+    respond(200, 'application/javascript; charset=UTF-8', '');
+}
+// panel-js-empty: the script answers 200 without a byte; panel-js-text: as text/javascript
+// (RFC 9239, newer Apache and nginx); panel-html-fallback: a fallback route answers the
+// stylesheet with an HTML page, 200.
+if ($path === '/media/panel/js/app.js') {
+    respond(200, has('panel-js-text') ? 'text/javascript; charset=utf-8' : 'application/javascript', has('panel-js-empty') ? '' : 'window.panel = true;');
+}
+if ($path === '/media/panel/css/app.css') {
+    if (has('panel-css-404')) {
+        respond(404, 'text/plain', 'nicht gefunden');
+    }
+    if (has('panel-html-fallback')) {
+        respond(200, 'text/html; charset=utf-8', '<!doctype html><title>Startseite</title>');
+    }
+    respond(200, 'text/css', 'body{margin:0}');
 }
 
 if (has('no-404')) {

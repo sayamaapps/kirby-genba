@@ -73,7 +73,7 @@ final class Links
     public const DEFAULT_YOUTUBE_FIELDS = ['videoid', 'youtubeid', 'youtubevideos'];
     public const DEFAULT_OEMBED_BASE = 'https://www.youtube.com/oembed';
     public const DEFAULT_DIGISTORE_BASE = 'https://www.digistore24.com/product/';
-    public const USER_AGENT = 'Mozilla/5.0 (compatible; Genba link check; +https://github.com/simsimmal/kirby-genba)';
+    public const USER_AGENT = 'Mozilla/5.0 (compatible; Genba link check; +https://github.com/sayamaapps/kirby-genba)';
 
     private const PURCHASE_HOSTS = [
         'copecart.com', 'ablefy.io', 'elopage.com', 'gumroad.com', 'paypal.me', 'paypal.com',
@@ -250,7 +250,8 @@ final class Links
                 $video = $t[1];
             } elseif ($path === '/watch' && is_string($query['v'] ?? null) && preg_match("/^$id$/", $query['v'])) {
                 $video = $query['v'];
-            } elseif (preg_match("~^/(embed|shorts|live|v)/($id)(/|$)~", $path, $t)) {
+            } elseif (preg_match("~^/(embed|shorts|live|v)/($id)(/|$)~", $path, $t) && $t[2] !== 'videoseries') {
+                // /embed/videoseries?list=… is a playlist: the word has 11 letters, like an ID.
                 $video = $t[2];
                 $embed = $t[1] === 'embed' || $t[1] === 'v';
             } elseif (preg_match("~^/vi(_webp)?/($id)/~", $path, $t)) {

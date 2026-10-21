@@ -11,7 +11,9 @@
 #   2. unknown address answers 404            6. http -> https redirect
 #   3. robots.txt, sitemap.xml, llms.txt      7. Panel: account present,
 #   4. every sitemap page                        installer locked
+#   7b. Panel: /panel answers, the JS and CSS files it names arrive
 #   8. nothing above public/ is reachable (private paths)
+#   9. response headers (GENBA_HEADERS)
 #
 # curl fetches, PHP reads: the saved homepage is read by
 # bin/genba-smoke-read (src/Homepage.php) with an HTML5 parser; bash keeps the
@@ -61,6 +63,10 @@ Settings (environment variables):
                               SKIPPED, visibly; decided once, on the first request
   GENBA_HTTPS_REDIRECT        require (default) | warn | off
   GENBA_PANEL_ACCOUNT         require (default) | warn | off
+  GENBA_PANEL_PATH            address of the Panel, /path (default: /panel), for a site
+                              with its own panel.slug; letters, digits, _ ~ -, / between
+  GENBA_API_PATH              address of the Panel API, /path (default: /api), for a site
+                              with its own api.slug; the same rule
   GENBA_FOREIGN_SITEMAP       rewrite | warn | fail: sitemap entries on another
                               origin (staging listing production) are fetched on the
                               GENBA_URL origin | a warning | a finding. Default: rewrite
@@ -75,6 +81,11 @@ Settings (environment variables):
   GENBA_PRIVATE_PATHS         paths that must not answer 2xx, ADDED to the default list
                               (site/config/config.php, .env, .git/HEAD, vendor/ ...);
                               the entry none drops the default, none alone = off
+  GENBA_HEADERS               response headers, one rule per line: "[/path] Name: rule",
+                              rule = value (exact) | * (present) | none (absent) |
+                              ~text (contains) | !~text (sent, does not contain); path
+                              default /, it must answer 2xx or 3xx. Unset = not
+                              checked (check 9)
   GENBA_PAGES_MAX             sitemap pages fetched (default: 30)
   GENBA_RETRIES               homepage attempts while a cache holds the old build (default: 3)
   GENBA_PAUSE                 seconds between attempts (default: 5)
@@ -233,6 +244,51 @@ case "$PANEL_MODE" in
   require|warn|off) ;;
   *) cannot_run "GENBA_PANEL_ACCOUNT must be require, warn or off" ;;
 esac
+# GENBA_PANEL_PATH and GENBA_API_PATH: the addresses of the Panel and its API on a
+# site with its own panel.slug or api.slug. One path below the site root: a slash,
+# then segments of letters, digits, _ ~ - separated by single slashes (no trailing
+# slash, no dot segment, no query). Validated on every run, as the other settings.
+PANEL_PATH=${GENBA_PANEL_PATH:-/panel}
+API_PATH=${GENBA_API_PATH:-/api}
+path_re='^/[A-Za-z0-9_~-]+(/[A-Za-z0-9_~-]+)*$'
+[[ "$PANEL_PATH" =~ $path_re ]] || cannot_run "GENBA_PANEL_PATH must be a path below the site root: $PANEL_PATH"
+[[ "$API_PATH" =~ $path_re ]] || cannot_run "GENBA_API_PATH must be a path below the site root: $API_PATH"
+# GENBA_HEADERS: one rule per line, "[/path] Name: rule" (README, check 9).
+# Read here, before the first request, so a broken line is a usage error and
+# never a silent pass. Blank lines and lines starting with # are skipped.
+HDR_PATH=()
+HDR_NAME=()
+HDR_RULE=()
+while IFS= read -r hdr_line || [[ -n "$hdr_line" ]]; do
+  hdr_line=${hdr_line%$'\r'}
+  hdr_line=${hdr_line#"${hdr_line%%[![:space:]]*}"}
+  hdr_line=${hdr_line%"${hdr_line##*[![:space:]]}"}
+  if [[ -z "$hdr_line" || "$hdr_line" == \#* ]]; then
+    continue
+  fi
+  hdr_path=/
+  if [[ "$hdr_line" == /* ]]; then
+    hdr_path=${hdr_line%%[[:space:]]*}
+    hdr_line=${hdr_line#"$hdr_path"}
+    hdr_line=${hdr_line#"${hdr_line%%[![:space:]]*}"}
+    [[ "$hdr_path" =~ ^/[A-Za-z0-9._~/-]*$ ]] \
+      || cannot_run "GENBA_HEADERS: path '$hdr_path' must be / followed by letters, digits, . _ ~ / -"
+  fi
+  [[ "$hdr_line" == *:* ]] || cannot_run "GENBA_HEADERS: a line needs 'Name: rule' (got: $hdr_line)"
+  hdr_name=${hdr_line%%:*}
+  hdr_name=${hdr_name%"${hdr_name##*[![:space:]]}"}
+  hdr_rule=${hdr_line#*:}
+  hdr_rule=${hdr_rule#"${hdr_rule%%[![:space:]]*}"}
+  [[ "$hdr_name" =~ ^[A-Za-z0-9-]+$ ]] || cannot_run "GENBA_HEADERS: '$hdr_name' is not a header name"
+  [[ -n "$hdr_rule" ]] || cannot_run "GENBA_HEADERS: the rule for $hdr_name is empty"
+  # "~" alone would be "containing ''", true of every value sent: a rule that checks nothing.
+  if [[ "$hdr_rule" == '~' || "$hdr_rule" == '!~' ]]; then
+    cannot_run "GENBA_HEADERS: the rule for $hdr_name is '$hdr_rule' without text"
+  fi
+  HDR_PATH+=("$hdr_path")
+  HDR_NAME+=("$hdr_name")
+  HDR_RULE+=("$hdr_rule")
+done <<< "${GENBA_HEADERS:-}"
 case "$FOREIGN_MODE" in
   ''|rewrite|warn|fail) ;;
   *) cannot_run "GENBA_FOREIGN_SITEMAP must be rewrite, warn or fail" ;;
@@ -646,7 +702,7 @@ warn() { echo "::warning::$*"; }
 ok() { echo "  ok   $*"; }
 note() { echo "  --   $*"; }
 
-# fetch METHOD URL FILE [MAX_BYTES] -> sets CODE (HTTP status, 000 when there
+# fetch METHOD URL FILE [MAX_BYTES] [HEADERS] -> sets CODE (HTTP status, 000 when there
 # is none — or when curl did not finish the transfer), TYPE (lower-case media
 # type without parameters), FETCH_RC (curl's exit code; 6 = the name does not
 # resolve, 63 = the body is larger than MAX_BYTES — curl stopped, or the body
@@ -658,19 +714,24 @@ note() { echo "  --   $*"; }
 # disk is a cut one or none, so CODE is 000 and FILE is removed, never read.
 # 63 is the one exception: the caller reads the size finding itself. Never -L:
 # a redirect is a finding in itself, and credentials must never follow one.
+# HEADERS: a file for the response headers (curl -D), so a caller reads a
+# redirect's target from the same request instead of asking twice.
 fetch() {
-  local method=$1 target=$2 file=$3 max_bytes=${4:-} result ctype
-  local -a limit=()
+  local method=$1 target=$2 file=$3 max_bytes=${4:-} headers=${5:-} result ctype
+  local -a limit=() dump=()
   if [[ -n "$max_bytes" ]]; then
     limit=(--max-filesize "$max_bytes")
+  fi
+  if [[ -n "$headers" ]]; then
+    dump=(-D "$headers")
   fi
   FETCH_RC=0
   FETCH_ERROR=''
   # ${limit[@]+…}: an empty array counts as unbound (nounset) in bash 3.2.
   if [[ "$method" == HEAD ]]; then
-    result=$(curl "${CURL_OPTS[@]}" ${limit[@]+"${limit[@]}"} -I -o "$file" -w '%{http_code}\t%{content_type}' "$target" 2>"$TMP/curl.err") || FETCH_RC=$?
+    result=$(curl "${CURL_OPTS[@]}" ${limit[@]+"${limit[@]}"} ${dump[@]+"${dump[@]}"} -I -o "$file" -w '%{http_code}\t%{content_type}' "$target" 2>"$TMP/curl.err") || FETCH_RC=$?
   else
-    result=$(curl "${CURL_OPTS[@]}" ${limit[@]+"${limit[@]}"} -o "$file" -w '%{http_code}\t%{content_type}' "$target" 2>"$TMP/curl.err") || FETCH_RC=$?
+    result=$(curl "${CURL_OPTS[@]}" ${limit[@]+"${limit[@]}"} ${dump[@]+"${dump[@]}"} -o "$file" -w '%{http_code}\t%{content_type}' "$target" 2>"$TMP/curl.err") || FETCH_RC=$?
   fi
   # curl below 8.4 stops at --max-filesize only when the size is announced
   # (Content-Length); a body sent without one — chunked or over HTTP/2, as
@@ -897,6 +958,25 @@ resolve() {
   fi
   path=$(LC_ALL=C awk -F/ '{ n = 0; for (i = 2; i <= NF; i++) { if ($i == "..") { if (n > 0) n--; } else if ($i != ".") a[++n] = $i } s = ""; for (i = 1; i <= n; i++) s = s "/" a[i]; if (s == "") s = "/"; print s }' <<<"$path")
   printf '%s%s%s\n' "$origin" "$path" "$query"
+}
+
+# redirect_location HEADERS -> the target of a redirect as the server sent it:
+# the last Location header, else the target of a Refresh header ("0; url=…").
+# That target starts right after the url= that follows the seconds and runs to
+# the end, quotes around it dropped — an url= in its query is part of it.
+redirect_location() {
+  local location
+  location=$(LC_ALL=C grep -ai '^location:' "$1" | tail -n 1 | LC_ALL=C tr -d '\r' \
+    | LC_ALL=C sed 's/^[Ll][Oo][Cc][Aa][Tt][Ii][Oo][Nn]:[[:space:]]*//' || true)
+  if [[ -z "$location" ]]; then
+    location=$(LC_ALL=C grep -ai '^refresh:' "$1" | tail -n 1 | LC_ALL=C tr -d '\r' \
+      | LC_ALL=C sed -n -E 's/^[Rr][Ee][Ff][Rr][Ee][Ss][Hh]:[[:space:]]*[0-9.]*[[:space:]]*[;,]?[[:space:]]*([Uu][Rr][Ll][[:space:]]*=[[:space:]]*)?//p' || true)
+    case "$location" in
+      \"*) location=${location#\"}; location=${location%%\"*} ;;
+      \'*) location=${location#\'}; location=${location%%\'*} ;;
+    esac
+  fi
+  printf '%s\n' "$location"
 }
 
 # expected_type URL -> the Content-Type an asset of that kind must have.
@@ -1395,15 +1475,15 @@ done
 if [[ "$PANEL_MODE" == off ]]; then
   note "Panel not checked (GENBA_PANEL_ACCOUNT=off)"
 else
-  fetch GET "$URL/api/system" "$TMP/system.json"
+  fetch GET "$URL$API_PATH/system" "$TMP/system.json"
   installed=$(LC_ALL=C grep -aoE '"isInstalled":(true|false)' "$TMP/system.json" 2>/dev/null | head -n 1 | LC_ALL=C cut -d: -f2 || true)
   installable=$(LC_ALL=C grep -aoE '"isInstallable":(true|false)' "$TMP/system.json" 2>/dev/null | head -n 1 | LC_ALL=C cut -d: -f2 || true)
   if [[ "$CODE" != 200 || -z "$installed" || -z "$installable" ]]; then
-    fail "/api/system: HTTP $CODE without isInstalled/isInstallable — is this Kirby's Panel API?$(fetch_detail)"
+    fail "$API_PATH/system: HTTP $CODE without isInstalled/isInstallable — is this Kirby's Panel API?$(fetch_detail)"
   elif [[ "$installable" == true ]]; then
     fail "Panel can be installed from outside (panel.install on?) — any visitor could become admin"
   elif [[ "$installed" != true ]]; then
-    message="Panel without account: /panel shows the installer. Create the account on the server first"
+    message="Panel without account: $PANEL_PATH shows the installer. Create the account on the server first"
     if [[ "$PANEL_MODE" == require ]]; then
       fail "$message"
     else
@@ -1411,6 +1491,112 @@ else
     fi
   else
     ok "Panel set up (account present, installer locked)"
+  fi
+fi
+
+# 7b. Panel files: /panel answers, and the JS and CSS it names arrive ----------
+# A Panel whose files do not arrive is an empty page for the editors. The
+# files are the ones /panel names under /media/panel or /media/plugins; each
+# must answer 200 with a script or stylesheet type and a body — a fallback
+# route that answers every path with an HTML page, 200, is no Panel file.
+# Kirby sends a visitor who is not signed in on to the Panel's login page: one
+# redirect is followed, and only when its target lies under /panel — and the
+# reload to itself Kirby sends from that page once after an update. Any other
+# redirect is a finding, as everywhere else.
+if [[ "$PANEL_MODE" != off ]]; then
+  # One request: its body is the Panel page, its headers name a redirect's
+  # target as the server sent it. curl's own redirect URL would carry the
+  # credentials of a protected preview.
+  : > "$TMP/panel-head.txt"
+  fetch GET "$URL$PANEL_PATH" "$TMP/panel.html" '' "$TMP/panel-head.txt"
+  panel_redirect_ok=1
+  case "$CODE" in
+    301|302|303|307|308)
+      # Kirby 5 sends a visitor who is not signed in on with a Refresh header
+      # ("0; url=…") rather than a Location: both count (redirect_location).
+      panel_location=$(redirect_location "$TMP/panel-head.txt")
+      # Kirby writes the target absolute, from its url option: on staging the
+      # production origin, or localhost where GENBA_URL says 127.0.0.1. Only
+      # the path counts — under /panel of GENBA_URL — and it is fetched on the
+      # GENBA_URL origin, as a rewritten sitemap entry is; another origin is
+      # said in a -- line.
+      panel_target=$(resolve "$URL$PANEL_PATH" "$panel_location")
+      panel_path=$(LC_ALL=C sed -E 's|^[a-zA-Z][a-zA-Z0-9+.-]*://[^/?#]*||' <<<"$panel_target")
+      panel_path=$(resolve "$ORIGIN/" "/${panel_path#/}")
+      panel_path=${panel_path#"$ORIGIN"}
+      panel_root="${URL#"$ORIGIN"}$PANEL_PATH"
+      case "$panel_path" in
+        "$panel_root"|"$panel_root/"*|"$panel_root?"*)
+          if ! same_origin "$panel_target"; then
+            note "$PANEL_PATH sends on to $(log_text "$panel_location") — checked as $(log_text "$panel_path") on $ORIGIN (Kirby's url option names another origin)"
+          fi
+          : > "$TMP/panel-head.txt"
+          fetch GET "$ORIGIN$panel_path" "$TMP/panel.html" '' "$TMP/panel-head.txt"
+          # On the first Panel page after an update Kirby links the Panel's
+          # files into media/panel and sends the visitor back to the same
+          # address (a Location, absolute from its url option, without the
+          # query). That one reload is followed; a page that sends on to itself
+          # again, or anywhere else, is the finding below.
+          case "$CODE" in
+            301|302|303|307|308)
+              reload_location=$(redirect_location "$TMP/panel-head.txt")
+              reload_path=$(resolve "$ORIGIN$panel_path" "$reload_location" \
+                | LC_ALL=C sed -E 's|^[a-zA-Z][a-zA-Z0-9+.-]*://[^/?#]*||; s|[?].*||')
+              if [[ -n "$reload_location" && "$reload_path" == "${panel_path%%\?*}" ]]; then
+                note "$(log_text "$panel_path") sends on to itself (Kirby links the Panel files on the first call after an update) — asked once more"
+                fetch GET "$ORIGIN$panel_path" "$TMP/panel.html"
+              fi
+              ;;
+          esac
+          ;;
+        *)
+          fail "$PANEL_PATH: HTTP $CODE to '$(log_text "$panel_location")', not to a page under $PANEL_PATH"
+          panel_redirect_ok=0
+          ;;
+      esac
+      ;;
+  esac
+  if (( panel_redirect_ok == 0 )); then
+    : # reported above
+  elif [[ "$CODE" != 200 ]]; then
+    fail "$PANEL_PATH: HTTP $CODE instead of 200$(fetch_detail)"
+  else
+    LC_ALL=C grep -aoE "/media/(panel|plugins)/[^\"' )<>]+\.(js|css|mjs)" "$TMP/panel.html" 2>/dev/null \
+      | LC_ALL=C sort -u > "$TMP/panel-files.txt" || true
+    panel_files=0
+    panel_broken=0
+    while IFS= read -r panel_file; do
+      [[ -n "$panel_file" ]] || continue
+      panel_files=$((panel_files + 1))
+      # A fresh file per fetch, as for the stylesheets: the byte count must not be the previous file's.
+      rm -f "$TMP/panel-file"
+      fetch GET "$URL$panel_file" "$TMP/panel-file"
+      case "$panel_file" in
+        *.css) panel_types='text/css' ;;
+        *) panel_types='text/javascript|application/javascript|application/x-javascript' ;;
+      esac
+      # Kirby's plugin bundles are empty when no plugin brings Panel code.
+      panel_need=', not empty'
+      case "$panel_file" in
+        /media/plugins/index.css|/media/plugins/index.js) panel_need='' ;;
+      esac
+      bytes=0
+      if [[ -f "$TMP/panel-file" ]]; then
+        bytes=$(wc -c < "$TMP/panel-file" | tr -d ' ')
+      fi
+      if [[ "$CODE" != 200 ]]; then
+        fail "Panel file $(log_text "$panel_file"): HTTP $CODE instead of 200$(fetch_detail)"
+        panel_broken=$((panel_broken + 1))
+      elif [[ "|$panel_types|" != *"|$TYPE|"* || ( "$bytes" == 0 && -n "$panel_need" ) ]]; then
+        fail "Panel file $(log_text "$panel_file"): HTTP $CODE, '$TYPE', $bytes bytes — expected ${panel_types//|/ or }$panel_need"
+        panel_broken=$((panel_broken + 1))
+      fi
+    done < "$TMP/panel-files.txt"
+    if (( panel_files == 0 )); then
+      fail "$PANEL_PATH names no JS or CSS under /media/panel — an empty Panel page?"
+    elif (( panel_broken == 0 )); then
+      ok "Panel: $PANEL_PATH answers 200, its $panel_files files arrive"
+    fi
   fi
 fi
 
@@ -1443,6 +1629,91 @@ else
   if (( private_failed == 0 )); then
     ok "$private_checked private paths not reachable (none answers 2xx)"
   fi
+fi
+
+# 9. Response headers (GENBA_HEADERS) ------------------------------------------
+# One request per rule, with its own path. The header is read from the last
+# response block of that request (no redirect is followed). Rules: a value
+# (exact), * (present), none (absent), ~text (contains), !~text (sent and does
+# not contain). The path must answer 2xx or 3xx (the Panel answers a visitor
+# who is not signed in with 302): the headers of an error page — a typo in the
+# path, 404 — say nothing about the page the rule is meant for.
+if (( ${#HDR_NAME[@]} == 0 )); then
+  note "response headers not checked (GENBA_HEADERS not set)"
+else
+  for ((h = 0; h < ${#HDR_NAME[@]}; h++)); do
+    hdr_where=homepage
+    if [[ "${HDR_PATH[h]}" != / ]]; then
+      hdr_where=${HDR_PATH[h]}
+    fi
+    hdr_label="$hdr_where ${HDR_NAME[h]}"
+    hdr_want=$(LC_ALL=C tr '[:upper:]' '[:lower:]' <<< "${HDR_NAME[h]}")
+    : > "$TMP/headers.txt"
+    HDR_CODE=$(curl "${CURL_OPTS[@]}" -D "$TMP/headers.txt" -o /dev/null -w '%{http_code}' \
+      "$URL${HDR_PATH[h]}" 2>"$TMP/headers.err") || HDR_CODE=000
+    [[ -n "$HDR_CODE" ]] || HDR_CODE=000
+    if [[ "$HDR_CODE" == 000 ]]; then
+      fail "$hdr_label: no answer (HTTP 000)$(curl_error "$TMP/headers.err" | sed 's/^/ — /')"
+      continue
+    fi
+    if [[ "$HDR_CODE" != [23]?? ]]; then
+      fail "$hdr_label: HTTP $HDR_CODE instead of 2xx or 3xx — the header was not checked (path wrong?)"
+      continue
+    fi
+    seen=$(LC_ALL=C awk -v want="$hdr_want" '
+      { sub(/\r$/, "") }
+      /^HTTP\// { seen = 0; val = ""; next }
+      {
+        i = index($0, ":")
+        if (i == 0) next
+        name = tolower(substr($0, 1, i - 1))
+        gsub(/[ \t]/, "", name)
+        if (name != want) next
+        v = substr($0, i + 1)
+        sub(/^[ \t]+/, "", v)
+        sub(/[ \t]+$/, "", v)
+        val = seen ? val ", " v : v
+        seen = 1
+      }
+      END { if (seen) printf "1\t%s\n", val; else print "0\t" }
+    ' "$TMP/headers.txt")
+    hdr_present=${seen%%$'\t'*}
+    hdr_value=${seen#*$'\t'}
+    hdr_rule=${HDR_RULE[h]}
+    hdr_ok=0
+    case "$hdr_rule" in
+      '*')
+        hdr_expect='present'
+        if [[ "$hdr_present" == 1 ]]; then hdr_ok=1; fi
+        ;;
+      none)
+        hdr_expect='absent'
+        if [[ "$hdr_present" == 0 ]]; then hdr_ok=1; fi
+        ;;
+      '~'*)
+        hdr_text=${hdr_rule#\~}
+        hdr_expect="containing '$hdr_text'"
+        if [[ "$hdr_present" == 1 && "$hdr_value" == *"$hdr_text"* ]]; then hdr_ok=1; fi
+        ;;
+      '!~'*)
+        # Sent, and without the text: a CSP that got lost does not pass !~unsafe-inline.
+        hdr_text=${hdr_rule#'!~'}
+        hdr_expect="not containing '$hdr_text'"
+        if [[ "$hdr_present" == 1 && "$hdr_value" != *"$hdr_text"* ]]; then hdr_ok=1; fi
+        ;;
+      *)
+        hdr_expect="exactly '$hdr_rule'"
+        if [[ "$hdr_present" == 1 && "$hdr_value" == "$hdr_rule" ]]; then hdr_ok=1; fi
+        ;;
+    esac
+    if (( hdr_ok )); then
+      ok "$hdr_label: $hdr_expect (HTTP $HDR_CODE)"
+    elif [[ "$hdr_present" == 1 ]]; then
+      fail "$hdr_label: sent '$(log_text "$hdr_value")', expected $hdr_expect (HTTP $HDR_CODE)"
+    else
+      fail "$hdr_label: not sent, expected $hdr_expect (HTTP $HDR_CODE)"
+    fi
+  done
 fi
 
 # 6. http -> https -------------------------------------------------------------

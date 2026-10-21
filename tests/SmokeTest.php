@@ -31,10 +31,10 @@ $empty = null;
 // not resolve" runs would read differently behind a real proxy.
 $genbaVariables = [
     'GENBA_URL', 'GENBA_EXPECTED_BUILD', 'GENBA_META', 'GENBA_MARKER', 'GENBA_USER', 'GENBA_PASSWORD',
-    'GENBA_WITHOUT_CREDENTIALS', 'GENBA_HTTPS_REDIRECT', 'GENBA_PANEL_ACCOUNT', 'GENBA_FOREIGN_SITEMAP',
+    'GENBA_WITHOUT_CREDENTIALS', 'GENBA_HTTPS_REDIRECT', 'GENBA_PANEL_ACCOUNT', 'GENBA_PANEL_PATH', 'GENBA_API_PATH', 'GENBA_FOREIGN_SITEMAP',
     'GENBA_PAGES_MAX', 'GENBA_RETRIES', 'GENBA_PAUSE', 'GENBA_HTTP_URL', 'GENBA_SHA',
     'GENBA_EXPECT_PROTECTED', 'GENBA_NOT_READY', 'GENBA_PRIVATE_PATHS', 'GENBA_MAX_TIME',
-    'GENBA_SITEMAP_ORIGIN', 'GENBA_CLOSED_PREVIEW', 'CURL_CA_BUNDLE',
+    'GENBA_SITEMAP_ORIGIN', 'GENBA_CLOSED_PREVIEW', 'GENBA_HEADERS', 'CURL_CA_BUNDLE',
     'HTTPS_PROXY', 'https_proxy', 'HTTP_PROXY', 'http_proxy', 'ALL_PROXY', 'all_proxy', 'NO_PROXY', 'no_proxy',
 ];
 $unset = array_fill_keys($genbaVariables, null);
@@ -223,6 +223,77 @@ try {
     $run('Panel without account, warn', 'panel-empty', 0, '::warning::Panel without account', ['GENBA_PANEL_ACCOUNT' => 'warn']);
     $run('Panel installer open', 'panel-open', 1, 'can be installed from outside');
     $run('installer open, even in warn mode', 'panel-open', 1, 'can be installed from outside', ['GENBA_PANEL_ACCOUNT' => 'warn']);
+    $run('Panel files arrive', '', 0, 'its 2 files arrive');
+    $run('Panel names no files', 'panel-no-files', 1, 'names no JS or CSS under /media/panel');
+    $run('Panel stylesheet 404', 'panel-css-404', 1, 'Panel file /media/panel/css/app.css: HTTP 404');
+    $run('Panel redirect leaves /panel', 'panel-redirect-out', 1, "/panel: HTTP 302 to '.*elsewhere', not to a page under /panel");
+    $run('Panel redirect by Location', 'panel-location', 0, 'its 2 files arrive');
+    // Kirby builds the target from its url option: on staging the production origin, or localhost
+    // against 127.0.0.1. Its path counts, fetched on GENBA_URL, said in a -- line; /panel once.
+    $run('Panel redirect to another origin', 'panel-absolute', 0, "(?s)  --   /panel sends on to https://prod\\.example/panel/login — checked as /panel/login on http://127\\.0\\.0\\.1:[0-9]+ .*its 2 files arrive");
+    expect(1, substr_count((string) file_get_contents($requestLog), "GET /panel\n"), 'check 7b asks for /panel once');
+    // Kirby links the Panel's files on the first Panel page after an update and sends that page
+    // back to itself: the one reload is followed, said in a -- line; a page that keeps doing it is
+    // a finding, asked for twice, not more.
+    $run('Panel page reloads itself once', 'panel-reload', 0, "(?s)  --   /panel/login sends on to itself \\(Kirby links the Panel files on the first call after an update\\) — asked once more\n.*its 2 files arrive");
+    expect(2, substr_count((string) file_get_contents($requestLog), "GET /panel/login\n"), 'check 7b asks for the reloaded page twice');
+    $run('Panel page reloads itself again', 'panel-reload-loop', 1, '(?m)^::error::/panel: HTTP 302 instead of 200$');
+    expect(2, substr_count((string) file_get_contents($requestLog), "GET /panel/login\n"), 'check 7b follows the reload once, not more');
+    $run('Panel page under its own slug reloads itself once', 'panel-slug panel-reload', 0, '(?m)^  ok   Panel: /kontrolle answers 200, its 2 files arrive$', ['GENBA_PANEL_PATH' => '/kontrolle']);
+    // The target starts right after url=: an url= in its query is no second target.
+    $run('Panel redirect with url= in its query', 'panel-refresh-query', 1, "/panel: HTTP 302 to '/elsewhere\\?next=url=/panel/login', not to a page under /panel");
+    $run('Panel redirect target in quotes', 'panel-refresh-quoted', 0, 'its 2 files arrive');
+    // A Panel file is read like a stylesheet: a 200 HTML page in its place (a fallback route) or an
+    // empty body is no Panel file.
+    $run('Panel stylesheet is an HTML page', 'panel-html-fallback', 1, "Panel file /media/panel/css/app.css: HTTP 200, 'text/html', [0-9]+ bytes — expected text/css, not empty");
+    $run('Panel script is empty', 'panel-js-empty', 1, "Panel file /media/panel/js/app.js: HTTP 200, 'application/javascript', 0 bytes — expected text/javascript or application/javascript or application/x-javascript, not empty");
+    $run('Panel script as text/javascript', 'panel-js-text', 0, 'its 2 files arrive');
+    // Kirby's plugin bundles are empty when no plugin brings Panel code: no finding.
+    $run('Panel plugin bundles empty', 'panel-plugins-empty', 0, 'its 4 files arrive');
+    // GENBA_PANEL_PATH and GENBA_API_PATH: a site with its own panel.slug or api.slug. The default
+    // paths are unchanged: a Panel under another slug is still a finding without the variable.
+    $run('Panel under another slug, default path', 'panel-slug', 1, '(?m)^::error::/panel: HTTP 404 instead of 200');
+    $run('Panel under another slug, GENBA_PANEL_PATH', 'panel-slug', 0, '(?m)^  ok   Panel: /kontrolle answers 200, its 2 files arrive$',
+        ['GENBA_PANEL_PATH' => '/kontrolle']);
+    // GENBA_PANEL_ACCOUNT=off turns 7 and 7b off, so the path is not read at all.
+    $run('Panel under another slug, account check off', 'panel-slug', 0, '(?m)^  --   Panel not checked \(GENBA_PANEL_ACCOUNT=off\)$',
+        ['GENBA_PANEL_PATH' => '/kontrolle', 'GENBA_PANEL_ACCOUNT' => 'off']);
+    $run('Panel under another slug, a wrong GENBA_PANEL_PATH', 'panel-slug', 1, '(?m)^::error::/panel: HTTP 404 instead of 200', ['GENBA_PANEL_PATH' => '/panel']);
+    $run('Panel redirect out of its own slug', 'panel-slug panel-redirect-out', 1, "/kontrolle: HTTP 302 to '.*elsewhere', not to a page under /kontrolle", ['GENBA_PANEL_PATH' => '/kontrolle']);
+    $run('API under another slug, default path', 'api-slug', 1, '(?m)^::error::/api/system: HTTP 404 without isInstalled/isInstallable');
+    $run('API under another slug, GENBA_API_PATH', 'api-slug', 0, '(?m)^  ok   Panel set up \(account present, installer locked\)$', ['GENBA_API_PATH' => '/schnittstelle']);
+    $run('API and Panel under other slugs', 'api-slug panel-slug', 0, '(?m)^  ok   Panel: /kontrolle answers 200',
+        ['GENBA_API_PATH' => '/schnittstelle', 'GENBA_PANEL_PATH' => '/kontrolle']);
+    // The paths are validated before the first request: a path below the site root, letters, digits, _ ~ - and / between segments.
+    $run('GENBA_PANEL_PATH without slash', '', 2, 'GENBA_PANEL_PATH must be a path below the site root: panel', ['GENBA_PANEL_PATH' => 'panel']);
+    $run('GENBA_PANEL_PATH with trailing slash', '', 2, 'GENBA_PANEL_PATH must be a path below the site root: /panel/', ['GENBA_PANEL_PATH' => '/panel/']);
+    $run('GENBA_PANEL_PATH is the root', '', 2, 'GENBA_PANEL_PATH must be a path below the site root: /', ['GENBA_PANEL_PATH' => '/']);
+    $run('GENBA_PANEL_PATH with dot segment', '', 2, 'GENBA_PANEL_PATH must be a path below the site root: /\.\./etc', ['GENBA_PANEL_PATH' => '/../etc']);
+    $run('GENBA_PANEL_PATH with a query', '', 2, 'GENBA_PANEL_PATH must be a path below the site root: /panel\?x=1', ['GENBA_PANEL_PATH' => '/panel?x=1']);
+    $run('GENBA_API_PATH without slash', '', 2, 'GENBA_API_PATH must be a path below the site root: api', ['GENBA_API_PATH' => 'api']);
+    $run('GENBA_API_PATH with a space', '', 2, 'GENBA_API_PATH must be a path below the site root: /a b', ['GENBA_API_PATH' => '/a b']);
+    // Check 9, GENBA_HEADERS: the rules per line, with the path of each.
+    $headersOk = "Strict-Transport-Security: max-age=15552000\n"
+        . "X-Content-Type-Options: nosniff\n"
+        . "# Kommentare und Leerzeilen zählen nicht\n\n"
+        . "Content-Security-Policy: ~script-src 'self';\n"
+        . "/panel Content-Security-Policy: ~unsafe-inline\n"
+        . "/ Content-Security-Policy: !~unsafe-inline\n"
+        . "Referrer-Policy: *\n"
+        . "X-Robots-Tag: none";
+    $run('headers as set', 'headers', 0, 'Genba smoke: PASSED', ['GENBA_HEADERS' => $headersOk]);
+    $run('header value differs', 'headers', 1, "homepage Strict-Transport-Security: sent 'max-age=15552000', expected exactly 'max-age=1'", ['GENBA_HEADERS' => 'Strict-Transport-Security: max-age=1']);
+    $run('header not sent', '', 1, 'homepage X-Frame-Options: not sent, expected present', ['GENBA_HEADERS' => 'X-Frame-Options: *']);
+    $run('header sent, must be absent', 'headers', 1, 'homepage Referrer-Policy: sent', ['GENBA_HEADERS' => 'Referrer-Policy: none']);
+    $run('Panel CSP must not allow inline', 'headers', 1, '/panel Content-Security-Policy: sent', ['GENBA_HEADERS' => '/panel Content-Security-Policy: !~unsafe-inline']);
+    $run('rule without colon', '', 2, 'a line needs .Name: rule.', ['GENBA_HEADERS' => 'Referrer-Policy *']);
+    $run('path with a space-free bad character', '', 2, 'must be / followed by letters', ['GENBA_HEADERS' => '/a%b X-A: *']);
+    // Nothing in check 9 is green that was not checked: a rule's path that answers 404 (a typo) or
+    // gives no answer, a header !~ asks about that is not sent at all (a lost CSP), a ~ or !~ without text.
+    $run('header rule on a path that answers 404', 'headers', 1, '/typo-pfad X-Content-Type-Options: HTTP 404 instead of 2xx or 3xx', ['GENBA_HEADERS' => '/typo-pfad X-Content-Type-Options: nosniff']);
+    $run('header !~ on a header not sent', '', 1, "homepage Content-Security-Policy: not sent, expected not containing 'unsafe-inline'", ['GENBA_HEADERS' => 'Content-Security-Policy: !~unsafe-inline']);
+    $run('header ~ without text', 'headers', 2, "GENBA_HEADERS: the rule for X-Content-Type-Options is '\\~' without text", ['GENBA_HEADERS' => 'X-Content-Type-Options: ~']);
+    $run('header !~ without text', 'headers', 2, "GENBA_HEADERS: the rule for X-Content-Type-Options is '!\\~' without text", ['GENBA_HEADERS' => 'X-Content-Type-Options: !~']);
     $run('preview without credentials', 'auth', 1, 'HTTP 401 instead of 200 \(protected');
     $run('preview without credentials, skip', 'auth', 0, '::warning::Genba smoke: SKIPPED.*\nGenba smoke: SKIPPED — build not verified', ['GENBA_WITHOUT_CREDENTIALS' => 'skip']);
     $run('empty user and empty password, skip', 'auth', 0, '\nGenba smoke: SKIPPED — build not verified', ['GENBA_USER' => '', 'GENBA_PASSWORD' => '', 'GENBA_WITHOUT_CREDENTIALS' => 'skip']);
@@ -1007,7 +1078,9 @@ try {
     // expired certificate, never by a later request. A real https fake site
     // (tests/fixtures/tls-server.php), trusted through CURL_CA_BUNDLE; plain
     // http ($base, fault auth) answers 401, so a wrong decision reads
-    // "SKIPPED — certificate pending?" and exits 0.
+    // "SKIPPED — certificate pending?" and exits 0. curl words it "SSL certificate
+    // problem: certificate has expired" or, newer, "SSL certificate OpenSSL verify
+    // result: certificate has expired (10)".
     if (!extension_loaded('openssl')) {
         echo "  --   openssl extension missing, the https not-ready runs are not tested\n";
     } else {
@@ -1065,7 +1138,7 @@ try {
                 usleep(100000);
             }
             $tlsRun('expired certificate: a finding, not pending', 'protected', 1,
-                '(?m)^::error::Without credentials https://127\.0\.0\.1:\d+/ gives no answer \(HTTP 000\) — curl: \(60\) SSL certificate problem: certificate has expired', $preview, $expired);
+                '(?m)^::error::Without credentials https://127\.0\.0\.1:\d+/ gives no answer \(HTTP 000\) — curl: \(60\) SSL certificate .*certificate has expired', $preview, $expired);
         } finally {
             genba_remove_tree($expiredDir);
             genba_remove_tree($certDir);
@@ -1141,7 +1214,9 @@ try {
     // setting, named in a fixed list of left operands. A new =~ on page text is red on every system.
     $regexCheck = static function (string $source): array {
         $problems = [];
-        $settings = ['$URL', '$EXPECTED', '$META', '$entry', '$PAGES_MAX', '$RETRIES', '$PAUSE', '$MAX_TIME', '$SITEMAP_ORIGIN'];
+        // $hdr_path and $hdr_name: the GENBA_HEADERS lines, read from the operator's setting.
+        // $PANEL_PATH and $API_PATH: GENBA_PANEL_PATH and GENBA_API_PATH, validated above.
+        $settings = ['$URL', '$EXPECTED', '$META', '$entry', '$PAGES_MAX', '$RETRIES', '$PAUSE', '$MAX_TIME', '$SITEMAP_ORIGIN', '$hdr_path', '$hdr_name', '$PANEL_PATH', '$API_PATH'];
         if (preg_match('~^bytes_match\(\) \(\n((?:.*\n)*?)\)\n~m', $source, $function, PREG_OFFSET_CAPTURE) !== 1) {
             return ['bytes_match() ( … ) not found'];
         }

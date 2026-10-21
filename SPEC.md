@@ -31,7 +31,7 @@ comments and task prompts.
 | Where the pieces run | `../kirby-starter/.github/workflows/deploy-vorschau.yml` (praeflug, build, stylesheet check, stamp, PHP tests, vorpruefung, deploy, reachability, smoke test), `tests.yml` (counter-checks on every push), `fremdlinks.yml` (daily 05:17 UTC); the deploy workflow of one live site, lines 285–295 and 770–785 (live variant: stamp verified with grep, `HTTPS_UMLEITUNG` pflicht/warnen by `OEFFENTLICH`) |
 | package.json | `../kirby-starter/package.json` script `praeflug` (no-op echo; one live site: `node scripts/schriften.mjs`) |
 | Boundaries, NOT duplicated | the weekly fleet check outside this repository (reads `<meta name="build">`), a live site's own daily health check (site-specific) |
-| Family conventions | `../kirby-noren` (SPEC, README, CHANGELOG, PRIVACY, DATENSCHUTZ, tests/helpers.php), `../kirby-koe` (bin/koe-fetch, src/Fetch.php: CLI `run($env, $argv, …, $out, $err)` pattern), `../kirby-kizami`, `../kirby-fude/.github/workflows/ci.yml` (fork guard) |
+| Family conventions | `../kirby-noren` (SPEC, README, CHANGELOG, privacy notes, tests/helpers.php), `../kirby-koe` (bin/koe-fetch, src/Fetch.php: CLI `run($env, $argv, …, $out, $err)` pattern), `../kirby-kizami`, `../kirby-fude/.github/workflows/ci.yml` (fork guard) |
 
 ---
 
@@ -43,7 +43,7 @@ comments and task prompts.
   no 8.3+ functions). Run with `ASDF_PHP_VERSION=8.5.3 php …` (asdf otherwise
   says "No version is set"). Composer: `ASDF_PHP_VERSION=8.5.3 composer`.
 - Code, identifiers, comments, messages, README in **English**. German only
-  in `translations/de.php` and `DATENSCHUTZ.md`. The CLI tools print English.
+  in `translations/de.php`. The CLI tools print English.
 - **Only edit files your task owns (§2).** Need a change in a file you do not
   own (a helper, a translation key, index.php, a stub signature)? Write it into
   `NOTES-<task>.md` in the package root: file, problem, proposed change. Do not
@@ -132,9 +132,7 @@ kirby-genba/
 │   ├── fixtures/precheck-variants/  precheck   (template variants for genba-precheck, §9.4)
 │   └── LinksTest.php                links      (§9.6)
 ├── README.md                        docs   (§10)
-├── CHANGELOG.md                     docs
-├── PRIVACY.md                       docs
-└── DATENSCHUTZ.md                   docs
+└── CHANGELOG.md                     docs
 ```
 
 `bin/*` files must keep their executable bit (`chmod +x`); Composer links them
@@ -439,7 +437,9 @@ final class Precheck
      * ('site' only, or 'site' and 'public'), `sample` (a line the rule MUST fire on — the self-test),
      * `message`. Optional `each` (PCRE): the line is judged per match of `each` (a tag), not as a
      * whole; a tag begins at every match of `start` (PCRE, default `pattern`) on the line and may
-     * run on over the next 50 lines, a start without a tag in reach is a finding. Optional `unless` (list of PCRE patterns): a piece — the `each` match, else the line — that one
+     * run on over the next 50 lines, a start without a tag in reach is a finding. Optional `wrapped` (true, without
+     * `each`): a line that ends in a name is read with the lines below it up to the first that is not blank, and a
+     * match counts for the line it begins on. Optional `unless` (list of PCRE patterns): a piece — the `each` match, else the line — that one
      * of them matches is NOT a finding. Optional `exempt` (with `each`): attribute name => PCRE; a tag that carries
      * one of these attributes (attributes(), read one after the other) with a value the PCRE matches is NOT a finding. For `foreign-host` the constructor's allow list applies at runtime.
      * Optional `negatives`: lines the rule must NOT fire on; `positives`: further lines it MUST fire on.
@@ -521,6 +521,14 @@ one is a finding: a formatter's `<script\n  type="module">` holds no complete ta
 `<script` with no `>` in reach is never a silent pass. `<script\n  src="/a.js"\n></script>` stays free.
 Samples may hold `\n` for the lines below: `"<script\n  type=\"module\">"` and `'<script'` are `positives`, the
 wrapped external script a `negative`.
+The two attribute rules, `inline-style` and `inline-handler`, are `wrapped`: the tokenizer reads any
+whitespace between an attribute name and its `=`, line breaks included, so `<button style⏎="color:red">` sets
+a style. A line that ends in a name (`[a-z]\s*$`, case-insensitive) is handed to `matches()` with the lines
+below it up to the first that is not blank (`wrapped()`, at most `TAG_LINES`), and only a match that begins on
+the line itself counts (`ownMatches()`): the finding is the line of the name, and a `style=` on the line below
+is that line's finding, not the line above's as well. A name with no `=` after it (`<p style⏎  class="a">`, an
+empty attribute) is none. `"<button style\n=\"color:red\">"` is a `positive`, `"<p class=\"a\"\nstyle=\"x\">"` a
+`negative` — `matches()` sees the whole sample, so the negative holds the first-line rule.
 Kirby's `attr()` helper prints attributes from a PHP array — a block where an
 attribute stands (tag name or attribute name, `attributes()` collects them) that calls `attr([...])` /
 `Html::attr([...])` is read with `token_get_all()` (`attrCalls()`), and a `src` or the JSON-LD `type` in its
@@ -620,10 +628,12 @@ or with an old build the server also answers 200. So the content is measured:
 | 4 | Every sitemap page (up to `GENBA_PAGES_MAX`) is 200; a `<loc>` on a foreign origin is (decision 20) rewritten to the `GENBA_URL` origin with path and query kept and fetched there with the same credentials, announced once as `::notice::Sitemap lists <n> pages on <origins> instead of <origin> — rewritten …` (`rewrite`), or a warning (`warn`), or a finding (`fail`, site URL misconfigured). Unset or empty, the mode is `rewrite` on a preview run (`GENBA_EXPECT_PROTECTED=1` or `GENBA_USER` set) and `fail` otherwise, named once right after the first line: `  --   GENBA_FOREIGN_SITEMAP not set: rewrite (a preview run: GENBA_EXPECT_PROTECTED=1 or GENBA_USER set)` / `  --   GENBA_FOREIGN_SITEMAP not set: fail (not a preview run: neither GENBA_EXPECT_PROTECTED=1 nor GENBA_USER)`. With `GENBA_SITEMAP_ORIGIN` an entry on that origin follows the mode, an entry on any third origin is always `::error::Sitemap points to a foreign host: <loc> (neither <origin> nor GENBA_SITEMAP_ORIGIN <origin>)`. An empty sitemap is a finding; no page fetched at all (every entry foreign, warn mode) is a `::warning::`, never `ok   0 …`. A sitemap body that is missing or has no `<urlset` (the finding is already printed by check 3) is `::error::Sitemap not available for page check` — the block is never skipped silently. The body is flattened to one line (`tr -d '\n\r'`) — a pretty-printed sitemap puts the address on its own line, where a line-wise `grep` loses it without a word —, CDATA directly inside `<loc>` unwrapped and whitespace around the address dropped before `grep -o '<loc>[^<]*</loc>'` cuts the entries out; comments are dropped first (`strip_comments` `s/<!--([^-]|-[^-]|--+[^->])*--+>//g` — a comment ends at the first `-->`, `--->` included), so a commented-out `<url>` is neither counted nor fetched. The number of `<url>` elements is held against the entries read, a difference is `::error::Sitemap: <n> entries could not be parsed (<u> <url> entries, <l> <loc> addresses)`. The `<loc>` values are decoded (`decode_entities`: `&lt; &gt; &quot; &apos;` and the numeric references `&#NN;`/`&#xHH;` of `& < > " ' # ? =`, then `&amp;`/`&#38;`/`&#x26;`; everything else unchanged), percent-encoded (`encode_controls`, see "Log text" below: C0/DEL/C1 encoded, bytes that are no UTF-8 U+FFFD), and an entry longer than `LOC_MAX` 2048 characters is `::error::Sitemap entry longer than 2048 characters (<n>), not fetched: <first 60 chars>…` (`too_long`). Origins (`same_origin`, `GENBA_SITEMAP_ORIGIN`, the http→https target) are compared normalised: scheme and host lower case, `:80`/`:443` dropped. `decode_entities` decodes each reference exactly once: the three spellings of `&` are ONE final `s/&(amp\|#0*38\|#[xX]0*26);/\&/g`, so `&amp;#38;` becomes the text `&#38;`, not `&`. A reference still there after `decode_entities` — `reference_re` `&(#[0-9]+|#[xX][0-9a-fA-F]+|[A-Za-z][A-Za-z0-9]*);`: `&#233;`, `&#47;`, `&eacute;`, the text `&#38;` of a doubly escaped `&` included — is `::error::Sitemap entry with a character reference that is not decoded: <loc> — not fetched` (`undecoded`): curl reads the `#` as the start of the fragment and requests a cut address (`/blog&#47;neu` as `/blog&`, `?v=1&amp;#38;w=2` as `?v=1&`). Never a cut address; the minimal variant (a finding) was chosen over a decoder for every character. An entry that does not start with `<scheme>://` is `::error::Sitemap entry is not an absolute URL: <loc> — the sitemap protocol requires scheme and host` in every mode, never "foreign host", never fetched on `$ORIGIN`. An entry that is empty after `decode_entities` and `encode_controls` (`<loc></loc>`, whitespace or control characters only) is `::error::Sitemap entry is empty (<loc> without an address)` — the `<url>`/`<loc>` count does not catch it, the element is there. With `fetched == 0` the reason is named by what happened: `foreign_skipped > 0` (entries skipped in warn mode) → the `::warning::No sitemap page fetched: the entries point to a foreign host …`; else every entry is a finding already and the run adds `::error::No sitemap page fetched: every entry is a finding (see above) — the pages of <url> are NOT checked` — a count of zero never passes, and the warning never blames a foreign host for empty or relative entries. When `head -n GENBA_PAGES_MAX` cut the list, the ok line is `  ok   <n> of <loc_count> sitemap pages fetched (GENBA_PAGES_MAX=<max>), the rest not checked` | `GENBA_PAGES_MAX` (30), `GENBA_FOREIGN_SITEMAP` (`rewrite`\|`warn`\|`fail`, default see left), `GENBA_SITEMAP_ORIGIN` (`https://host[:port]`, no path, trailing `/` dropped; else exit 2) |
 | 5 | Only on a homepage that was read: larger than `BODY_MAX_BYTES` → `  --   stylesheets, images and fonts not checked: the homepage is larger than 10485760 bytes and was not read`, no answer (000) → `  --   stylesheets, images and fonts not checked: the homepage gave no answer (HTTP 000)`, not 200 → `  --   stylesheets, images and fonts not checked: the homepage answered HTTP <code>, not 200` — one line with the reason, as check 8 says it, not three type lines `no .webp file found on the homepage`, which would name the wrong cause (the finding about the homepage stands above). Stylesheets (200, `text/css`, not empty; none of the own origin → `  --   no stylesheet of <origin> found on the homepage, stylesheets not checked`), then up to five `.webp`, `.avif`, `.woff2` OF THE OWN ORIGIN (filtered first, then the five) from the homepage and the own stylesheets with the right Content-Type (`image/webp`, `image/avif`, `font/woff2`). None of a type found → `  --   no .webp file found on the homepage, Content-Type not checked`; only foreign ones → `  --   no .webp file of <origin> found on the homepage (<n> on other origins, not requested), Content-Type not checked`. More than five own files of a type: `  --   <n> .<ext> files of <origin> on the homepage, the first 5 checked (the server configuration is tested, not every file)`. An address above `LOC_MAX` is `::error::Stylesheet address longer than 2048 characters (<n>), not fetched: <first 60>…` / `::error::Asset address longer than …` (`too_long`), the stylesheet body file is removed before each fetch. The addresses of the homepage are the `link`, `src` and `srcset` records of the reader (see "Reading the homepage" below): the `href` of every `<link>` whose `rel` holds the token `stylesheet` or `preload` (ASCII case-insensitive; `rel=" stylesheet"` holds the token), every `src`, every candidate of every `srcset` — decoded by the parser (every character reference, as the browser decodes it), trimmed, control characters encoded (see "Log text" below). A `data:` URI is skipped in any case; every other address goes through `resolve()` against the base: `GENBA_URL/`, or — for the addresses after it in document order (the browser fetches those before it against the page's address) — the first `<base href>` resolved against it, said as `  --   <base href="<href>"> on the homepage: the addresses after it are resolved against <url>`; a `data:` or `javascript:` base (any case) is ignored as the browser ignores it ("set the frozen base URL"), `  --   <base href="<href>"> on the homepage is ignored, as the browser ignores a data: or javascript: base`; a `<base href>` with any other scheme than http(s) is `::error::Homepage <base href="<href>"> is no http(s) address — the addresses after it are not checked`. `resolve()` takes a reference with a scheme in any case as absolute (`bytes_match`). The kind of a file is read without regard to case (`grep -iE '\.css(\?|$)'`). A `url()` in a stylesheet is CSS, not HTML — no entities, taken as written. **Safety net (§3.0 "no silent passes"):** when `GENBA_MARKER` ends in `.css` (any case; the default `assets/css/tailwind.css` does) and stands in `start.text`, and the homepage answered 200, some stylesheet of the own origin read from the `<link>` records must hold the marker (case-insensitive substring) — else `::error::Homepage contains the stylesheet address '<marker>' (GENBA_MARKER), but no stylesheet of <origin> with that address was read from its <link> elements — the stylesheet is not checked (loaded by a script, from another origin, or read wrongly?)`. A finding, not a warning: a reader error that loses a `<link>` would end with the `--` line and PASSED, and a warning would leave the run green. A site whose stylesheet is not in a `<link>` of its own origin sets a marker that is no `.css` address. Tested with a reader broken on purpose (`tests/SmokeTest.php`: a copy whose `Homepage.php` drops the `<link>` records → exit 1). **Staging that names production:** a staging host whose site URL is production writes its stylesheet and images with the production origin, and the net alone would make every such preview run red. On a rewrite run (`GENBA_FOREIGN_SITEMAP=rewrite`, explicit or the preview default) with `GENBA_SITEMAP_ORIGIN`, every address of check 5 on that origin — homepage and `url()` alike, `add_asset` — is the same path and query on the `GENBA_URL` origin (`on_own_origin`, the sitemap's rewrite) and is checked there, said once: `::notice::The homepage and its stylesheets name <n> addresses on <GENBA_SITEMAP_ORIGIN> instead of <origin> — rewritten to <origin> (path and query kept) and checked there (GENBA_FOREIGN_SITEMAP=rewrite, GENBA_SITEMAP_ORIGIN)`. Only the declared origin, never in rewrite mode alone: a CDN address on staging would be a false 404. Without it the net reports the stylesheet (README, Staging). | `GENBA_MARKER` (the net), `GENBA_SITEMAP_ORIGIN`, `GENBA_FOREIGN_SITEMAP` |
 | 6 | `http://<host>/` redirects 301/308 to `https://<host>` (no credentials sent) | `GENBA_HTTPS_REDIRECT` (`require`\|`warn`\|`off`, default `require`), `GENBA_HTTP_URL` (tests only) |
-| 7 | `/api/system` reports `"isInstalled":true` and `"isInstallable":false`. An installable Panel is ALWAYS a finding; a missing account follows the mode | `GENBA_PANEL_ACCOUNT` (`require`\|`warn`\|`off`, default `require`) |
+| 7 | `/api/system` reports `"isInstalled":true` and `"isInstallable":false`. An installable Panel is ALWAYS a finding; a missing account follows the mode. The API is read at `GENBA_API_PATH` + `/system` (default `/api/system`) | `GENBA_PANEL_ACCOUNT` (`require`\|`warn`\|`off`, default `require`), `GENBA_API_PATH` (default `/api`) |
+| 7b | `/panel` answers 200 — Kirby sends a visitor who is not signed in on with 302 and `Refresh: 0; url=…` (or a `Location`), read from the headers of the same request (`fetch … HEADERS`, `/panel` is asked once). The target of a `Refresh` starts right after the `url=` that follows the seconds and runs to the end, quotes around it dropped (an `url=` in its query is part of it). Kirby writes it absolute, from its `url` option: only its path counts (`resolve()`, dot segments resolved), and under `/panel` of `GENBA_URL` it is followed once on the `GENBA_URL` origin — another origin (staging with the production URL, `localhost` against `127.0.0.1`) is said as `  --   /panel sends on to <target> — checked as <path> on <origin> (Kirby's url option names another origin)`, the sitemap's rewrite; any other path is `::error::/panel: HTTP <code> to '<location>', not to a page under /panel` — and every JS and CSS file the page names under `/media/panel` or `/media/plugins` (`grep -o`, `.js`, `.mjs`, `.css`) answers 200 with `text/javascript`, `application/javascript` or `application/x-javascript` (a `.css`: `text/css`) and a body that is not empty — except Kirby's plugin bundles `/media/plugins/index.css` and `/media/plugins/index.js`, empty when no plugin brings Panel code (`?0`): a fallback route that answers every path with an HTML page, 200, is `::error::Panel file <path>: HTTP 200, '<type>', <bytes> bytes — expected <types>, not empty`. A page that names no such file is a finding. `  ok   Panel: /panel answers 200, its <n> files arrive` | `GENBA_PANEL_ACCOUNT` (`off` turns 7 and 7b off), `GENBA_PANEL_PATH` (the Panel's address, default `/panel`: every `/panel` above reads as the configured path, messages included) |
 | 8 | (decision 22) Private paths: none of them answers 2xx (an executed config.php answers 200 with an empty body) or 000; sent WITH the credentials. Default list (a live site's deploy workflow, extended): `.env .git/HEAD composer.json composer.lock site/ site/config/config.php site/config/credentials.php site/config/kizami.php site/config/kennzahlen.php content/ content/site.txt kirby/bootstrap.php vendor/ vendor/autoload.php storage/ storage/kizami/kizami.sqlite storage/kennzahlen/kennzahlen.sqlite`. `  ok   <n> private paths not reachable (none answers 2xx)`; homepage without answer → `  --   private paths not checked: the homepage gave no answer (HTTP 000)`, not 200 → `  --   private paths not checked: the homepage answered HTTP <code>, not 200` | `GENBA_PRIVATE_PATHS` (comma/space list ADDED to the default; entry `none` drops the default; `none` alone → `  --   private paths not checked (GENBA_PRIVATE_PATHS=none)`; an entry with `..` or outside `[A-Za-z0-9._~/-]` → exit 2) |
+| 9 | Response headers. `GENBA_HEADERS` is read before the first request — a broken line is exit 2, never a silent pass: one rule per line, `[/path] Name: rule`, blank lines and `#` lines skipped, the path `/` by default. One request per rule on its path, with the credentials, no redirect followed; the header is read from that response, the name without case, several lines of one name joined with `, `. Rules: a value (exact), `*` (present), `none` (absent), `~text` (contains), `!~text` (sent and does not contain — a header not sent is a finding: a CSP that got lost never passes `!~unsafe-inline`); `~` or `!~` without text is exit 2 (`~` alone would be true of every value). The path must answer 2xx or 3xx (`/panel` answers 302): any other code is `::error::<label>: HTTP <code> instead of 2xx or 3xx — the header was not checked (path wrong?)`, no answer is `::error::<label>: no answer (HTTP 000)[ — <curl error>]` — never a header read from an error page. `<label>` is `homepage <Name>` for `/`, else `<path> <Name>`. Unset: `  --   response headers not checked (GENBA_HEADERS not set)` | `GENBA_HEADERS` |
 
-Order in the script: 0, 1, 2, 3, 4, 5, 7, 8, 6 (the original's 1–7 order, gate first, private paths before http).
+Order in the script: 0, 1, 2, 3, 4, 5, 7, 7b, 8, 9, 6 (the original's 1–7 order, gate first, private paths and headers before http).
 
 **Log text.** Everything the checked site
 sends can end up in an `ok`/`--`/`::warning::`/`::error::` line or the last line, and an ESC, a
@@ -749,12 +759,19 @@ argument is a usage error like an empty `--option=`, never a silent fall-back to
 `::error::GENBA_URL must start with http:// or https://` ·
 `::error::GENBA_HTTPS_REDIRECT must be require, warn or off` ·
 `::error::GENBA_PANEL_ACCOUNT must be require, warn or off` ·
+`::error::GENBA_PANEL_PATH must be a path below the site root: <value>` ·
+`::error::GENBA_API_PATH must be a path below the site root: <value>` ·
 `::error::GENBA_FOREIGN_SITEMAP must be rewrite, warn or fail` ·
 `::error::GENBA_SITEMAP_ORIGIN must be an origin without path (https://host or https://host:port): <value>` ·
 `::error::GENBA_WITHOUT_CREDENTIALS must be fail or skip` ·
 `::error::GENBA_EXPECT_PROTECTED must be 0 or 1` ·
 `::error::GENBA_NOT_READY must be fail or skip` ·
 `::error::GENBA_PRIVATE_PATHS: not a path below the site root: <entry>` ·
+`::error::GENBA_HEADERS: path '<path>' must be / followed by letters, digits, . _ ~ / -` ·
+`::error::GENBA_HEADERS: a line needs 'Name: rule' (got: <line>)` ·
+`::error::GENBA_HEADERS: '<name>' is not a header name` ·
+`::error::GENBA_HEADERS: the rule for <name> is empty` ·
+`::error::GENBA_HEADERS: the rule for <name> is '~' without text` (or `'!~'`) ·
 `::error::GENBA_MAX_TIME must be a whole number of seconds above 0: <value>` ·
 `::error::GENBA_USER/GENBA_PASSWORD only over https: GENBA_URL is not https:// (plain http only to 127.0.0.1, localhost or [::1])` ·
 `::error::GENBA_USER/GENBA_PASSWORD must not contain a line break (a secret set from a file keeps the file's line breaks)` ·
@@ -813,6 +830,18 @@ Genba smoke against <url>, expected build <hash>
 ::error::Panel can be installed from outside (panel.install on?) — any visitor could become admin
 ::error::Panel without account: /panel shows the installer. Create the account on the server first   (or ::warning:: in warn mode)
   ok   Panel set up (account present, installer locked)
+  ok   Panel: /panel answers 200, its <n> files arrive
+::error::/panel: HTTP <code> instead of 200[ — <first line of curl stderr>]
+::error::/panel: HTTP <code> to '<location>', not to a page under /panel
+::error::/panel names no JS or CSS under /media/panel — an empty Panel page?
+::error::Panel file <path>: HTTP <code> instead of 200[ — <first line of curl stderr>]
+::error::Panel file <path>: HTTP 200, '<type>', <bytes> bytes — expected <types, joined by " or ">, not empty   (without ", not empty" for /media/plugins/index.css and index.js)
+  --   response headers not checked (GENBA_HEADERS not set)
+  ok   <label>: <expected> (HTTP <code>)         (<expected>: exactly '<value>' | present | absent | containing '<text>' | not containing '<text>')
+::error::<label>: sent '<value>', expected <expected> (HTTP <code>)
+::error::<label>: not sent, expected <expected> (HTTP <code>)
+::error::<label>: HTTP <code> instead of 2xx or 3xx — the header was not checked (path wrong?)
+::error::<label>: no answer (HTTP 000)[ — <first line of curl stderr>]
   --   http→https not checked (GENBA_HTTPS_REDIRECT=off)
   --   http→https not checked: URL is not https
   ok   Protected: <url>/ answers 401 without credentials
@@ -942,7 +971,7 @@ would be a line of 3 394.
 `GENBA_YOUTUBE_FIELDS` or `GENBA_SHOP_HOSTS` counts as unset (GitHub Actions
 yields `""` for an unset `${{ vars.X }}`); an option with an empty value
 (`--digistore-field=`) is a usage error, exit 2. User agent:
-`Mozilla/5.0 (compatible; Genba link check; +https://github.com/simsimmal/kirby-genba)`.
+`Mozilla/5.0 (compatible; Genba link check; +https://github.com/sayamaapps/kirby-genba)`.
 The `words()` filler list keeps `sayama` and `digistore24` (they are brand
 words that never distinguish products).
 
@@ -1119,9 +1148,12 @@ step's `env:` block, one `run:` line per step):
 | `GENBA_NOT_READY` | smoke | `fail` | `fail`, `skip` |
 | `GENBA_HTTPS_REDIRECT` | smoke | `require` | `require`, `warn`, `off` |
 | `GENBA_PANEL_ACCOUNT` | smoke | `require` | `require`, `warn`, `off` |
+| `GENBA_PANEL_PATH` | smoke | `/panel` | a path below the site root: `/` and segments of `A-Za-z0-9_~-` separated by single `/`; anything else exit 2 |
+| `GENBA_API_PATH` | smoke | `/api` | the same rule; the API is read at `<path>/system` |
 | `GENBA_FOREIGN_SITEMAP` | smoke | `rewrite` on a preview run (`GENBA_EXPECT_PROTECTED=1` or `GENBA_USER`), else `fail` | `rewrite`, `warn`, `fail` |
 | `GENBA_SITEMAP_ORIGIN` | smoke | — | `https://host[:port]`: the one foreign origin allowed |
 | `GENBA_PRIVATE_PATHS` | smoke | see §3.4 check 8 | comma/space list added to the default, `none` |
+| `GENBA_HEADERS` | smoke | — (not checked) | one rule per line, `[/path] Name: rule`; rule = value, `*`, `none`, `~text`, `!~text`; see §3.4 check 9 |
 | `GENBA_PAGES_MAX`, `GENBA_RETRIES`, `GENBA_PAUSE` | smoke | `30`, `3`, `5` | whole numbers: `PAGES_MAX` and `RETRIES` above 0, `PAUSE` seconds (0 allowed); else exit 2. A sitemap longer than `PAGES_MAX` is said in the ok line |
 | `GENBA_HTTP_URL` | smoke | `http://<host>/` | tests only |
 | `GENBA_MAX_TIME` | smoke | `25` | seconds per request and for the homepage reader, tests only |
@@ -1164,7 +1196,7 @@ each site drops ~750 lines of copied scripts and tests.
 Rejected:
 
 1. **A reusable composite GitHub Action** in this repository
-   (`uses: simsimmal/kirby-genba/.github/actions/deploy-checks@v1`). It would
+   (`uses: sayamaapps/kirby-genba/.github/actions/deploy-checks@v1`). It would
    duplicate what Composer already delivers, add a second version to pin
    (action tag vs. package version), require the repository to be public or
    the Actions "access from other repositories" setting, and carry fork-PR
@@ -1380,7 +1412,10 @@ no absolute path (skipped visibly as root). The installed-copy fixture copies `s
 
 Tags over several lines: `site/templates/module.php` with `<script\n  type="module">` → `module.php:1: embedded <script>`;
 `external.php` with `<script\n  src="/a.js"\n  defer\n></script>` → no finding; `open.php` with `<script` and 60
-lines without `>` → `open.php:1: embedded <script>`; exactly 2 findings, exit 1. Allow entries: `site/templates/f.php`
+lines without `>` → `open.php:1: embedded <script>`; exactly 2 findings, exit 1. Attributes over several lines:
+`button.php` with `<button style\n="color:red" onclick\n\n  ="go()">` → `button.php:1: inline style` and
+`button.php:2: inline event handler`; `plain.php` with `<p style\n  class="a" onclick\n  hidden>` and
+`<p class="a"\nstyle="x">` → only `plain.php:5: inline style`; exactly 3 findings, exit 1. Allow entries: `site/templates/f.php`
 with `<link href="https://fonts.gstatic.com/s/x.woff2">` → exit 0 with `--allow=gstatic.com`, exit 1 without;
 `new Precheck(['places.googleapis.com/v1/', 'gstatic.com'])` still reports the two-address line. Long pieces:
 `findingLine()` (Reflection) with a path of 2 258 characters keeps `:7: inline style — the CSP forbids it: <p style="x">`
@@ -1482,6 +1517,23 @@ open site red, with `skip` and missing secrets SKIPPED with the ok line; DNS
 `genba-smoke-test.invalid` SKIPPED with `GENBA_NOT_READY=skip`, red without; https
 against the plain-http fixture: certificate pending SKIPPED, open over http red,
 default red).
+
+Checks 7 and 7b with their own slugs: `panel-slug` (the Panel at `/kontrolle`, `/panel` answers 404) is red
+without `GENBA_PANEL_PATH` and green with `GENBA_PANEL_PATH=/kontrolle`; `api-slug` (the API at
+`/schnittstelle`) is red without `GENBA_API_PATH` and green with `GENBA_API_PATH=/schnittstelle`; a path
+that is not below the site root (`panel`, `/panel/`, `/`, `/../etc`, `/panel?x=1`, `/a b`) is exit 2
+before the first request.
+
+Checks 7b and 9: the Panel faults `panel-no-files`, `panel-css-404`, `panel-redirect-out` red,
+`panel-location` (a `Location` instead of `Refresh`), `panel-refresh-quoted` (`0;URL='…'`),
+`panel-absolute` (the target on `https://prod.example`: the `--` line, `/panel` asked once) and
+`panel-js-text` (`text/javascript`) green, `panel-refresh-query` (`url=` in the query of a target
+outside `/panel`) red,
+`panel-html-fallback` (the stylesheet answered with an HTML page, 200) and `panel-js-empty` (0 bytes)
+red, `panel-plugins-empty` (Kirby's plugin bundles named, both 0 bytes) green; `headers` (the set a hardened site sends, `/panel` its own CSP) with the rules as set green, a
+value that differs, a header not sent and one that must be absent red, `!~` on a header not sent
+red, a rule on a path that answers 404 red; `~` or `!~` without text, a line without colon and a
+bad path exit 2.
 
 Decision 20 (`prod-sitemap` may be combined with
 `foreign-sitemap` for a third origin): foreign entry without settings red with the
@@ -1750,23 +1802,12 @@ section of its tool (`## genba-<tool>`; Tree's in precheck's and links'), whites
   what was missing so far), options table (§4), your own markup
   (`genbaBuildInfo()`), "Switching from the starter copies" (table §8 plus the
   files a site deletes), boundaries (the fleet check weekly from outside,
-  site-specific healthchecks stay), privacy (link to PRIVACY.md), development
+  site-specific healthchecks stay), privacy (short statement), development
   (`composer install`, `composer test`), license.
 - **CHANGELOG.md**: Keep a Changelog, SemVer, `## [1.0.0] — <release date>`, with
   "Changed — renamed to English (breaking)" (table §8), "Added", "Changed
   behaviour" (the list at the end of §8, numbered), "Unchanged (data
-  continuity)" (`site/config/build.txt`, `<meta name="build">`), and a
-  `[privacy text]` marker like noren's.
-- **PRIVACY.md** (English) + **DATENSCHUTZ.md** (German text block):
-  "describes the implementation, not legal advice". Content: the Kirby part
-  prints a commit hash of the site's own code into the HTML — no visitor data,
-  no cookies, no storage, no third-party request. The tools run in CI, not in
-  the visitor's browser: the smoke test fetches the site's own pages as a
-  client; the link check contacts YouTube (oEmbed), Digistore24 and the
-  shops named in the site's own content, sending only those public URLs and
-  the user agent string — no visitor data exists at that point. Credentials
-  for a protected preview are passed to curl through a file, never as an
-  argument, never over http.
+  continuity)" (`site/config/build.txt`, `<meta name="build">`).
 
 ---
 
