@@ -26,12 +26,6 @@ Genba checks one deployed site from the inside, on every deploy. A status code a
 composer require sayamaapps/kirby-genba
 ```
 
-Until the package is on Packagist, add the repository to `composer.json` first:
-
-```json
-"repositories": [{ "type": "vcs", "url": "https://github.com/sayamaapps/kirby-genba" }]
-```
-
 Composer installs the plugin into `site/plugins/genba/` (through `getkirby/composer-installer`, a dependency of this package) and links the five tools into `vendor/bin/`. Add `/site/plugins/genba` to `.gitignore` and deploy it like `kirby/` and `vendor/`.
 
 ## Usage
