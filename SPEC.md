@@ -127,11 +127,13 @@ kirby-genba/
 │   ├── SmokeTest.php                smoke      (§9.5)
 │   ├── fixtures/smoke-server.php    smoke      (router for php -S, §9.5)
 │   ├── HtmlCorpusTest.php           shared     (the HTML variant corpus, §9.4 and §9.5)
-│   ├── MessagesTest.php             shared     (every message literal of the tools is in README, §9.7)
+│   ├── MessagesTest.php             shared     (every message literal of the tools is in docs/messages.md, §9.7)
 │   ├── fixtures/html-variants/      smoke      (homepage variants for genba-smoke, §9.5)
 │   ├── fixtures/precheck-variants/  precheck   (template variants for genba-precheck, §9.4)
 │   └── LinksTest.php                links      (§9.6)
 ├── README.md                        docs   (§10)
+├── docs/reference.md                docs   (§10)
+├── docs/messages.md                 docs   (§10, read by tests/MessagesTest.php)
 └── CHANGELOG.md                     docs
 ```
 
@@ -1159,7 +1161,7 @@ step's `env:` block, one `run:` line per step):
 | `GENBA_MAX_TIME` | smoke | `25` | seconds per request and for the homepage reader, tests only |
 | `GENBA_DIGISTORE_FIELDS`, `GENBA_YOUTUBE_FIELDS`, `GENBA_SHOP_HOSTS` | links | `digistoreid` · `videoid,youtubeid,youtubevideos` · — | comma lists |
 
-**Site workflow after the switch** (README shows the full example; this is the
+**Site workflow after the switch** (docs/reference.md lists the order and the settings; this is the
 shape the site keeps):
 
 ```yaml
@@ -1776,34 +1778,34 @@ content/sec [31mRET`, no ESC in the output. The installed-copy fixture copies `s
 
 ### 9.7 tests/MessagesTest.php
 
-The README lists every line the tools print, and a line missing there is a test failure, not
+`docs/messages.md` lists every line the tools print, and a line missing there is a test failure, not
 something left for a reader to find. The test reads the message literals of `bin/genba-smoke` (the double-quoted
 argument of `fail`, `warn`, `ok`, `note`, `cannot_run`, `echo`, and `message="…"`, split at every
 `$name`, `${…}`, `$(…)`) and of `src/{Stamp,Preflight,Precheck,Tree,Links}.php` (`token_get_all()`:
 strings in `fwrite()`, `cannotRun()` and exception calls, after the keys `text`, `refused`, `message`,
 `reason`, `error`, assigned to `$why` or added to `$failures`; split at `\n` and sprintf conversions,
-regular expressions skipped), and requires every fragment with at least ten letters in the README
-section of its tool (`## genba-<tool>`; Tree's in precheck's and links'), whitespace collapsed and
-`[ ]` dropped. It proves itself first: a planted PHP and bash message is found, a documented one not.
+regular expressions skipped), and requires every fragment with at least ten letters in the
+section of its tool in `docs/messages.md` (`## genba-<tool>`; Tree's in precheck's and links'), whitespace
+collapsed and `[ ]` dropped. It proves itself first: a planted PHP and bash message is found, a documented one not.
+The `GENBA_MAX_TIME` row of `docs/reference.md` must name both bounds.
 
 ## 10. Documentation (owner `docs`)
 
-- **README.md** (English), modelled on `../kirby-noren/README.md` and
-  `../kirby-koe/README.md`: what it is (the 現場 sentence), the five tools in
-  one table (what, when in the pipeline, exit codes), requirements (PHP 8.2+, genba-smoke 8.4+,
-  Kirby 5, bash + curl for the smoke test), installation (`composer require`,
-  the vcs repository line until Packagist, `.gitignore` entry
-  `/site/plugins/genba`, "ship it like kirby/ and vendor/"), quick start
-  (`genba.active`, `snippet('genba/stamp')` in `<head>`, the workflow steps of
-  §6 as a complete YAML example for preview AND live, the schedule workflow
-  for `genba-links`), one section per tool with every setting of §6 and the
-  exact exit codes, "Staging behind Basic Auth" (the `GENBA_USER`/`GENBA_PASSWORD`,
-  `GENBA_WITHOUT_CREDENTIALS`, `GENBA_FOREIGN_SITEMAP=warn` recipe — this is
-  what was missing so far), options table (§4), your own markup
-  (`genbaBuildInfo()`), "Switching from the starter copies" (table §8 plus the
-  files a site deletes), boundaries (the fleet check weekly from outside,
-  site-specific healthchecks stay), privacy (short statement), development
-  (`composer install`, `composer test`), license.
+- **README.md** (English), at most 150 lines and 1,300 words: what it is (one tagline, a three-sentence intro), features (at most six
+  bullets), requirements (PHP 8.2+, genba-smoke 8.4+, Kirby 5, bash + curl + git), installation
+  (`composer require`, the vcs repository line until Packagist, `.gitignore` entry `/site/plugins/genba`,
+  "deploy it like kirby/ and vendor/"), usage (`genba.active`, `snippet('genba/stamp')` in `<head>`,
+  `/site/config/build.txt` in `.gitignore`, the five tools in one table with exit codes, one preview step of
+  `genba-smoke`), options table of the Kirby part (§4), privacy (short statement), links to the two files
+  below, maintenance (tests, issues, security reporting, CHANGELOG), license.
+- **docs/reference.md** (English, at most 200 lines, terse tables): the Kirby part's functions, site methods,
+  snippets and translation keys; one settings table per tool (§6, every setting with its default); the
+  `genba-smoke` checks and the default private paths; the `genba-precheck` rules; the `genba-links` kinds;
+  the workflow order and the preview and live settings of `genba-smoke`; the test list (every `tests/*Test.php`).
+- **docs/messages.md** (English): a plain list per tool of every line the tools print, `<…>` for values,
+  no prose. Read by `tests/MessagesTest.php` (§9.7).
+- Not in the docs: the "Staging behind Basic Auth" essay, the "Switching from the starter copies" table, the
+  "Boundaries" section and the history of the old copies; the CHANGELOG keeps the history.
 - **CHANGELOG.md**: Keep a Changelog, SemVer, `## [1.0.0] — <release date>`, with
   "Changed — renamed to English (breaking)" (table §8), "Added", "Changed
   behaviour" (the list at the end of §8, numbered), "Unchanged (data

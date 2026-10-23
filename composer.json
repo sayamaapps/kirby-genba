@@ -1,6 +1,6 @@
 {
     "name": "sayamaapps/kirby-genba",
-    "description": "Operations for a deployed Kirby CMS site: build stamp in the HTML, pre-deploy checks (CSP, built assets), post-deploy smoke test (build, content, delivery, Panel), foreign-link check against the source (YouTube, Digistore, purchase links), preflight hook. Command-line tools plus a tiny Kirby plugin part. No styling.",
+    "description": "Build stamp, pre-deploy checks, smoke test and link check for deployed Kirby CMS sites.",
     "type": "kirby-plugin",
     "license": "MIT",
     "keywords": ["kirby", "kirby-plugin", "kirby-5", "deployment", "smoke-test", "ci", "operations", "link-check"],

@@ -1,11 +1,11 @@
 <?php
 /**
- * Every line the five tools print is in the README, as the CHANGELOG promises — a message added
- * to a tool is easily missed in the README, so this test holds it. Each message literal of
- * bin/genba-smoke and src/{Stamp,Preflight,Precheck,Tree,Links}.php — the constant text between
- * the values a message is built of — must stand in the README section of its tool
- * (## genba-<tool>), compared with whitespace collapsed and without the [ ] the README uses for
- * optional parts. Fragments with fewer than ten letters (": ", " — ", "ok") are not compared.
+ * Every line the five tools print is in docs/messages.md — a message added to a tool is easily
+ * missed in the catalogue, so this test holds it. Each message literal of bin/genba-smoke and
+ * src/{Stamp,Preflight,Precheck,Tree,Links}.php — the constant text between the values a message
+ * is built of — must stand in the section of its tool (## genba-<tool>), compared with whitespace
+ * collapsed and without the [ ] the catalogue uses for optional parts. Fragments with fewer than
+ * ten letters (": ", " — ", "ok") are not compared.
  *
  * What counts as a message literal:
  *   PHP   a string in a fwrite(), cannotRun() or exception call up to its `;`; a string after one
@@ -21,13 +21,13 @@ require_once __DIR__ . '/helpers.php';
 
 const MESSAGES_TOOLS = ['genba-stamp', 'genba-preflight', 'genba-precheck', 'genba-smoke', 'genba-links'];
 
-/** Whitespace collapsed, [ and ] dropped: how literal and README are compared. */
+/** Whitespace collapsed, [ and ] dropped: how literal and catalogue are compared. */
 function messages_normal(string $text): string
 {
     return trim((string) preg_replace('/\s+/', ' ', str_replace(['[', ']'], '', $text)));
 }
 
-/** @return array<string,string> tool => its README section, normalised */
+/** @return array<string,string> tool => its section of docs/messages.md, normalised */
 function messages_sections(string $readme): array
 {
     $sections = [];
@@ -159,9 +159,9 @@ function messages_missing(string $file, array $literals, array $tools, array $se
 }
 
 $root = dirname(__DIR__);
-$sections = messages_sections((string) file_get_contents("$root/README.md"));
+$sections = messages_sections((string) file_get_contents("$root/docs/messages.md"));
 foreach (MESSAGES_TOOLS as $tool) {
-    holds($sections[$tool] !== '', "README has a section ## $tool");
+    holds($sections[$tool] !== '', "docs/messages.md has a section ## $tool");
 }
 
 // The check proves itself first: a message that is in no section is found, in PHP and in bash,
@@ -192,8 +192,8 @@ $literals = messages_bash((string) file_get_contents("$root/bin/genba-smoke"));
 $count += count($literals);
 array_push($missing, ...messages_missing('bin/genba-smoke', $literals, ['genba-smoke'], $sections));
 holds($count > 300, "the readers find the messages of the five tools ($count literals)");
-expect([], $missing, 'every message fragment of the five tools stands in the README section of its tool');
-echo "  ok   $count message literals checked against the README\n";
+expect([], $missing, 'every message fragment of the five tools stands in the docs/messages.md section of its tool');
+echo "  ok   $count message literals checked against docs/messages.md\n";
 
 // The functions of genba-smoke's earlier awk reader, replaced by the PHP homepage reader (SPEC §3.4,
 // "Reading the homepage"), are gone: none is defined, and a line in the code or the tests that names
@@ -217,14 +217,14 @@ foreach ($sources as $file) {
 holds(count($sources) > 20, 'the code and the tests are read (' . count($sources) . ' files)');
 expect([], $current, 'a function of the earlier awk reader is never defined, and named only as history');
 
-// The usage of genba-smoke says what GENBA_MAX_TIME bounds, as the README does: a request and the homepage
-// reader. The entry with its continuation lines, read from the usage text in the script (the same heredoc
-// --help prints).
+// The usage of genba-smoke says what GENBA_MAX_TIME bounds, as docs/reference.md does: a request and the
+// homepage reader. The entry with its continuation lines, read from the usage text in the script (the same
+// heredoc --help prints).
 $smoke = (string) file_get_contents("$root/bin/genba-smoke");
 holds(preg_match('/^  GENBA_MAX_TIME {2,}(.+(?:\n {20,}\S.*)*)/m', $smoke, $entry) === 1, 'the usage of genba-smoke has a GENBA_MAX_TIME entry');
 $usage = (string) preg_replace('/\s+/', ' ', $entry[1] ?? '');
 holds(str_contains($usage, 'request') && str_contains($usage, 'homepage reader'), "the usage names both bounds of GENBA_MAX_TIME, a request and the homepage reader: $usage");
-holds(preg_match('/^\| `GENBA_MAX_TIME` \|[^\n]*one request[^\n]*reader of the homepage/m', (string) file_get_contents("$root/README.md")) === 1,
-    'the README row of GENBA_MAX_TIME names both bounds too');
+holds(preg_match('/^\| `GENBA_MAX_TIME` \|[^\n]*one request[^\n]*reader of the homepage/m', (string) file_get_contents("$root/docs/reference.md")) === 1,
+    'the docs/reference.md row of GENBA_MAX_TIME names both bounds too');
 
 finish('Messages');
