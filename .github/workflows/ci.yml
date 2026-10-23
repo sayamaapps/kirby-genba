@@ -28,7 +28,7 @@ jobs:
       matrix:
         # genba-smoke reads the homepage with Dom\HTMLDocument (PHP 8.4+): its fault matrix and the
         # smoke corpus run on 8.4 and 8.5; on 8.2 and 8.3 SmokeTest checks the clean abort (exit 2,
-        # before the first request) and the corpus runs its precheck half (SPEC decision 24).
+        # before the first request) and the corpus runs its precheck half.
         php: ['8.2', '8.3', '8.4', '8.5']
     steps:
       - uses: actions/checkout@v4
@@ -40,7 +40,7 @@ jobs:
           coverage: none
 
       # GitHub's ubuntu runners have shellcheck: the step only prints its
-      # version (SPEC.md §11, decision 15). Installed here only on a runner
+      # version. Installed here only on a runner
       # without it; when that fails the test prints a visible "not linted"
       # line, never a silent pass.
       - name: shellcheck for bin/genba-smoke (tests/SmokeTest.php runs it)

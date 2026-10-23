@@ -4,8 +4,7 @@
  * German strings. Keys and placeholders as in en.php; tests/I18nTest.php
  * checks that both files have the same keys and placeholders.
  *
- * "Stand" is the word the starter's snippet (stand.php) and the fleet check
- * used for the build stamp — it is the reference wording.
+ * "Stand" is the reference wording for the build stamp.
  */
 return [
     // genba/build-info snippet: a visible build line, e.g. on a preview site.

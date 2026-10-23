@@ -2,8 +2,8 @@
 /**
  * Counter-check for bin/genba-links (SPEC §9.6), without the network: a local
  * server plays YouTube oEmbed, Digistore product pages and purchase links with
- * redirect chains. The cases are the real ones of a live site: an ID pointing
- * to another own album, one to an empty page, one to a 404. The check must be
+ * redirect chains. The cases are the failure modes a status-code check misses: an
+ * ID pointing to another own album, one to an empty page, one to a 404. The check must be
  * able to turn red — this test proves it.
  *
  *   ASDF_PHP_VERSION=8.5.3 php tests/LinksTest.php
@@ -240,7 +240,7 @@ PHP);
     expect(Links::OK, $r['status'], 'a redirect to /produkt/kräuter (raw UTF-8) is followed: ' . $r['text']);
     contains('/produkt/kr%C3%A4uter?aff=sayama', $r['text'], 'the target was requested percent-encoded');
 
-    // Decision 18 (closed 11.10.): the FIRST address of a purchase link from the content is checked too,
+    // The FIRST address of a purchase link from the content is checked too,
     // unless its host is exactly a configured shop host.
     $nas = new Links(shopHosts: ['example.test'], resolver: fn (string $h): array => ['192.168.1.10']);
     $r = $nas->purchaseLink('https://nas.example.test/x');

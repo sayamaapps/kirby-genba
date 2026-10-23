@@ -3,7 +3,6 @@
  * Translations: every language has the same keys and placeholders as
  * English, no value is empty, and the helpers follow the language.
  *   php tests/I18nTest.php
- * Owned by the architect (shared file).
  */
 require_once __DIR__ . '/helpers.php';
 require_once __DIR__ . '/../src/I18n.php';

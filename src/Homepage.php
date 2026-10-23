@@ -11,7 +11,7 @@ require_once __DIR__ . '/Text.php';
  * built of awk and grep keeps meeting spellings it gets wrong where the browser does not (a quote
  * in an unquoted value, RCDATA in <title>, an attribute in an end tag, a bogus comment …).
  *
- * Only Dom\HTMLDocument (SPEC decision 24): masterminds/html5, the parser for PHP 8.2 and 8.3, read
+ * Only Dom\HTMLDocument: masterminds/html5, the parser for PHP 8.2 and 8.3, read
  * one corpus variant and 18 of 57 tokenizer probes otherwise than Lexbor (`<!--->` swallowed the page up to
  * the next -->, `</style >` and `</script/>` did not end the element, the script escape states, a <
  * in an attribute name, references without ;, HTML inside <svg>/<math>, <select>, <frameset>,
@@ -68,7 +68,7 @@ final class Homepage
     /**
      * Names the pattern of a custom element matches that are no valid custom element name (HTML,
      * "valid custom element name": SVG and MathML elements with a hyphen). attachShadow() throws on
-     * them, and the browser leaves their <template shadowrootmode> inert (SPEC decision 36).
+     * them, and the browser leaves their <template shadowrootmode> inert.
      */
     private const RESERVED_CUSTOM = ['annotation-xml', 'color-profile', 'font-face', 'font-face-src', 'font-face-uri', 'font-face-format', 'font-face-name', 'missing-glyph'];
 

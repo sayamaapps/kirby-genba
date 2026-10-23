@@ -5,8 +5,7 @@ namespace Genba;
 use Kirby\Cms\App;
 
 /**
- * Reads `genba.*` options for the Kirby part of the plugin. Shared file —
- * owned by the architect (SPEC.md §4).
+ * Reads `genba.*` options for the Kirby part of the plugin (SPEC.md §4).
  *
  * `null` counts as "not set", like Kirby's own option() (A::get() checks
  * isset() as well), so `'genba.stamp.meta' => null` falls back to the default.
@@ -28,7 +27,7 @@ final class Options
     /** Where the deploy writes the commit hash, relative to the project root (SPEC.md §6). */
     public const DEFAULT_STAMP_FILE = 'site/config/build.txt';
 
-    /** Name of the <meta> element the stamp snippet prints; the smoke test and the fleet check read it. */
+    /** Name of the <meta> element the stamp snippet prints; the smoke test and an external check read it. */
     public const DEFAULT_META = 'build';
 
     public static function get(App $kirby, string $key, mixed $default = null): mixed

@@ -4,7 +4,7 @@ namespace Genba;
 
 /**
  * The one place where the Kirby part of Genba writes to the PHP error log
- * (Kirby-free). Shared file — owned by the architect (SPEC.md §2).
+ * (Kirby-free).
  *
  * Every message is written once per process: a page renders the stamp and
  * the build info and reads the options several times, and a broken option

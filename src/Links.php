@@ -8,16 +8,15 @@ require_once __DIR__ . '/Tree.php';
  * Checks external references against their source: external references in the
  * content are checked against the source, never from memory.
  *
- * Origin: a live site (07.08.2026): five of nine product
- * pages carried a wrong Digistore ID. Two opened ANOTHER own album — the
- * purchase went through and the buyer got the wrong one —, one the product
- * of a foreign provider, two an empty or 404 page. A plain status-code check
- * would have let four of the five through: the pages answer 200. So the check
- * looks at WHERE a reference leads:
+ * Background: five of nine product pages of one shop carried a wrong
+ * Digistore ID. Two opened ANOTHER own album — the purchase went through and
+ * the buyer got the wrong one —, one the product of a foreign provider, two an
+ * empty or 404 page. A plain status-code check would have let four of the five
+ * through: the pages answer 200. So the check looks at WHERE a reference leads:
  *
  *   YouTube     watch, youtu.be, embed, shorts links, thumbnails and ID fields
  *               (Videoid: …). Through the oEmbed endpoint: 400/404 means
- *               deleted, 403 private (both measured 06.10.2026 against the
+ *               deleted, 403 private (both measured against the
  *               playabilityStatus of the watch page). 401 means embedding is
  *               blocked — a finding only for embeds, a notice for plain links.
  *   Digistore   /product/<id>, /redir/<id>/… and ID fields (Digistoreid: …).

@@ -8,7 +8,7 @@
  * CHANGELOG entry.
  *
  * Only the Kirby part is translated (snippets genba/stamp, genba/build-info).
- * The command-line tools print English only (SPEC.md §11, decision 6).
+ * The command-line tools print English only (SPEC.md §11).
  */
 return [
     // genba/build-info snippet: a visible build line, e.g. on a preview site.

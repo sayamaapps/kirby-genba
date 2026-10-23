@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Genba smoke test: the post-deploy check of a live Kirby site (SPEC §3.4).
 #
-# Port of kirby-starter/scripts/smoke-test.sh (the 300-line variant). A status
+# A status
 # code proves little: after a half upload, on the hoster's default page or
 # with an old build the server also answers 200. So the content is measured:
 #
@@ -310,9 +310,8 @@ case "$NOT_READY_MODE" in
   *) cannot_run "GENBA_NOT_READY must be fail or skip" ;;
 esac
 
-# Paths above public/ that must never be served (a live site's deploy workflow,
-# extended): an executed config.php answers 200 with an empty body, so any 2xx
-# counts, not only 200 with content.
+# Paths above public/ that must never be served: an executed config.php answers
+# 200 with an empty body, so any 2xx counts, not only 200 with content.
 PRIVATE_DEFAULT='.env .git/HEAD composer.json composer.lock site/ site/config/config.php site/config/credentials.php site/config/kizami.php site/config/kennzahlen.php content/ content/site.txt kirby/bootstrap.php vendor/ vendor/autoload.php storage/ storage/kizami/kizami.sqlite storage/kennzahlen/kennzahlen.sqlite'
 PRIVATE_EXTRA=''
 PRIVATE_NONE=0
@@ -812,7 +811,7 @@ add_asset() {
 # credentials, when it runs): a later request that fails is a finding, never a
 # reason to skip — a site that answers 401 at once and then hangs behind the
 # protection is broken, not pending.
-# Port of the preview workflow's reachability gate (kirby-starter).
+# Reachability gate of the preview workflow.
 not_ready() {
   local code=$1 rc=$2 errfile=$3 plain_url plain
   if (( rc == 6 )); then
@@ -885,7 +884,7 @@ strip_comments='s/<!--([^-]|-[^-]|--+[^->])*--+>//g'
 # comments, <script>, <style>, RCDATA in <title> and <textarea>, end tags with
 # attributes, bogus comments, <template>, <svg> and <math> are what they are
 # for the browser — a reader made of awk and grep gets one spelling or another
-# wrong (SPEC decision 24). Every value is log text
+# wrong. Every value is log text
 # already (the reader percent-encodes control characters as encode_controls
 # does), and
 # every character reference is decoded, as the browser decodes it. A missing

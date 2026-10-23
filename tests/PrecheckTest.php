@@ -71,7 +71,7 @@ try {
         expect(count($byAttr), count(Precheck::selfTestRules($broken)), "a broken attr pattern of $name fails on each attr() positive sample");
     }
 
-    // Negative control (from an older site copy's pruefe-ressourcen.sh): the unanchored `fonts\.` of older copies
+    // Negative control: an unanchored `fonts\.` pattern
     // matched the browser API document.fonts.ready — an over-wide pattern must fail the self-test too.
     holds(in_array('document.fonts.ready.then(remeasure)', Precheck::RULES['foreign-host']['negatives'] ?? [], true), 'foreign-host carries the document.fonts negative sample');
     $wide = Precheck::RULES;

@@ -25,8 +25,7 @@ use Genba\Stamp;
  * Off by default: without `'genba.active' => true` the site methods return
  * null and the snippets print nothing.
  *
- * Shared file — owned by the architect (SPEC.md §2). Builders never edit it;
- * the logic lives in src/Stamp.php (Kirby-free).
+ * The logic lives in src/Stamp.php (Kirby-free).
  *
  * Defaults are passed as fallback values directly at each option call, NOT
  * in an 'options' block (Kirby would file them under sayamaapps.genba.*

@@ -336,7 +336,7 @@ try {
     $run('401 is not retried', 'auth', 1, 'HTTP 401 instead of 200 \(protected', ['GENBA_RETRIES' => '3']);
     expect(1, substr_count((string) file_get_contents($requestLog), "GET /\n"), 'a 401 homepage is fetched once, not GENBA_RETRIES times');
 
-    // Decision 20: a staging sitemap listing production is fetched on staging (rewrite).
+    // A staging sitemap listing production is fetched on staging (rewrite).
     $output = $run('staging sitemap lists production, rewritten', 'prod-sitemap', 0,
         '(?m)^::notice::Sitemap lists 2 pages on https://prod\.example instead of http://127\.0\.0\.1:\d+ — rewritten to http://127\.0\.0\.1:\d+ \(path and query kept\) and fetched there',
         ['GENBA_FOREIGN_SITEMAP' => 'rewrite']);
@@ -376,7 +376,7 @@ try {
     holds(!str_contains($output, 'closed preview:'), "an open robots.txt is no closed preview:\n$output");
     $run('bad GENBA_CLOSED_PREVIEW', '', 2, 'GENBA_CLOSED_PREVIEW must be accept or fail', ['GENBA_CLOSED_PREVIEW' => 'yes']);
 
-    // Decision 20, refined: unset, the default is rewrite on a
+    // Unset, the default is rewrite on a
     // preview run (GENBA_EXPECT_PROTECTED=1 or GENBA_USER), else fail — named in the log.
     $credentials = ['GENBA_USER' => 'preview', 'GENBA_PASSWORD' => 'ge"heim\x'];
     $output = $run('foreign sitemap entry, no settings: fail', 'foreign-sitemap', 1,
@@ -543,7 +543,7 @@ try {
         '(?m)^  --   no \.webp file of http://127\.0\.0\.1:\d+ found on the homepage \(1 on other origins, not requested\), Content-Type not checked');
     $run('five foreign .webp do not crowd out the own one', 'crowded-webp webp-type', 1, "bild.webp: Content-Type 'text/plain'");
 
-    // Decision 22: nothing above public/ is reachable — by default, counted, with credentials.
+    // Nothing above public/ is reachable — by default, counted, with credentials.
     $output = $run('private paths are not reachable', '', 0, '(?m)^  ok   17 private paths not reachable \(none answers 2xx\)');
     $requests = (string) file_get_contents($requestLog);
     contains("GET /site/config/config.php\n", $requests, 'the private paths were requested (config.php)');
@@ -561,7 +561,7 @@ try {
     $run('private paths off', 'private-open', 0, '(?m)^  --   private paths not checked \(GENBA_PRIVATE_PATHS=none\)', ['GENBA_PRIVATE_PATHS' => 'none']);
     $run('private paths: not a path', '', 2, 'GENBA_PRIVATE_PATHS: not a path below the site root: \.\./etc/passwd', ['GENBA_PRIVATE_PATHS' => '../etc/passwd']);
 
-    // Decision 19: the reachability gate of the preview workflow, inside the tool.
+    // The reachability gate of the preview workflow, inside the tool.
     $output = $run('protected preview', 'auth', 0, '(?m)^  ok   Protected: http://127\.0\.0\.1:\d+/ answers 401 without credentials',
         ['GENBA_EXPECT_PROTECTED' => '1', 'GENBA_USER' => 'preview', 'GENBA_PASSWORD' => 'ge"heim\x']);
     contains('Genba smoke: PASSED', $output, 'a protected preview with credentials passes');
