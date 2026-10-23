@@ -3,8 +3,7 @@
 namespace Genba;
 
 /**
- * Strings of the Kirby part of the plugin, Kirby-free. Shared file — owned
- * by the architect (SPEC.md §5).
+ * Strings of the Kirby part of the plugin, Kirby-free (SPEC.md §5).
  *
  * The tables live in translations/<language>.php and are also registered as
  * Kirby plugin translations under `genba.<key>` (index.php), so a site's own
@@ -15,7 +14,7 @@ namespace Genba;
  * translated. The command-line tools print English only — their output is
  * CI log text, read by GitHub's annotations and by the person who deploys,
  * and the smoke test is a bash script that could not share these tables
- * (SPEC.md §11, decision 6).
+ * (SPEC.md §11).
  *
  * The language is set once per request (Options::applyLanguage()) and
  * defaults to English. Missing keys fall back to English, then to the key.

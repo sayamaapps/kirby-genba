@@ -112,8 +112,8 @@ final class Precheck
      * applied at runtime, per match: every match of `pattern` must be allowed — an allow
      * entry stands in the same address (from the last `//` before the match to the
      * first character no URL holds, address()) or overlaps the match (allowed()). Optional `negatives`:
-     * lines the rule must NOT fire on (the self-test's negative control, from an older site copy's
-     * pruefe-ressourcen.sh — an over-wide pattern fails as loudly as a dead one); optional `positives`:
+     * lines the rule must NOT fire on (the self-test's negative control: an over-wide pattern fails
+     * as loudly as a dead one); optional `positives`:
      * further lines it MUST fire on — those of foreign-host also with DEFAULT_ALLOW.
      */
     public const RULES = [
@@ -154,7 +154,7 @@ final class Precheck
                               // separated by a backtick, a comma — checked with the default allow list too.
                               'positives' => ['const a=`https://places.googleapis.com/v1/${id}`,b=`https://fonts.googleapis.com/css2?family=Inter`;',
                                               'preconnect=https://places.googleapis.com/v1/,https://fonts.gstatic.com'],
-                              // A browser API, not a host: the unanchored `fonts\.` of older copies matched it.
+                              // A browser API, not a host: the unanchored `fonts\.` of an earlier rule version matched it.
                               'negatives' => ['document.fonts.ready.then(remeasure)']],
         // An on… name counts only when it is an event handler Genba knows (`names`, EVENT_HANDLERS):
         // `var once = key` in a script and `const ONLINE = 'online'` in a class are code, not attributes.
@@ -843,7 +843,7 @@ final class Precheck
         if ($extra === []) {
             return true;
         }
-        // The allow list per match, not per line: with grep -v semantics, as in the copies, an
+        // The allow list per match, not per line: with grep -v semantics, an
         // allowed address next to a forbidden one on the same line (a CSP header, a list of URLs)
         // hid the forbidden one. The line is free only when every match of the pattern is allowed:
         // an allow entry stands in the same address (allowed()).

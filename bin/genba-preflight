@@ -1,8 +1,8 @@
 #!/usr/bin/env php
 <?php
 /**
- * Runs the project's own generation step before the build (the starter's
- * `npm run praeflug`): SVG motifs, font files, data imports. Run it from the
+ * Runs the project's own generation step before the build (the npm script
+ * `praeflug`): SVG motifs, font files, data imports. Run it from the
  * project root before `npm run build` (SPEC.md §3.2).
  *
  *   vendor/bin/genba-preflight                   package.json "preflight", else "praeflug"

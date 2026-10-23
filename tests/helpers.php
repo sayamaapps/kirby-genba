@@ -1,6 +1,6 @@
 <?php
 /**
- * Shared test helpers — owned by the architect, builders only read it.
+ * Shared test helpers.
  *
  *   require_once __DIR__ . '/helpers.php';
  *

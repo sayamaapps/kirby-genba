@@ -4,10 +4,10 @@
  * Foreign-link check: verifies WHERE the YouTube IDs, Digistore product IDs and
  * purchase links of the site source lead — not only that they answer 200.
  *
- * Origin (a live site, 07.08.2026): five of nine product pages
- * carried a wrong Digistore ID. Two opened another own album, one the product of
- * a foreign provider, two an empty or 404 page. A status-code check would have
- * let four of the five through.
+ * Background: five of nine product pages of one shop carried a wrong Digistore
+ * ID. Two opened another own album, one the product of a foreign provider, two
+ * an empty or 404 page. A status-code check would have let four of the five
+ * through.
  *
  *   YouTube    watch, youtu.be, embed, shorts links, thumbnails and ID fields.
  *              Checked through the oEmbed endpoint: 400/404 is deleted, 403 is

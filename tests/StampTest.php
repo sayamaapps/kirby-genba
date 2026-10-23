@@ -1,7 +1,7 @@
 <?php
 /**
- * Genba\Stamp, Kirby-free (SPEC.md §9.1): read() (the five cases ported from
- * kirby-starter's StandTest and more), meta(), info(), write(), fromGit(),
+ * Genba\Stamp, Kirby-free (SPEC.md §9.1): read() (five cases, and more),
+ * meta(), info(), write(), fromGit(),
  * the CLI through run() with memory streams, and one run of bin/genba-stamp.
  *
  *   ASDF_PHP_VERSION=8.5.3 php tests/StampTest.php
@@ -47,7 +47,7 @@ function stampRepo(string $dir): string
 
 $tmp = genba_tmp('stamp');
 try {
-    /* --- read(): port of StandTest's five cases, then more ---------------- */
+    /* --- read(): five cases, then more ---------------- */
 
     $file = $tmp . '/build.txt';
     genba_write($file, $hash . "\n");

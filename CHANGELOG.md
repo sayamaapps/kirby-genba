@@ -107,7 +107,7 @@ A site that passed before can fail now — in exactly the cases that passed by m
 
 ### Added — `genba-smoke` checks for headers and the Panel's files
 
-Two checks that sites ran on their own before the smoke test existed: the
+Two checks that sites often ran on their own: the
 response headers of a hardened site, and the Panel's own files.
 
 - **Check 9, `GENBA_HEADERS`.** One rule per line, `[/path] Name: rule`: a value
@@ -189,35 +189,15 @@ that never reach a browser.
 
 ## [1.0.0] — 2026-10-14
 
-First release as a Composer package. Before 1.0.0 the same operations lived as
-copies in every site built from kirby-starter: `site/snippets/stand.php` (the
-build stamp), `scripts/smoke-test.sh` (300 lines), `scripts/deploy-vorpruefung.sh`
-(pre-deploy checks), `scripts/pruefe-fremdlinks.php` (552 lines, the link check),
-the matching tests (`tests/StandTest.php`, `tests/smoke-test-gegenprobe.sh` with
-174 lines, `tests/FremdlinksTest.php`), the `praeflug` npm step and the inline
-workflow steps for the stamp and the stylesheet. The changes below are measured
-against those copies in kirby-starter.
+First release as a Composer package. It replaces the operations that sites had as
+per-site files: the build stamp snippet, the smoke test, the pre-deploy checks,
+the link check, their tests, the `praeflug` npm step and the inline workflow
+steps for the stamp and the stylesheet.
 
-### Changed — renamed to English (breaking)
+### Changed — English names
 
-Environment variables, options, snippets, tools and messages are English now.
-There are no fallbacks for the old names: a site switching from the copies
-updates its workflows and calls once, using the table below.
-
-| Before (site copy) | Now |
-|---|---|
-| `site/snippets/stand.php`, `snippet('stand')` | `snippet('genba/stamp')` + `'genba.active' => true` |
-| `git rev-parse HEAD > site/config/build.txt` (+ grep) | `vendor/bin/genba-stamp` |
-| `npm run praeflug` | `vendor/bin/genba-preflight` (runs `praeflug`/`preflight` from package.json) |
-| `test -s public/assets/css/tailwind.css` | part of `vendor/bin/genba-precheck` (`GENBA_REQUIRE_FILES`) |
-| `bash scripts/deploy-vorpruefung.sh` | `vendor/bin/genba-precheck` |
-| `ERWARTETER_STAND=$(git rev-parse HEAD) bash scripts/smoke-test.sh` | `vendor/bin/genba-smoke` |
-| env `URL`, `ERWARTETER_STAND`, `MARKER`, `SMOKE_BENUTZER`, `SMOKE_PASSWORT`, `HTTPS_UMLEITUNG` (pflicht/warnen/aus), `PANEL_KONTO`, `SEITEN_MAX`, `VERSUCHE`, `PAUSE`, `SMOKE_HTTP_URL` | `GENBA_URL`, `GENBA_EXPECTED_BUILD`, `GENBA_MARKER`, `GENBA_USER`, `GENBA_PASSWORD`, `GENBA_HTTPS_REDIRECT` (require/warn/off), `GENBA_PANEL_ACCOUNT`, `GENBA_PAGES_MAX`, `GENBA_RETRIES`, `GENBA_PAUSE`, `GENBA_HTTP_URL` |
-| workflow: "secrets missing → warning, exit 0" shell block | `GENBA_WITHOUT_CREDENTIALS: skip` |
-| `php scripts/pruefe-fremdlinks.php --digistore-feld= --youtube-feld= --shop-host= --ohne-gegenprobe --nur-auflisten --oembed-basis= --digistore-basis= --pause=` | `vendor/bin/genba-links --digistore-field= --youtube-field= --shop-host= --skip-counter-check --list-only --oembed-base= --digistore-base= --pause=` |
-| `tests/StandTest.php`, `tests/smoke-test-gegenprobe.sh`, `tests/FremdlinksTest.php` in every site | run once here (`tests/StampTest.php`, `SmokeTest.php`, `LinksTest.php`); a site deletes its copies |
-| `<meta name="build">` | unchanged (the fleet check reads it) |
-| `site/config/build.txt` | unchanged path, unchanged content |
+Environment variables, options, snippets, tools and messages are English. The
+names are listed in the README and in `docs/reference.md`.
 
 ### Added
 
@@ -267,10 +247,10 @@ updates its workflows and calls once, using the table below.
   spellings a browser reads the same) and `MessagesTest.php` (every line the
   tools print stands in the README).
 
-### Changed behaviour
+### Behaviour
 
-These changes against the site copies are deliberate. Each one can show on the
-site after the switch. The README describes every rule in full.
+The points below are deliberate. Each one can show on a site after an upgrade. The
+README describes every rule in full.
 
 #### All tools
 
@@ -321,14 +301,13 @@ site after the switch. The README describes every rule in full.
    `GENBA_REQUIRE_FILES=none`, and the log says so, naming where the `none` came
    from (`--require=none` or `GENBA_REQUIRE_FILES=none`).
 3. **The check ships the Koe allow entry** (`places.googleapis.com/v1/`) by
-   default, and uses the anchored `//fonts\.` pattern that all site copies use by
-   now. The negative control of one site copy is kept: the foreign-host rule must
-   not match `document.fonts.ready.then(remeasure)`, or the self-test fails. A
-   site whose workflow ran only the style and host rules
-   (`scripts/pruefe-ressourcen.sh`) now gets the handler and script rules too.
+   default, and uses the anchored `//fonts\.` pattern. The negative control is kept: the
+   foreign-host rule must not match `document.fonts.ready.then(remeasure)`, or the
+   self-test fails. A workflow that ran only the style and host rules now gets the
+   handler and script rules too.
 4. **The rules ignore case**: `<P STYLE="x">`, `<SCRIPT>`, `ONCLICK=` and
    `FONTS.GSTATIC.COM` are found; `<SCRIPT SRC="x">` and the JSON-LD type are
-   still exceptions. The copies matched lower case only.
+   still exceptions.
 5. **Inline styles and handlers are found in every spelling the browser
    accepts**: `style='x'`, `style = "x"`, `style=color:red` without quotes, an
    attribute at the start of a line, right after a closing quote or after a `/`
@@ -337,8 +316,8 @@ site after the switch. The README describes every rule in full.
    `data-style` attribute, `icon=` or `json=` are not findings; the rules carry
    them as negative samples.
 6. **`embedded-script` judges every `<script …>` tag on its own, attribute by
-   attribute.** The copies exempted the whole line when `src=` or
-   `application/ld+json` stood anywhere in it, so
+   attribute.** A line that held `src=` or
+   `application/ld+json` anywhere was exempted as a whole, so
    `<script src="/a.js"></script><script>window.evil = 1</script>` and
    `<script>el.src="/x.js"</script>` passed. Only a real `src` attribute with a
    value, or a `type` that holds `application/ld+json`, exempts a tag —
@@ -369,7 +348,7 @@ site after the switch. The README describes every rule in full.
    `site/sessions`, `site/accounts`, `site/logs` and `public/media` (only there,
    by place: `site/snippets/media/` is scanned), `node_modules` and `.git` at any
    depth, binary files, and Genba's own directory (`site/plugins/genba/`), whose
-   source and README carry the rule samples. The copies scanned them. Symbolic
+   source and README carry the rule samples. Symbolic
    links inside the project are followed, but never into a skipped place
    (compared by real path, also across the two roots: `public/p -> ..` does not
    reach `site/cache`); a symbolic link to a file outside the project is named
@@ -400,7 +379,7 @@ site after the switch. The README describes every rule in full.
    that runs it** (normally the CI runner, `setup-php` with
    `php-version: '8.4'`); below, it stops before the first request, exit 2, and
    names the version. The plugin part and the other four tools stay at PHP 8.2.
-   Why only `Dom\HTMLDocument`: SPEC decision 24.
+   Why only `Dom\HTMLDocument`: see SPEC.md §11.
 2. **A lost stylesheet is red.** When the marker is a `.css` address (the default
    `assets/css/tailwind.css`) and stands in the page, a stylesheet of the own
    origin with that address must have been read from the `<link>` elements, else
@@ -424,7 +403,7 @@ site after the switch. The README describes every rule in full.
    and bytes that are no UTF-8 become U+FFFD (`%EF%BF%BD`, one per broken
    sequence). A stylesheet is read as UTF-8 whatever it declares. An address
    above 2048 characters is a finding and is not fetched.
-6. **An empty sitemap is a finding.** The copy passed a sitemap without pages.
+6. **An empty sitemap is a finding.**
    So are a missing sitemap or one without `<urlset>`
    (`::error::Sitemap not available for page check`), a sitemap above 10 MiB, an
    empty entry (`::error::Sitemap entry is empty (<loc> without an address)`) and
@@ -447,9 +426,8 @@ site after the switch. The README describes every rule in full.
 8. **On a preview run, a sitemap entry on another origin is rewritten to the
    `GENBA_URL` origin** and fetched there (`GENBA_FOREIGN_SITEMAP=rewrite`, the
    default when `GENBA_EXPECT_PROTECTED=1` or `GENBA_USER` is set), announced once
-   as `::notice::`. The copy made it a finding, and without credentials and
-   without the gate that stays the default (`fail`, the live site); the log names
-   which default was taken. `warn` prints a warning and fetches nothing.
+   as `::notice::`. Without credentials and without the gate, the default stays
+   `fail` (the live site); the log names which default was taken. `warn` prints a warning and fetches nothing.
    `GENBA_SITEMAP_ORIGIN` limits the rewrite to one origin; on such a run the
    stylesheets and files of check 5 on that origin are checked on the
    `GENBA_URL` origin too. **Site-visible:** a staging host whose site URL is
@@ -467,19 +445,17 @@ site after the switch. The README describes every rule in full.
     checked`; more than five own `.webp`, `.avif` or `.woff2` files print
     `--   <n> .<ext> files of <origin> on the homepage, the first 5 checked`; a
     homepage without an own stylesheet prints a `--` line.
-11. **Image and font Content-Types are checked on the own origin first**: the
-    copy took five candidates and only then dropped the foreign ones, so five CDN
-    files left the own files unchecked without a word. When only foreign files
+11. **Image and font Content-Types are checked on the own origin first**: foreign candidates are dropped before the five are taken, so five CDN
+    files cannot leave the own files unchecked without a word. When only foreign files
     exist, the log says so.
 12. **`robots.txt`, `sitemap.xml` and `llms.txt` are fetched once per method**,
     and the body of that one GET is what the content pattern and the sitemap page
-    check read. The copy fetched a third time; a third answer that failed passed
-    both checks unread.
-13. **A transfer curl could not finish is not an answer.** The copy read curl's
-    status code and ignored its exit code: a connection that closed with bytes
-    missing after a 200 (curl 18), a body that never arrived (28) or a broken
-    transfer (56) counted as `ok`, and the cut body was read. Now such a fetch is
-    `HTTP 000`, the cut body is not read, and the finding carries curl's message
+    check read.
+13. **A transfer curl could not finish is not an answer.** Curl's exit code counts as well as
+    the status code: a connection that closed with bytes missing after a 200 (curl
+    18), a body that never arrived (28) or a broken transfer (56) is not `ok`, and
+    the cut body is not read. Such a fetch is `HTTP 000`, and the finding carries
+    curl's message
     in every check alike (`GET /sitemap.xml: HTTP 000 instead of 200 — curl: (18)
     transfer closed with 3926 bytes remaining to read`), the http→https check
     included (`… expected 301/308 to https://<host> — curl: (7) Failed to
@@ -518,9 +494,9 @@ site after the switch. The README describes every rule in full.
     once, on the first request (the gate's, when it runs); only a connect or TLS
     error counts (curl 7, 35, 51, 58, 59, 60, 77, 83, 90, 91), never a timeout,
     an empty answer or an expired certificate — a preview that answers 401 and
-    then hangs behind the protection is red, not SKIPPED. A site deletes its own
-    "Erreichbarkeit prüfen" step.
-19. **Private paths are checked on every site** (one site did it inline):
+    then hangs behind the protection is red, not SKIPPED. A workflow's own reachability
+    step can be dropped.
+19. **Private paths are checked on every site.**
     `.env`, `.git/HEAD`, `composer.json`, `site/config/config.php`, `vendor/` and
     twelve more must not answer 2xx; counted in one `ok` line, each reachable one
     a finding. `GENBA_PRIVATE_PATHS=none` turns it off, visibly.
@@ -543,8 +519,7 @@ site after the switch. The README describes every rule in full.
 3. **The link check follows redirects by hand** and refuses a hop into the
    runner's own network (loopback, private, link-local, CGNAT, ULA, site-local,
    multicast, IPv4 inside IPv6, `.local`/`.lan`/`.internal`/`localhost`) as a
-   finding, without contacting it; the copy let curl follow up to 10 hops
-   anywhere. URLs are rebuilt from validated parts (ambiguous ones, such as
+   finding, without contacting it; curl never follows a redirect on its own. URLs are rebuilt from validated parts (ambiguous ones, such as
    `user@host`, a backslash or `http://2130706433/`, are refused; a raw UTF-8
    path such as `/produkt/kräuter` is percent-encoded), each host is resolved once
    and exactly that address is pinned, and no proxy from the environment is
@@ -558,8 +533,8 @@ site after the switch. The README describes every rule in full.
 5. **The link check skips by place and says what it did not read**: `vendor`,
    `kirby`, `storage`, `site/cache`, `site/sessions`, `site/accounts`,
    `site/logs`, `public/media` (relative to the working directory),
-   `node_modules` and `.git` anywhere. The copy skipped `media`, `cache` & co. at
-   any depth, so a page `content/media/` was never checked. Symbolic links follow
+   `node_modules` and `.git` anywhere. Only the places listed are skipped, so a
+   page under `content/media/` is checked. Symbolic links follow
    the rules of `genba-precheck`. A directory or file that cannot be read is
    `::error::Cannot read …`, exit 2 — not a PHP stack trace (directory), and not
    an empty text whose links go unchecked with exit 0 (file). Genba's own package
@@ -570,7 +545,7 @@ site after the switch. The README describes every rule in full.
 
 - **`site/config/build.txt`**: same path, same content (one lower-case 40-digit
   commit hash and a newline). Nothing in a site has to change for it.
-- **`<meta name="build">`**: same name and same output. The weekly fleet check outside this repository keeps reading it unchanged.
+- **`<meta name="build">`**: same name and same output. An external weekly check keeps reading it unchanged.
 - **The site's own checks** (its deploy script, its credential checks, its
   site-specific health checks) stay where they are.
 

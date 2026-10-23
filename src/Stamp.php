@@ -13,9 +13,6 @@ require_once __DIR__ . '/Text.php';
  * Deliberately a file read through Kirby and not a file in public/: a real
  * file would be served by Apache past the preview protection, and it would
  * not prove that PHP renders the new code.
- *
- * Ported from kirby-starter's site/snippets/stand.php (same pattern, same
- * trim, same "nothing when there is no hash" rule).
  */
 final class Stamp
 {
