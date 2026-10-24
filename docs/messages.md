@@ -51,6 +51,8 @@ Genba preflight: FAILED — cannot run
 
 ```text
   ok   self-test: 5 rules fire on their samples and stay silent on their negative samples
+  ok   self-test: 1 marker pattern fires on its samples and stays silent on its negative samples
+  ok   self-test: <n> marker patterns fire on their samples and stay silent on their negative samples
 ::error::<file>:<line>: inline style — the CSP forbids it: <line>
 ::error::<file>:<line>: inline event handler — the CSP forbids it: <line>
 ::error::<file>:<line>: inline event handler with a name built at runtime — the CSP forbids it: <line>
@@ -88,8 +90,31 @@ Genba precheck: FAILED — cannot run
   --   not checked: site/plugins/genba (Genba's own package, its rule samples would match every rule)
   --   not checked: <n> Markdown files in site/plugins (package documentation)
   --   not counted: <file>:<line>: 'once' is not an event handler Genba knows: <line>
+```
+
+With `--forbid-markers` (the live deploy):
+
+```text
+::error::<file>:<line>: placeholder '<marker>' — not for the live site: <line>
+::error::<file>:<line>: marker '<marker>' — not for the live site: <line>
+  ok   no markers in <n> content files (<m> patterns)
+  --   not checked: content/blog/_drafts (Kirby drafts, not delivered)
+  --   GENBA_MARKERS is set, but the content is not checked for markers (no --forbid-markers)
+::error::--marker: pattern does not compile: <pattern>
+::error::GENBA_MARKERS: pattern matches an empty line, so every line: <pattern>
+::error::--marker leaves no marker pattern (none drops the default; add a pattern or leave none out)
+::error::--marker needs --forbid-markers
+::error::--content needs --forbid-markers
+::error::No content files (*.txt) found under <dir>
+::error::Not valid UTF-8, cannot be checked for markers: <file>
+::error::Marker pattern failed on <file>:<line> (<reason>)
+```
+
+The last line of every run:
+
+```text
 Genba precheck: PASSED (<n> files scanned)
-Genba precheck: FAILED — <n> findings, <m> required files missing
+Genba precheck: FAILED — <n> findings, <m> required files missing, <k> markers in the content
 Genba precheck: FAILED — cannot run
 ::error::PHP extension mbstring is missing (<function> is not available)
 ```

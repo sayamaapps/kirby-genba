@@ -834,6 +834,136 @@ try {
     expect(11, substr_count($out, '::error::'), "exactly eleven findings, nothing from the doc comment of lines 2–4 or the README:\n$out"); 
     holds(!str_contains($out, 'not counted: site/snippets/card.php:10'), 'once beside a real handler: the line is a finding, the name is not said again');
 
+    /* ---- markers in the content (--forbid-markers, the live deploy) ---- */
+
+    expect([], Precheck::selfTestRules(Precheck::MARKERS), 'selfTestRules() of the shipped marker patterns is empty');
+    $brokenMarkers = Precheck::MARKERS;
+    $brokenMarkers['placeholder']['pattern'] = '~\[ZZZ\]~iu';
+    contains('rule placeholder did not fire on its sample', implode("\n", Precheck::selfTestRules($brokenMarkers)), 'a broken marker pattern fails the self-test by name');
+    // Negative control: without the word boundary a longer word ([Todo-Liste], [Offene Fragen]) would be a marker.
+    $wideMarkers = Precheck::MARKERS;
+    $wideMarkers['placeholder']['pattern'] = '~\[\s*(?:todo|offen)~iu';
+    contains("rule placeholder fired on its negative sample '[Offene Fragen]'", implode("\n", Precheck::selfTestRules($wideMarkers)), 'an over-wide marker pattern fails on its negative samples');
+
+    // A site: two placeholders in delivered pages, one in a draft (not delivered), a Markdown link and a longer
+    // word that are no placeholder, an image (no content file), a clean template and stylesheet.
+    $live = genba_tmp('precheck-markers');
+    $dirs[] = $live;
+    genba_write($live . '/site/templates/default.php', "<p>ok</p>\n");
+    genba_write($live . '/public/assets/css/tailwind.css', "body{margin:0}\n");
+    genba_write($live . '/content/home/home.txt', "Title: Home\n\n----\n\nText: [OFFEN] Text folgt.\n");
+    genba_write($live . '/content/legal/legal.de.txt', "Title: Impressum\n\nText: [todo: imprint] and (link: https://example.com text: [TODO list])\n");
+    genba_write($live . '/content/about/about.txt', "Title: About\n\nText: [Todo-Liste], [TODO](https://example.com/todo) and [Offene Fragen]\n");
+    genba_write($live . '/content/blog/_drafts/next/post.txt', "Text: [TODO] still a draft\n");
+    genba_write($live . '/content/home/team.jpg', "\xFF\xD8\xFF\0[TODO]\n");
+
+    $scan = Precheck::markers($live . '/content', $live, ['placeholder' => ['pattern' => Precheck::MARKERS['placeholder']['pattern'], 'message' => 'placeholder']]);
+    expect(['content/home/home.txt:5 [OFFEN]', 'content/legal/legal.de.txt:3 [todo:'],
+        array_map(static fn (array $f): string => $f['file'] . ':' . $f['line'] . ' ' . $f['match'], $scan['findings']),
+        'markers(): the two placeholders of delivered pages, nothing from the Markdown link, the longer words, the draft or the image');
+    expect(3, $scan['files'], 'markers() reads the three content files outside the draft, not the image');
+    expect([['dir' => 'content/blog/_drafts', 'reason' => 'Kirby drafts, not delivered']], $scan['skipped'], 'the drafts directory is named, not read');
+
+    // Without the switch (a preview) the content is not read: the output is the one of every earlier version.
+    [$code, $out] = precheck_run($live, []);
+    expect(0, $code, "without --forbid-markers the placeholders do not count (preview):\n$out");
+    holds(!str_contains($out, 'marker') && !str_contains($out, 'content/'), "without --forbid-markers no line about markers or the content:\n$out");
+    contains('Genba precheck: PASSED (2 files scanned)', $out, 'without --forbid-markers the count is the one of site and public');
+
+    [$code, $out, $err] = precheck_run($live, ['--forbid-markers']);
+    expect(1, $code, "--forbid-markers with placeholders in the content exits 1:\n$out$err");
+    contains('  ok   self-test: 1 marker pattern fires on its samples and stays silent on its negative samples', $out, 'the marker self-test is said');
+    contains("::error::content/home/home.txt:5: placeholder '[OFFEN]' — not for the live site: Text: [OFFEN] Text folgt.", $out, 'the finding names file, line, marker and line');
+    contains("::error::content/legal/legal.de.txt:3: placeholder '[todo:' — not for the live site:", $out, 'any case, a colon behind the word');
+    contains('  --   not checked: content/blog/_drafts (Kirby drafts, not delivered)', $out, 'the skipped drafts are said');
+    expect(2, substr_count($out, '::error::'), "exactly the two placeholders:\n$out");
+    contains('Genba precheck: FAILED — 2 markers in the content', $out, 'the last line counts the markers');
+
+    // Beside a CSP finding, both are counted.
+    genba_write($live . '/site/templates/card.php', "<p style=\"x\">\n");
+    [$code, $out] = precheck_run($live, ['--forbid-markers']);
+    expect(1, $code, 'a CSP finding and markers exit 1');
+    contains('Genba precheck: FAILED — 1 findings, 2 markers in the content', $out, 'the last line names both');
+    unlink($live . '/site/templates/card.php');
+
+    // The site's own patterns: GENBA_MARKERS (one per line, indented as in a workflow) and --marker, added to the
+    // default; --marker wins over the variable; `none` drops the default; a `~` needs no escape.
+    $own = ['GENBA_MARKERS' => "  \\bREADME\\b\n\n  [a-z][a-z0-9-]*#[0-9]+\n"];
+    genba_write($live . '/content/about/about.txt', "Title: About\n\nText: see the README (design: example-site#12), a~b\n");
+    [$code, $out] = precheck_run($live, ['--forbid-markers'], $own);
+    expect(1, $code, "GENBA_MARKERS: further markers exit 1:\n$out");
+    contains("::error::content/about/about.txt:3: marker 'README' — not for the live site:", $out, 'an own pattern is a marker, one finding per line');
+    expect(3, substr_count($out, '::error::'), "the two placeholders and the README line:\n$out");
+    contains('Genba precheck: FAILED — 3 markers in the content', $out, 'own markers are counted with the default ones');
+    [$code, $out] = precheck_run($live, ['--forbid-markers', '--marker=none', '--marker=example-site#[0-9]+'], $own);
+    expect(1, $code, '--marker=none,<pattern> exits 1');
+    expect(1, substr_count($out, '::error::'), "--marker replaces GENBA_MARKERS, none drops the placeholders:\n$out");
+    contains("marker 'example-site#12'", $out, 'the issue reference is the one marker');
+    [$code, $out] = precheck_run($live, ['--forbid-markers', '--marker=none', '--marker=a~b']);
+    contains("::error::content/about/about.txt:3: marker 'a~b'", $out, "a ~ in a pattern needs no escape:\n$out");
+    [$code, $out] = precheck_run($live, ['--forbid-markers', '--marker=none', '--marker=a\~b']);
+    contains("marker 'a~b'", $out, "an escaped ~ stays escaped:\n$out");
+
+    // Clean content: the ok line counts files and patterns.
+    genba_write($live . '/content/home/home.txt', "Title: Home\n\n----\n\nText: Willkommen.\n");
+    genba_write($live . '/content/legal/legal.de.txt', "Title: Impressum\n");
+    genba_write($live . '/content/about/about.txt', "Title: About\n");
+    [$code, $out] = precheck_run($live, ['--forbid-markers']);
+    expect(0, $code, "clean content with --forbid-markers exits 0:\n$out");
+    contains('  ok   no markers in 3 content files (1 pattern)', $out, 'the ok line names the files and the patterns read');
+    contains('Genba precheck: PASSED (2 files scanned)', $out, 'the last line stays the one of site and public');
+    [$code, $out] = precheck_run($live, ['--forbid-markers'], $own);
+    contains('  ok   no markers in 3 content files (3 patterns)', $out, 'own patterns are counted');
+
+    // The variable without the switch is said, not dropped in silence; the arguments without it are usage errors.
+    [$code, $out] = precheck_run($live, [], $own);
+    expect(0, $code, 'GENBA_MARKERS without --forbid-markers exits 0');
+    contains('  --   GENBA_MARKERS is set, but the content is not checked for markers (no --forbid-markers)', $out, 'GENBA_MARKERS without the switch is said');
+    foreach ([['--marker=x', '--marker needs --forbid-markers'], ['--content=content', '--content needs --forbid-markers'],
+              ['--forbid-markers --marker=', '--marker needs a value'], ['--forbid-markers --content=', '--content needs a value']] as [$given, $reason]) {
+        [$code, $out, $err] = precheck_run($live, explode(' ', $given));
+        expect(2, $code, "$given exits 2");
+        contains("::error::$reason", $err, "$given: the reason on stderr");
+        expect("Genba precheck: FAILED — cannot run\n", $out, "$given: stdout holds the last line alone");
+    }
+
+    // Patterns that cannot work: the reason on stdout with the last line, the usage on stderr (as --require=,).
+    foreach ([[['--marker=(unclosed'], [], '--marker: pattern does not compile: (unclosed'],
+              [[], ['GENBA_MARKERS' => "x*"], 'GENBA_MARKERS: pattern matches an empty line, so every line: x*'],
+              [['--marker=none'], [], '--marker leaves no marker pattern']] as [$argv, $env, $reason]) {
+        [$code, $out, $err] = precheck_run($live, array_merge(['--forbid-markers'], $argv), $env);
+        expect(2, $code, "$reason: exit 2");
+        contains("::error::$reason", $out, "$reason: named on stdout");
+        holds(str_ends_with($out, "Genba precheck: FAILED — cannot run\n") && str_contains($err, 'Usage: genba-precheck'), "$reason: last line, usage on stderr:\n$out");
+    }
+
+    // Nothing to read is no "no markers": a missing or empty content root, a file that is not UTF-8.
+    [$code, $out] = precheck_run($live, ['--forbid-markers', '--content=nope']);
+    expect(2, $code, 'a missing content root exits 2');
+    contains('::error::Directory not found: nope', $out, 'the missing content root is named');
+    @mkdir($live . '/empty', 0700, true);
+    genba_write($live . '/empty/photo.jpg', "\xFF\xD8\xFF\0");
+    [$code, $out] = precheck_run($live, ['--forbid-markers', '--content=empty']);
+    expect(2, $code, 'a content root without content files exits 2');
+    contains('::error::No content files (*.txt) found under empty', $out, 'no content file is named, never PASSED');
+    holds(!str_contains($out, 'PASSED'), 'a content root without content files never prints PASSED');
+    genba_write($live . '/content/broken/broken.txt', "Text: \xFF\xFE\n");
+    [$code, $out] = precheck_run($live, ['--forbid-markers']);
+    expect(2, $code, 'a content file that is not UTF-8 exits 2');
+    contains('::error::Not valid UTF-8, cannot be checked for markers: content/broken/broken.txt', $out, 'the file is named');
+    unlink($live . '/content/broken/broken.txt');
+
+    // Log text: a line of the content cannot paint "PASSED" over its own finding.
+    genba_write($live . '/content/home/home.txt', "Text: [TODO]\e[2K\rGenba precheck: PASSED (2 files scanned)\n");
+    [$code, $out] = precheck_run($live, ['--forbid-markers']);
+    expect(1, $code, 'a forged line in the content exits 1');
+    holds(!str_contains($out, "\e") && !str_contains($out, "\r"), 'no ESC or CR from the content reaches the output');
+    contains("placeholder '[TODO]' — not for the live site: Text: [TODO] [2K Genba precheck: PASSED", $out, 'the forged text is shown cleaned');
+
+    [$code, $out] = precheck_run($live, ['--help']);
+    contains('--forbid-markers', $out, '--help names --forbid-markers');
+    contains('GENBA_MARKERS', $out, '--help names GENBA_MARKERS');
+
     /* ---- installed into a site: Genba's own files are not site code ---- */
 
     // A site that installed Genba has it in site/plugins/genba/. Its src/Precheck.php and README.md

@@ -8,7 +8,8 @@ require_once __DIR__ . '/Tree.php';
 
 /**
  * Static pre-deploy checks under the site's Content Security Policy
- * ('unsafe-inline' forbidden, nothing foreign) plus "built assets are there".
+ * ('unsafe-inline' forbidden, nothing foreign) plus "built assets are there",
+ * and for the live deploy "no placeholder in the content" (MARKERS).
  * Kirby-free: no kirby(), no App, no option(). SPEC.md §3.3.
  *
  * Every rule carries a self-test sample that MUST match before the scan runs,
@@ -221,6 +222,32 @@ final class Precheck
     ];
     public const DEFAULT_ALLOW = ['places.googleapis.com/v1/'];
     public const DEFAULT_REQUIRE = ['public/assets/css/tailwind.css'];
+
+    /**
+     * Placeholders that must not go live, for `--forbid-markers` (SPEC §3.3, since 1.6.0): applied per line
+     * to the content files (CONTENT_EXTENSION under the content root, CONTENT_SKIP left out). A placeholder
+     * is one of these words right behind an opening square bracket, any case, followed by the closing
+     * bracket, a colon or a dash: `[TODO]`, `[OFFEN]`, `[TBD: date]`, `[Platzhalter – photo]`. A Markdown
+     * link (`[TODO](…)`, `[TODO][1]`), a longer word (`[Todo-Liste]`, `[Offene Fragen]`) and the word
+     * without brackets are none. English and German words, the languages of the tools' texts. Each entry is
+     * a rule as in RULES (`pattern`, `sample`, `positives`, `negatives`) with the `message` of its finding,
+     * checked by the same self-test before the content is read.
+     */
+    public const MARKERS = [
+        'placeholder' => ['pattern' => '~\[\s*(?:todo|fixme|tbd|tba|tbc|xxx|placeholder|platzhalter|offen)(?:\s*\](?![(\[])|\s*:|\s*[–—]|\s+-)~iu',
+                          'sample' => 'Text: [TODO] The text follows.', 'message' => 'placeholder',
+                          'positives' => ['Text: [OFFEN] Text folgt.', 'Intro: [offen] Fakten folgen.', '[TODO: photo of the team]', '[ TBD ]',
+                                          '[Platzhalter – Bild]', '[FIXME - date]', '(image: team.jpg alt: [placeholder])', '[XXX]', '[TODO] (see below)',
+                                          '[TBC—venue]', 'Date: [tba]'],
+                          'negatives' => ['[Offene Fragen]', '[Todo-Liste]', '[TODO](https://example.com/todo)', '[TODO][1]', '[todolist]',
+                                          'TODO without brackets', '[x] done', '[Open Source]', '(link: offen text: Offen)', '[TBDx]']],
+    ];
+    /** The message of a finding of a pattern from --marker or GENBA_MARKERS. */
+    private const OWN_MARKER = 'marker';
+    /** Directory names under the content root skipped at any depth, with the reason the log prints: content that is not delivered. */
+    public const CONTENT_SKIP = ['_drafts' => 'Kirby drafts, not delivered'];
+    /** The extension of a content file the marker check reads, Kirby's default `content.extension`. */
+    public const CONTENT_EXTENSION = 'txt';
     /**
      * Directories skipped only directly under their root (generated or server-side state), with the reason
      * the log prints. By place, not by name: `site/snippets/media/` is site code and IS scanned.
@@ -554,6 +581,68 @@ final class Precheck
     }
 
     /**
+     * The marker check of `--forbid-markers`: every content file (CONTENT_EXTENSION, any case) under $content,
+     * the content root, line by line against $patterns (name => `pattern`, `message`; MARKERS and the site's
+     * own, markerPatterns()). One finding per line, of the first pattern that matches. Directories named in
+     * CONTENT_SKIP or SKIP_ANYWHERE are not entered and are listed in `skipped`, like every directory the walk
+     * does not enter (Tree::walk()). No rendering: the markers stand in the content files, and the check runs
+     * before the upload, without Kirby. A file that is not valid UTF-8, a pattern that fails on a line
+     * (backtrack limit) and a root that does not exist throw RuntimeException: the check could not run.
+     *
+     * @param array<string,array{pattern: string, message: string}> $patterns
+     * @return array{findings: list<array{file: string, line: int, message: string, match: string, text: string}>, files: int, skipped: list<array{dir: string, reason: string}>}
+     *         file and dir relative to $cwd, match as found, text = the trimmed line (max 200 chars), files = the content files read
+     */
+    public static function markers(string $content, string $cwd, array $patterns): array
+    {
+        $content = rtrim($content, '/');
+        if (!is_dir($content)) {
+            throw new RuntimeException('Directory not found: ' . Text::clean(self::relative($content, $cwd)));
+        }
+        $package = realpath(dirname(__DIR__));
+        $tree = Tree::walk($content, $content, [], self::CONTENT_SKIP + self::SKIP_ANYWHERE, $cwd, $package === false ? null : $package);
+        $findings = [];
+        $files = 0;
+        foreach ($tree['files'] as $path) {
+            if (strtolower(pathinfo($path, PATHINFO_EXTENSION)) !== self::CONTENT_EXTENSION) {
+                continue;
+            }
+            $relative = self::relative($path, $cwd);
+            $text = @file_get_contents($path);
+            if ($text === false) {
+                throw new RuntimeException('Cannot read file: ' . Text::clean($relative));
+            }
+            // The patterns read UTF-8 (`u`): on a broken sequence they would answer false, not "no marker".
+            if (@preg_match('~~u', $text) !== 1) {
+                throw new RuntimeException('Not valid UTF-8, cannot be checked for markers: ' . Text::clean($relative));
+            }
+            $files++;
+            foreach (explode("\n", $text) as $index => $line) {
+                foreach ($patterns as $pattern) {
+                    $found = @preg_match($pattern['pattern'], $line, $match);
+                    if ($found === false) {
+                        throw new RuntimeException('Marker pattern failed on ' . Text::clean($relative) . ':' . ($index + 1) . ' (' . preg_last_error_msg() . ')');
+                    }
+                    if ($found === 1) {
+                        $findings[] = ['file' => $relative, 'line' => $index + 1, 'message' => $pattern['message'],
+                            'match' => (string) $match[0], 'text' => mb_substr(trim($line), 0, self::TEXT_MAX)];
+                        break;
+                    }
+                }
+            }
+        }
+        usort($findings, static function (array $a, array $b): int {
+            return [$a['file'], $a['line']] <=> [$b['file'], $b['line']];
+        });
+        $skipped = [];
+        foreach ($tree['skipped'] as $directory) {
+            $skipped[] = ['dir' => self::relative($directory['dir'], $cwd),
+                'reason' => $directory['own'] ? "Genba's own package, its rule samples would match every rule" : $directory['reason']];
+        }
+        return ['findings' => $findings, 'files' => $files, 'skipped' => $skipped];
+    }
+
+    /**
      * CLI, SPEC §3.0 and §3.3. Exit 0 passed, 1 findings or missing required files, 2 cannot run.
      *
      * @param array<string,string> $env
@@ -579,6 +668,10 @@ final class Precheck
         }
 
         $failures = self::selfTestRules(self::RULES);
+        if ($args['forbid']) {
+            // The placeholders too, before anything is read: a broken pattern would pass every content file.
+            $failures = array_merge($failures, self::selfTestRules(self::MARKERS));
+        }
         if ($failures !== []) {
             foreach ($failures as $failure) {
                 fwrite($out, "::error::Self-test failed: $failure — pattern broken\n");
@@ -589,6 +682,11 @@ final class Precheck
             return 2;
         }
         fwrite($out, '  ok   self-test: ' . count(self::RULES) . " rules fire on their samples and stay silent on their negative samples\n");
+        if ($args['forbid']) {
+            $defaults = count(self::MARKERS);
+            fwrite($out, $defaults === 1 ? "  ok   self-test: 1 marker pattern fires on its samples and stays silent on its negative samples\n"
+                : "  ok   self-test: $defaults marker patterns fire on their samples and stay silent on their negative samples\n");
+        }
 
         // Allow list: argument, else GENBA_ALLOW, else default. Entries are ADDED to the default; `none` clears it.
         $allowRaw = self::setting($args['allow'], $env, 'GENBA_ALLOW');
@@ -621,11 +719,37 @@ final class Precheck
             return 2;
         }
 
+        // Markers (--forbid-markers, the live deploy): --marker, else GENBA_MARKERS with one pattern per line.
+        // Entries are ADDED to MARKERS; `none` drops them (like --allow).
+        $markerSource = $args['markers'] !== [] ? '--marker' : 'GENBA_MARKERS';
+        $markerEntries = $args['markers'] !== [] ? $args['markers'] : self::lines(self::setting(null, $env, 'GENBA_MARKERS') ?? '');
+        $markers = [];
+        if ($args['forbid']) {
+            $compiled = self::markerPatterns($markerEntries, $markerSource);
+            if ($compiled['error'] !== null) {
+                // A setting that cannot work, as --require=, : the reason on stdout with the last line, the usage on stderr.
+                fwrite($out, '::error::' . Text::clean($compiled['error'], PHP_INT_MAX) . "\n");
+                fwrite($out, "Genba precheck: FAILED — cannot run\n");
+                fwrite($err, self::usage());
+                return 2;
+            }
+            $markers = $compiled['patterns'];
+        } elseif ($markerEntries !== []) {
+            // A --marker without the switch is a usage error (parse()); the variable may be set for every run.
+            fwrite($out, "  --   GENBA_MARKERS is set, but the content is not checked for markers (no --forbid-markers)\n");
+        }
+
         $siteName = $args['site'] ?? 'site';
         $publicName = $args['public'] ?? 'public';
+        $contentName = $args['content'] ?? 'content';
         $siteDir = self::resolve($siteName, $cwd);
         $publicDir = self::resolve($publicName, $cwd);
-        foreach (['site' => [$siteDir, $siteName], 'public' => [$publicDir, $publicName]] as [$dir, $given]) {
+        $contentDir = self::resolve($contentName, $cwd);
+        $roots = ['site' => [$siteDir, $siteName], 'public' => [$publicDir, $publicName]];
+        if ($args['forbid']) {
+            $roots['content'] = [$contentDir, $contentName];
+        }
+        foreach ($roots as [$dir, $given]) {
             if (!is_dir($dir)) {
                 fwrite($out, "::error::Directory not found: $given\n");
                 fwrite($out, "Genba precheck: FAILED — cannot run\n");
@@ -644,6 +768,7 @@ final class Precheck
         $precheck = new self($allow);
         try {
             $findings = $precheck->scan(['site' => $siteDir, 'public' => $publicDir], $cwd);
+            $marked = $args['forbid'] ? self::markers($contentDir, $cwd, $markers) : null;
         } catch (RuntimeException $e) {
             // The message is built of cleaned pieces (scan(), Tree::walk()).
             fwrite($out, '::error::' . Text::clean($e->getMessage(), PHP_INT_MAX) . "\n");
@@ -665,9 +790,18 @@ final class Precheck
             fwrite($out, '  --   not counted: ' . Text::clean($uncounted['file']) . ':' . $uncounted['line'] . ": '"
                 . $uncounted['name'] . "' is not an event handler Genba knows: " . Text::clean($uncounted['text']) . "\n");
         }
+        foreach ($marked['skipped'] ?? [] as $directory) {
+            fwrite($out, self::skippedLine($directory['dir'], $directory['reason']) . "\n");
+        }
         $scanned = $precheck->filesScanned();
         if ($scanned === 0) {
             fwrite($out, "::error::No files found under $siteName, $publicName\n");
+            fwrite($out, "Genba precheck: FAILED — cannot run\n");
+            return 2;
+        }
+        if ($marked !== null && $marked['files'] === 0) {
+            // No content file read is no "no markers": a wrong --content must not pass.
+            fwrite($out, '::error::No content files (*.' . self::CONTENT_EXTENSION . ') found under ' . Text::clean($contentName) . "\n");
             fwrite($out, "Genba precheck: FAILED — cannot run\n");
             return 2;
         }
@@ -692,8 +826,22 @@ final class Precheck
             }
         }
 
+        $marks = 0;
+        if ($marked !== null) {
+            foreach ($marked['findings'] as $finding) {
+                fwrite($out, self::markerLine($finding) . "\n");
+            }
+            $marks = count($marked['findings']);
+            if ($marks === 0) {
+                $files = $marked['files'];
+                $patterns = count($markers);
+                fwrite($out, "  ok   no markers in $files content " . ($files === 1 ? 'file' : 'files')
+                    . " ($patterns " . ($patterns === 1 ? 'pattern' : 'patterns') . ")\n");
+            }
+        }
+
         $count = count($findings);
-        if ($count === 0 && $missing === 0) {
+        if ($count === 0 && $missing === 0 && $marks === 0) {
             fwrite($out, "Genba precheck: PASSED ($scanned files scanned)\n");
             return 0;
         }
@@ -703,6 +851,9 @@ final class Precheck
         }
         if ($missing > 0) {
             $parts[] = "$missing required files missing";
+        }
+        if ($marks > 0) {
+            $parts[] = "$marks markers in the content";
         }
         fwrite($out, 'Genba precheck: FAILED — ' . implode(', ', $parts) . "\n");
         return 1;
@@ -744,6 +895,57 @@ final class Precheck
     {
         return '::error::' . Text::clean($finding['file']) . ':' . $finding['line'] . ': '
             . self::RULES[$finding['rule']]['message'] . ': ' . Text::clean($finding['text']);
+    }
+
+    /**
+     * The line of a marker in the content: file, the marker as found (cut at 80 characters) and the line are
+     * log text, each cleaned on its own.
+     *
+     * @param array{file: string, line: int, message: string, match: string, text: string} $finding
+     */
+    private static function markerLine(array $finding): string
+    {
+        return '::error::' . Text::clean($finding['file']) . ':' . $finding['line'] . ': ' . $finding['message']
+            . " '" . Text::clean($finding['match'], 80) . "' — not for the live site: " . Text::clean($finding['text']);
+    }
+
+    /**
+     * MARKERS and the site's own patterns ($entries, from $source: `--marker` or `GENBA_MARKERS`), as
+     * markers() takes them. An entry is a regular expression without delimiters, matched in any case and as
+     * UTF-8; a `~` in it needs no escape. `none` is no pattern: it drops MARKERS, the other entries count.
+     * `error` (else null) when an entry does not compile, when it matches an empty line — it would mark
+     * every line —, or when no pattern is left.
+     *
+     * @param list<string> $entries
+     * @return array{patterns: array<string,array{pattern: string, message: string}>, error: ?string}
+     */
+    private static function markerPatterns(array $entries, string $source): array
+    {
+        $patterns = [];
+        if (!in_array('none', $entries, true)) {
+            foreach (self::MARKERS as $name => $rule) {
+                $patterns[$name] = ['pattern' => $rule['pattern'], 'message' => $rule['message']];
+            }
+        }
+        foreach ($entries as $index => $entry) {
+            if ($entry === 'none') {
+                continue;
+            }
+            // `~` is the delimiter: one that is not escaped yet (an even number of backslashes before it) gets one.
+            $pattern = '~' . preg_replace('/(?<!\\\\)((?:\\\\\\\\)*)~/', '$1\\\\~', $entry) . '~iu';
+            $empty = @preg_match($pattern, '');
+            if ($empty === false) {
+                return ['patterns' => [], 'error' => "$source: pattern does not compile: $entry"];
+            }
+            if ($empty === 1) {
+                return ['patterns' => [], 'error' => "$source: pattern matches an empty line, so every line: $entry"];
+            }
+            $patterns['own-' . ($index + 1)] = ['pattern' => $pattern, 'message' => self::OWN_MARKER];
+        }
+        if ($patterns === []) {
+            return ['patterns' => [], 'error' => "$source leaves no marker pattern (none drops the default; add a pattern or leave none out)"];
+        }
+        return ['patterns' => $patterns, 'error' => null];
     }
 
     /** The `--   not checked` line of a directory: the directory and the reason cleaned on their own. */
@@ -1396,6 +1598,12 @@ final class Precheck
         return is_string($value) && trim($value) !== '' ? $value : null;
     }
 
+    /** @return list<string> one entry per line, trimmed, empty lines dropped */
+    private static function lines(string $value): array
+    {
+        return array_values(array_filter(array_map('trim', explode("\n", $value)), static fn (string $s): bool => $s !== ''));
+    }
+
     /** @return list<string> comma list, trimmed, empty entries dropped */
     private static function split(string $value): array
     {
@@ -1404,17 +1612,31 @@ final class Precheck
 
     /**
      * @param list<string> $argv
-     * @return array{help: bool, site: ?string, public: ?string, allow: ?string, require: ?string, errors: list<string>}
+     * @return array{help: bool, forbid: bool, site: ?string, public: ?string, content: ?string, allow: ?string, require: ?string, markers: list<string>, errors: list<string>}
      */
     private static function parse(array $argv): array
     {
-        $parsed = ['help' => false, 'site' => null, 'public' => null, 'allow' => null, 'require' => null, 'errors' => []];
+        $parsed = ['help' => false, 'forbid' => false, 'site' => null, 'public' => null, 'content' => null, 'allow' => null, 'require' => null,
+            'markers' => [], 'errors' => []];
         foreach (array_slice($argv, 1) as $arg) {
             if ($arg === '--help') {
                 $parsed['help'] = true;
                 continue;
             }
-            if (preg_match('/^--(site|public|allow|require)=(.*)$/s', $arg, $match) === 1) {
+            if ($arg === '--forbid-markers') {
+                $parsed['forbid'] = true;
+                continue;
+            }
+            // Repeatable: each --marker adds one pattern.
+            if (preg_match('/^--marker=(.*)$/s', $arg, $match) === 1) {
+                if (trim($match[1]) === '') {
+                    $parsed['errors'][] = '--marker needs a value';
+                    continue;
+                }
+                $parsed['markers'][] = trim($match[1]);
+                continue;
+            }
+            if (preg_match('/^--(site|public|content|allow|require)=(.*)$/s', $arg, $match) === 1) {
                 if (trim($match[2]) === '') {
                     $parsed['errors'][] = "--{$match[1]} needs a value";
                     continue;
@@ -1424,13 +1646,23 @@ final class Precheck
             }
             $parsed['errors'][] = "Unknown argument: $arg";
         }
+        // Without the switch they would check nothing, without a word.
+        if (!$parsed['forbid']) {
+            if ($parsed['content'] !== null) {
+                $parsed['errors'][] = '--content needs --forbid-markers';
+            }
+            if ($parsed['markers'] !== []) {
+                $parsed['errors'][] = '--marker needs --forbid-markers';
+            }
+        }
         return $parsed;
     }
 
     private static function usage(): string
     {
         return <<<'TEXT'
-        Usage: genba-precheck [--site=DIR] [--public=DIR] [--allow=a,b] [--require=f1,f2] [--help]
+        Usage: genba-precheck [--site=DIR] [--public=DIR] [--allow=a,b] [--require=f1,f2]
+                              [--forbid-markers [--content=DIR] [--marker=PATTERN ...]] [--help]
 
           --site=DIR        site root to scan for inline styles, inline handlers and embedded scripts (default: site)
           --public=DIR      public root to scan for foreign hosts (default: public)
@@ -1439,13 +1671,20 @@ final class Precheck
                             (places.googleapis.com/v1/); the literal 'none' clears the default
           --require=f1,f2   files that must exist and be non-empty (default: public/assets/css/tailwind.css);
                             the literal 'none' checks no file; next to files it only drops the default
+          --forbid-markers  also check the content for placeholders that must not go live ([TODO], [TBD],
+                            [OFFEN] …): for the live deploy, a preview leaves it out
+          --content=DIR     content root for --forbid-markers (default: content); its *.txt files are
+                            read, drafts (_drafts) are not
+          --marker=PATTERN  a further marker for --forbid-markers: a regular expression without delimiters,
+                            any case, ADDED to the default; repeatable; the literal 'none' drops the default
 
         Environment (used when the matching argument is absent):
           GENBA_ALLOW          same as --allow
           GENBA_REQUIRE_FILES  same as --require
+          GENBA_MARKERS        same as --marker, one pattern per line
 
-        Exit codes: 0 passed, 1 findings or missing required files, 2 cannot run
-        (usage error, missing directory, failed self-test).
+        Exit codes: 0 passed, 1 findings, missing required files or markers in the content,
+        2 cannot run (usage error, missing directory, failed self-test).
 
         TEXT;
     }

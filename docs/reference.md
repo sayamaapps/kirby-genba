@@ -40,7 +40,7 @@ Without a hook the tool reports `SKIPPED` and exits 0. Exit codes: 0 passed or s
 
 ## genba-precheck
 
-Static checks of the built site under the Content Security Policy, and a check that required built files exist.
+Static checks of the built site under the Content Security Policy, a check that required built files exist and, for the live deploy, a check of the content for placeholders.
 
 | Setting | Default | Meaning |
 |---|---|---|
@@ -48,6 +48,9 @@ Static checks of the built site under the Content Security Policy, and a check t
 | `--public=DIR` | `public` | Document root with the built assets. |
 | `--allow=a,b`, `GENBA_ALLOW` | `places.googleapis.com/v1/` | Added to the default. `none` clears it. Frees a foreign-host match in the same address only. |
 | `--require=f1,f2`, `GENBA_REQUIRE_FILES` | `public/assets/css/tailwind.css` | Files that must exist and be non-empty. Replaces the default. `none` turns the check off. |
+| `--forbid-markers` | off | Also check the content for markers that must not go live. For the live deploy; a preview leaves it out. |
+| `--content=DIR` | `content` | Content root for `--forbid-markers`. |
+| `--marker=PATTERN` (repeatable), `GENBA_MARKERS` (one per line) | none | Further markers for `--forbid-markers`: regular expressions without delimiters, any case, UTF-8. Added to the default. `none` drops it. |
 | `--help` | | Usage, exit 0. |
 
 | Rule | Finds |
@@ -58,7 +61,11 @@ Static checks of the built site under the Content Security Policy, and a check t
 | `inline-handler-runtime` | an `on` followed by a PHP block, so the handler name is built at runtime |
 | `embedded-script` | a `<script>` with neither `src` nor `application/ld+json` |
 
-Each rule has a self-test that runs before the scan. Not scanned: `site/cache`, `site/sessions`, `site/accounts`, `site/logs` and `public/media` (directly under their roots), `node_modules` and `.git` at any depth, Markdown under `site/plugins/`, and Genba's own directory. PHP comments are not read. Exit codes: 0 passed · 1 findings or a missing required file · 2 cannot run (self-test failed, directory missing, no files, mbstring missing, usage error).
+Each rule has a self-test that runs before the scan. Not scanned: `site/cache`, `site/sessions`, `site/accounts`, `site/logs` and `public/media` (directly under their roots), `node_modules` and `.git` at any depth, Markdown under `site/plugins/`, and Genba's own directory. PHP comments are not read.
+
+With `--forbid-markers`, every `*.txt` file under the content root is read line by line, except under `_drafts` (not delivered). The default marker is a placeholder: one of the words `TODO`, `FIXME`, `TBD`, `TBA`, `TBC`, `XXX`, `placeholder`, `Platzhalter`, `offen`, in any case, right behind `[` and followed by `]`, a colon or a dash: `[TODO]`, `[OFFEN] Text folgt`, `[TBD: date]`. A Markdown link (`[TODO](…)`) and a longer word (`[Todo-Liste]`) are no marker. A finding names file, line and the marker. The content is not rendered: the markers stand in the content files, and the check runs before the upload, without Kirby. Text a template prints itself is not checked.
+
+Exit codes: 0 passed · 1 findings, a missing required file or a marker in the content · 2 cannot run (self-test failed, directory missing, no files, no content files, a content file not valid UTF-8, a marker pattern that does not compile or matches an empty line, mbstring missing, usage error).
 
 ## genba-smoke
 
@@ -139,7 +146,7 @@ Order of the deploy steps: `genba-preflight`, `npm run build`, `genba-precheck`,
 | Target | Settings |
 |---|---|
 | Preview | `GENBA_USER`, `GENBA_PASSWORD`, `GENBA_EXPECT_PROTECTED: 1`, `GENBA_NOT_READY: skip`, `GENBA_HTTPS_REDIRECT: warn`, `GENBA_SITEMAP_ORIGIN` (the live URL, if the preview's site URL is production). `GENBA_WITHOUT_CREDENTIALS: skip` only where an unverified preview deploy is acceptable. |
-| Live | `GENBA_FOREIGN_SITEMAP: fail`, set explicitly: a foreign sitemap entry on the live site means a wrong site URL. Never `GENBA_WITHOUT_CREDENTIALS: skip`. |
+| Live | `genba-precheck --forbid-markers`: a placeholder in the content stops the deploy before the upload. `GENBA_FOREIGN_SITEMAP: fail`, set explicitly: a foreign sitemap entry on the live site means a wrong site URL. Never `GENBA_WITHOUT_CREDENTIALS: skip`. |
 
 ## Tests
 
@@ -151,7 +158,7 @@ Order of the deploy steps: `genba-preflight`, `npm run build`, `genba-precheck`,
 | `StampTest.php` | Stamp reading, writing and `genba-stamp` |
 | `PreflightTest.php` | Hook lookup, exit codes and `genba-preflight` |
 | `KirbyTest.php` | The Kirby part with a real Kirby instance |
-| `PrecheckTest.php` | Fixture project with one finding per rule, self-tests, `genba-precheck` |
+| `PrecheckTest.php` | Fixture project with one finding per rule, self-tests, `genba-precheck`, markers in the content with and without `--forbid-markers` |
 | `SmokeTest.php` | `genba-smoke` against PHP's built-in server with injected faults |
 | `HomepageTest.php` | The homepage reader's own rules |
 | `HtmlCorpusTest.php` | One homepage and one template in many HTML spellings |
