@@ -402,6 +402,37 @@ numbers kept; the finding shows the line as written); a file with a bare `<?` is
 (`(^|[\s"'/]|\?>)`). The self-test fails a `names` that is not a list of non-empty lower-case
 strings, and `names` on a rule without a `(?<name>…)` group or with `each`.
 
+**Since 1.6.0: markers in the content (`--forbid-markers`).** Placeholders such as `[TODO]` stand in
+the content while a text is still open; a preview shows them on purpose, the live site must not. With
+`--forbid-markers` (off by default, so a preview run is unchanged, line for line) `run()` also reads every
+content file (`*.txt`, `CONTENT_EXTENSION`, any case) under the content root (`--content=DIR`, default
+`content`) through `Precheck::markers()`: line by line, one finding per line, of the first pattern that
+matches. `Tree::walk()` walks the root with `CONTENT_SKIP` (`_drafts`, not delivered) and `SKIP_ANYWHERE` at
+any depth; every directory not entered is a `--   not checked` line, as for site and public. The default
+patterns are `MARKERS`, rules of the same shape as `RULES` (`pattern`, `sample`, `positives`, `negatives`,
+plus the finding's `message`), checked by `selfTestRules()` before anything is read (a failure: exit 2,
+the same `Self-test failed` lines). The one default, `placeholder`: one of `todo fixme tbd tba tbc xxx
+placeholder platzhalter offen` right behind `[` (whitespace allowed), any case, followed by `]` that does
+not open a Markdown link (`(` or `[` right behind it), by a colon, by an en or em dash, or by whitespace
+and a hyphen. Its negatives hold the Markdown link, the reference link, a longer word (`[Todo-Liste]`,
+`[Offene Fragen]`, `[todolist]`), `[Open Source]` and the word without brackets. The site adds patterns
+with `--marker=PATTERN` (repeatable) or `GENBA_MARKERS` (one per line, trimmed, empty lines dropped; read
+only when no `--marker` is given): regular expressions without delimiters, compiled as `~…~iu` with every
+unescaped `~` escaped (`markerPatterns()`); their findings say `marker`. `none` drops `MARKERS`, the other
+entries count. A pattern that does not compile, one that matches the empty line (it would mark every
+line) and a list that leaves no pattern are exit 2: the reason on stdout with the last line, the usage on
+stderr (the shape of `--require=,`). `--marker` or `--content` without `--forbid-markers` are usage
+errors (they would check nothing); `GENBA_MARKERS` without it is a `--` line, since the variable may be set
+for every run. No silent pass: a missing content root, a root without content files, a content file that
+is not valid UTF-8 (the patterns read UTF-8 and would answer false, not "no marker") and a pattern that
+fails on a line (backtrack limit) are exit 2. The finding (`markerLine()`): `<file>:<line>: <message>
+'<marker as found>' — not for the live site: <line>`, each piece cleaned on its own, the marker cut at 80
+characters. Clean content prints `  ok   no markers in <n> content files (<m> patterns)`; the last line keeps
+its count of site and public files and adds `<k> markers in the content` to a FAILED line. The content is
+not rendered: the markers stand in the content files, the check runs before the upload, Kirby-free like
+every rule here. Text a template prints itself, and content edited in the Panel on the server, are not
+seen.
+
 ```php
 final class Precheck
 {
@@ -1109,6 +1140,7 @@ step's `env:` block, one `run:` line per step):
 | `GENBA_PREFLIGHT_HOOK` | preflight | package.json `preflight`/`praeflug` | shell command, `none` |
 | `GENBA_ALLOW` | precheck | `places.googleapis.com/v1/` | comma list added to default, `none` |
 | `GENBA_REQUIRE_FILES` | precheck | `public/assets/css/tailwind.css` | comma list, `none` |
+| `GENBA_MARKERS` | precheck (`--forbid-markers`) | — (the `placeholder` marker only) | one regular expression per line, added to the default, `none` |
 | `GENBA_URL` | smoke | — (required) | `https://…` |
 | `GENBA_EXPECTED_BUILD` | smoke | `GENBA_SHA`, else `git rev-parse HEAD` | 7–64 hex, a prefix of the live hash; whitespace dropped |
 | `GENBA_META` | smoke | `build` | meta name, `[A-Za-z0-9_-]+` |
@@ -1145,7 +1177,8 @@ shape the site keeps):
 # preview:  GENBA_USER/GENBA_PASSWORD from secrets, GENBA_EXPECT_PROTECTED: 1, GENBA_NOT_READY: skip,
 #           GENBA_HTTPS_REDIRECT: warn, GENBA_WITHOUT_CREDENTIALS: skip,
 #           GENBA_SITEMAP_ORIGIN: ${{ vars.LIVE_URL }}
-# live:     GENBA_FOREIGN_SITEMAP: fail   (its default; explicit)
+# live:     genba-precheck --forbid-markers   (no placeholder in content/)
+#           GENBA_FOREIGN_SITEMAP: fail   (its default; explicit)
 # schedule: vendor/bin/genba-links   (daily 05:17 UTC, own workflow)
 ```
 
@@ -1381,6 +1414,21 @@ and cuts the path to `… (2258 characters)`; `skippedLine()` keeps ` (broken sy
 `embedded-script` carries `<script nonce=<?= $kirby->nonce() ?> src="/assets/js/app.js"></script>`
 as a negative and `<script nonce=<?= $kirby->nonce() ?>>x()</script>` as a positive — the PHP block without quotes,
 which only the `<\?.*?\?>` alternative of `each` reads (the other nonce samples stand in quotes).
+
+Markers (since 1.6.0): `selfTestRules(MARKERS)` is `[]`; a broken pattern fails by name, an over-wide one
+(`\[\s*(?:todo|offen)`) on `[Offene Fragen]`. A fixture site with `[OFFEN]` (home, line 5), `[todo: …` (a
+`.de.txt`, line 3), a Markdown link and longer words (about), `[TODO]` in `content/blog/_drafts/` and an image:
+`markers()` finds exactly the two, reads 3 files, names `content/blog/_drafts`. `run()` without the switch:
+exit 0, no line about markers or the content, `PASSED (2 files scanned)`. With it: exit 1, the self-test line,
+both finding lines, the drafts line, `FAILED — 2 markers in the content`; with a CSP finding beside them
+`FAILED — 1 findings, 2 markers in the content`. `GENBA_MARKERS` (indented, an empty line) adds `\bREADME\b` and
+an issue reference: 3 markers; `--marker=none --marker=<reference>` replaces the variable and drops the default;
+`a~b` and `a\~b` both work. Clean content: `ok   no markers in 3 content files (1 pattern)`, `(3 patterns)` with
+the variable. The variable without the switch: the `--` line, exit 0; `--marker=x`, `--content=content` without
+it and `--marker=`, `--content=` with it: exit 2, reason on stderr, stdout the last line alone. `--marker=(unclosed`,
+`GENBA_MARKERS=x*`, `--marker=none` alone: exit 2, reason on stdout, usage on stderr. `--content=nope`, a root
+with only an image, a file with `\xFF\xFE`: exit 2. A content line with ESC[2K, CR and a forged PASSED: exit 1,
+no ESC or CR in the output. `--help` names `--forbid-markers` and `GENBA_MARKERS`.
 
 **The HTML variant corpus** (`tests/HtmlCorpusTest.php`, shared with §9.5): one template in
 many spellings a browser reads the same, `tests/fixtures/precheck-variants/<name>.php`. Each is scanned

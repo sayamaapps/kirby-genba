@@ -7,7 +7,7 @@ Genba checks one deployed site from the inside, on every deploy. A status code a
 ## Features
 
 - Build stamp: the deployed commit hash in `<meta name="build">`, so a check can see that the new code is live.
-- Pre-deploy checks: Content Security Policy (no inline styles, handlers or foreign hosts) and required built files.
+- Pre-deploy checks: Content Security Policy (no inline styles, handlers or foreign hosts) and required built files; for the live deploy, no placeholder such as `[TODO]` in the content.
 - Post-deploy smoke test: build, content, delivery and Panel state of a live site or a preview.
 - Link check: where YouTube, Digistore24 and purchase links really lead.
 - No silent passes: a check that cannot run exits 2 or prints a visible `SKIPPED` line.
@@ -50,7 +50,7 @@ The tools:
 | Tool | Checks | When | Exit codes |
 |---|---|---|---|
 | `genba-preflight` | The project's generation step ran, or had nothing to run | Before `npm run build` | 0 passed or skipped · 1 hook failed · 2 cannot run |
-| `genba-precheck` | The built site obeys the Content Security Policy; required files exist | After the build, before the upload | 0 passed · 1 findings · 2 cannot run |
+| `genba-precheck` | The built site obeys the Content Security Policy; required files exist; with `--forbid-markers`, no placeholder in the content | After the build, before the upload | 0 passed · 1 findings · 2 cannot run |
 | `genba-stamp` | Writes the deployed commit to the stamp file | Before the upload | 0 written · 1 failed · 2 usage error |
 | `genba-smoke` | The live site or a preview serves the new build, with the expected content, delivery and Panel | After the upload | 0 passed or skipped · 1 findings · 2 cannot run |
 | `genba-links` | Every external reference leads where the source says | Daily, on its own schedule | 0 no findings · 1 findings · 2 cannot run |
@@ -68,6 +68,8 @@ A preview deploy, as one step in a workflow:
     GENBA_EXPECT_PROTECTED: 1   # without credentials the preview must answer 401
     GENBA_NOT_READY: skip       # DNS or certificate still pending: SKIPPED, not red
 ```
+
+In the live deploy, run `vendor/bin/genba-precheck --forbid-markers`: a placeholder such as `[TODO]` or `[TBD: date]` in a content file then stops the deploy before the upload. A preview leaves the switch out and may show them. Further markers of your own: `GENBA_MARKERS`, one regular expression per line.
 
 Run `genba-links` on its own schedule rather than in the deploy, so a slow YouTube does not block a release.
 

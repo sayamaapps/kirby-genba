@@ -3,10 +3,12 @@
 /**
  * genba-precheck — static pre-deploy checks under the site's Content Security
  * Policy (inline styles, inline event handlers, embedded scripts, foreign
- * hosts) plus "the built stylesheet is there". SPEC.md §3.3.
+ * hosts) plus "the built stylesheet is there"; for the live deploy, no
+ * placeholder in the content (--forbid-markers). SPEC.md §3.3.
  *
  * Usage:
- *   vendor/bin/genba-precheck [--site=DIR] [--public=DIR] [--allow=a,b] [--require=f1,f2] [--help]
+ *   vendor/bin/genba-precheck [--site=DIR] [--public=DIR] [--allow=a,b] [--require=f1,f2]
+ *                             [--forbid-markers [--content=DIR] [--marker=PATTERN ...]] [--help]
  *
  *   --site=DIR        site root to scan (default: site)
  *   --public=DIR      public root to scan for foreign hosts (default: public)
@@ -14,12 +16,16 @@
  *                     (places.googleapis.com/v1/); 'none' clears the default
  *   --require=f1,f2   files that must exist and be non-empty
  *                     (default: public/assets/css/tailwind.css); 'none' checks none
+ *   --forbid-markers  also check content/**.txt for placeholders ([TODO], [OFFEN] …)
+ *   --content=DIR     content root for --forbid-markers (default: content)
+ *   --marker=PATTERN  a further marker (regular expression), added to the default
  *
  * Environment (used when the matching argument is absent):
  *   GENBA_ALLOW           same as --allow
  *   GENBA_REQUIRE_FILES   same as --require
+ *   GENBA_MARKERS         same as --marker, one pattern per line
  *
- * Exit codes: 0 passed, 1 findings or missing required files,
+ * Exit codes: 0 passed, 1 findings, missing required files or markers,
  * 2 cannot run (usage error, missing directory, failed self-test).
  *
  * Entry point only; all logic lives in src/Precheck.php so tests can call

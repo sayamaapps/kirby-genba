@@ -9,6 +9,28 @@ All notable changes to this project are documented here. The format follows
   **major** version. Sites and their workflows match on these; a routine update
   must not change what a check reports or how a workflow reads its result.
 
+## [1.6.0] — 2026-10-24
+
+### Added — `genba-precheck --forbid-markers`: no placeholder goes live
+
+- Placeholders such as `[TODO]` or `[OFFEN] Text folgt` stand in the content while a text is still open.
+  A preview shows them on purpose, but nothing stopped them on the way to the live site. With
+  `--forbid-markers` the precheck also reads every `*.txt` file under `content/` (drafts left out) and
+  fails with exit 1 on a placeholder: `::error::<file>:<line>: placeholder '<marker>' — not for the live
+  site: <line>`. Use the switch in the live deploy only.
+- The default marker: `TODO`, `FIXME`, `TBD`, `TBA`, `TBC`, `XXX`, `placeholder`, `Platzhalter` or `offen`
+  right behind `[`, any case, followed by `]`, a colon or a dash. A Markdown link (`[TODO](…)`) and a
+  longer word (`[Todo-Liste]`) are no marker. It has a self-test with positive and negative samples, like
+  the CSP rules.
+- Markers of your own: `--marker=PATTERN` (repeatable) or `GENBA_MARKERS` (one regular expression per
+  line), added to the default; `none` drops it. `--content=DIR` names another content root.
+- Nothing passes in silence: a missing content root, no content file, a content file that is not UTF-8,
+  a pattern that does not compile or matches every line are exit 2. `--marker` and `--content` without
+  the switch are usage errors; `GENBA_MARKERS` without it prints a `--` line.
+- Without the switch nothing changes: every message, exit code and line of a run is the same as in 1.5.1.
+  An older Genba refuses the switch with exit 2 (`Unknown argument`), so a workflow that relies on it
+  cannot pass on an old version.
+
 ## [1.5.1] — 2026-10-20
 
 ### Fixed — `genba-smoke` check 7b: Kirby's reload after an update is no finding
