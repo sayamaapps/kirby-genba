@@ -13,6 +13,7 @@ return [
 	'sayamaapps\\genba\\options'  => 'src/Options.php',
 	'sayamaapps\\genba\\precheck' => 'src/Precheck.php',
 	'sayamaapps\\genba\\preflight' => 'src/Preflight.php',
+	'sayamaapps\\genba\\site'     => 'src/Site.php',
 	'sayamaapps\\genba\\stamp'    => 'src/Stamp.php',
 	'sayamaapps\\genba\\text'     => 'src/Text.php',
 	'sayamaapps\\genba\\tree'     => 'src/Tree.php',
