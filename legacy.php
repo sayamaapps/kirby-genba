@@ -17,3 +17,16 @@ class_alias(\Sayamaapps\Genba\Preflight::class, 'Genba\\Preflight');
 class_alias(\Sayamaapps\Genba\Stamp::class, 'Genba\\Stamp');
 class_alias(\Sayamaapps\Genba\Text::class, 'Genba\\Text');
 class_alias(\Sayamaapps\Genba\Tree::class, 'Genba\\Tree');
+
+if (Kirby\Cms\Helpers::hasOverride('genba_option') === false) {
+	/** Reads `genba.<key>`. Deprecated: use Sayamaapps\Genba\Options::get(). */
+	function genba_option(string $key, mixed $default = null): mixed
+	{
+		Kirby\Cms\Helpers::deprecated(
+			'genba_option() is deprecated, use Sayamaapps\Genba\Options::get()',
+			'genba-function'
+		);
+
+		return Sayamaapps\Genba\Options::get(Kirby\Cms\App::instance(), $key, $default);
+	}
+}

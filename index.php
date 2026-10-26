@@ -10,21 +10,10 @@
  * `'genba.active'`) the site methods return null and the snippets print nothing.
  */
 
-use Kirby\Cms\App;
 use Kirby\Filesystem\F;
 
 F::loadClasses(require __DIR__ . '/autoload.php', __DIR__);
 require_once __DIR__ . '/legacy.php';
-
-use Sayamaapps\Genba\I18n;
-use Sayamaapps\Genba\Options;
-use Sayamaapps\Genba\Stamp;
-
-/** Reads `genba.<key>`. Also meant for site snippets with their own markup. */
-function genba_option(string $key, mixed $default = null): mixed
-{
-	return Options::get(App::instance(), $key, $default);
-}
 
 Kirby::plugin(
 	name: 'sayamaapps/genba',

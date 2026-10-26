@@ -54,6 +54,20 @@ final class OptionsPrefixTest extends TestCase
         });
     }
 
+    public function testLegacyFunctionReadsTheNewOptionAndIsDeprecated(): void
+    {
+        $deprecations = $this->collectDeprecations(function (): void {
+            $this->withApp(['debug' => true, 'sayamaapps.genba.active' => true], function (): void {
+                $this->assertTrue(genba_option('active'), 'genba_option() reads sayamaapps.genba.active');
+            });
+        });
+
+        $this->assertSame(
+            ['genba_option() is deprecated, use Sayamaapps\\Genba\\Options::get()'],
+            array_values(array_filter($deprecations, fn (string $message): bool => str_contains($message, 'genba_option')))
+        );
+    }
+
     /** Runs $fn and returns the deprecation messages it triggered. */
     private function collectDeprecations(callable $fn): array
     {
