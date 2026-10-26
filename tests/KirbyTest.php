@@ -127,7 +127,7 @@ final class KirbyTest extends TestCase
 				$bad = genba_kirby($tmp, ['genba.active' => true, 'genba.stamp.meta' => 'bad name']);
 				$bad->plugins();
 				$logged = genbaErrorLog($tmp, function () use ($bad, $other): void {
-					\Genba\Log::forget();
+					\Sayamaapps\Genba\Log::forget();
 					$html = $bad->snippet('genba/stamp', [], true);
 					expect('<meta name="build" content="' . $other . '">' . "\n", $html, 'invalid meta name: default build is used');
 				});
@@ -183,10 +183,10 @@ final class KirbyTest extends TestCase
 				expect('Stand', $kirby->translation('de')->get('genba.build.label'), 'translation genba.build.label in German');
 				expect('Build', $kirby->translation('en')->get('genba.build.label'), 'translation genba.build.label in English');
 
-				\Genba\Options::applyLanguage($kirby);
-				expect('de', \Genba\I18n::language(), 'applyLanguage: locale de_DE gives German');
-				expect('kein Stand hinterlegt', \Genba\I18n::t('build.none'), 'I18n::t() after applyLanguage() is German');
-				\Genba\I18n::setLanguage('en');
+				\Sayamaapps\Genba\Options::applyLanguage($kirby);
+				expect('de', \Sayamaapps\Genba\I18n::language(), 'applyLanguage: locale de_DE gives German');
+				expect('kein Stand hinterlegt', \Sayamaapps\Genba\I18n::t('build.none'), 'I18n::t() after applyLanguage() is German');
+				\Sayamaapps\Genba\I18n::setLanguage('en');
 			});
 			// --- 7. the site's own snippet wins ---------------------------------------
 

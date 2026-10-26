@@ -20,4 +20,4 @@ if (PHP_SAPI !== 'cli') {
     exit;
 }
 require_once dirname(__DIR__) . '/src/Preflight.php';
-exit(Genba\Preflight::run(getenv(), $argv, (string) getcwd(), STDOUT, STDERR));
+exit(Sayamaapps\Genba\Preflight::run(getenv(), $argv, (string) getcwd(), STDOUT, STDERR));

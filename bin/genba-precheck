@@ -36,4 +36,4 @@ if (PHP_SAPI !== 'cli') {
     exit;
 }
 require_once dirname(__DIR__) . '/src/Precheck.php';
-exit(Genba\Precheck::run(getenv(), $argv, (string) getcwd(), STDOUT, STDERR));
+exit(Sayamaapps\Genba\Precheck::run(getenv(), $argv, (string) getcwd(), STDOUT, STDERR));

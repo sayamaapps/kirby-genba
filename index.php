@@ -1,19 +1,14 @@
 <?php
 
 use Kirby\Cms\App;
+use Kirby\Filesystem\F;
 
-require_once __DIR__ . '/src/I18n.php';
-require_once __DIR__ . '/src/Log.php';
-require_once __DIR__ . '/src/Options.php';
-require_once __DIR__ . '/src/Stamp.php';
-require_once __DIR__ . '/src/Preflight.php';
-require_once __DIR__ . '/src/Text.php';
-require_once __DIR__ . '/src/Precheck.php';
-require_once __DIR__ . '/src/Links.php';
+F::loadClasses(require __DIR__ . '/autoload.php', __DIR__);
+require_once __DIR__ . '/legacy.php';
 
-use Genba\I18n;
-use Genba\Options;
-use Genba\Stamp;
+use Sayamaapps\Genba\I18n;
+use Sayamaapps\Genba\Options;
+use Sayamaapps\Genba\Stamp;
 
 /**
  * Genba (現場 — the place where the work actually happens): operations of a

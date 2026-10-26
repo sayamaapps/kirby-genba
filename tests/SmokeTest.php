@@ -191,7 +191,7 @@ final class SmokeTest extends TestCase
 				if (PHP_VERSION_ID >= 80400) {
 					require_once dirname(__DIR__) . '/src/Homepage.php';
 					foreach ($encodeRows as $row => $expected) {
-						$read = Genba\Homepage::read('<img src="' . $row . '">', 'build');
+						$read = Sayamaapps\Genba\Homepage::read('<img src="' . $row . '">', 'build');
 						expect(
 							str_replace("\xef\xbf\xbd", '%EF%BF%BD', $expected),
 							str_replace("\xef\xbf\xbd", '%EF%BF%BD', (string)($read[0][1] ?? '')),
@@ -1151,7 +1151,7 @@ final class SmokeTest extends TestCase
 						'the reader fails on the saved homepage',
 						'',
 						2,
-						'(?m)^::error::The homepage cannot be read: (PHP )?Fatal error: +Uncaught Error: Call to undefined function Genba\\\\ini_set\\(\\)',
+						'(?m)^::error::The homepage cannot be read: (PHP )?Fatal error: +Uncaught Error: Call to undefined function Sayamaapps\\\\Genba\\\\ini_set\\(\\)',
 						['PATH' => $failing . PATH_SEPARATOR . (string)getenv('PATH')]
 					);
 					holds(!str_contains($output, 'Homepage without <meta'), "a failed reader is not read as a page without the build meta:\n$output");

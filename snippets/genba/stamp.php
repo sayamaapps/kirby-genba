@@ -6,7 +6,7 @@
  * Stamp::PATTERN, so it needs no escaping.
  */
 $genbaKirby = kirby();
-if (!\Genba\Options::active($genbaKirby)) {
+if (!\Sayamaapps\Genba\Options::active($genbaKirby)) {
 	return;
 }
-echo \Genba\Stamp::meta(site()->genbaBuild(), \Genba\Options::metaName($genbaKirby));
+echo \Sayamaapps\Genba\Stamp::meta(site()->genbaBuild(), \Sayamaapps\Genba\Options::metaName($genbaKirby));

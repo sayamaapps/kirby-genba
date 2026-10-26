@@ -1,6 +1,6 @@
 <?php
 
-namespace Genba;
+namespace Sayamaapps\Genba;
 
 use Kirby\Cms\App;
 

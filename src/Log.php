@@ -1,6 +1,6 @@
 <?php
 
-namespace Genba;
+namespace Sayamaapps\Genba;
 
 /**
  * The one place where the Kirby part of Genba writes to the PHP error log

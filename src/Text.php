@@ -1,6 +1,6 @@
 <?php
 
-namespace Genba;
+namespace Sayamaapps\Genba;
 
 /**
  * Text that was not written by the operator, made safe for one log line.

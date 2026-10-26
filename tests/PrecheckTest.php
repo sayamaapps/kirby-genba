@@ -4,7 +4,7 @@
  * Precheck (SPEC §9.4). Kirby-free: loads the class file directly.
  * Run: ASDF_PHP_VERSION=8.5.3 php tests/PrecheckTest.php
  */
-use Genba\Precheck;
+use Sayamaapps\Genba\Precheck;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\TestCase;
 

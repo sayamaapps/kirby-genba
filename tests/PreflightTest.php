@@ -1,10 +1,10 @@
 <?php
 
 /**
- * Genba\Preflight, Kirby-free (SPEC.md §9.2): which hook is chosen (hook()),
+ * Sayamaapps\Genba\Preflight, Kirby-free (SPEC.md §9.2): which hook is chosen (hook()),
  * the CLI through run() with memory streams, and one run of bin/genba-preflight.
  */
-use Genba\Preflight;
+use Sayamaapps\Genba\Preflight;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\TestCase;
 

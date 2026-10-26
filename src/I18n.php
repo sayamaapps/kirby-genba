@@ -1,6 +1,6 @@
 <?php
 
-namespace Genba;
+namespace Sayamaapps\Genba;
 
 /**
  * Strings of the Kirby part of the plugin, Kirby-free (SPEC.md §5).

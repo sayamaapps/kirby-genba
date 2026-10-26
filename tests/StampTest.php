@@ -1,11 +1,11 @@
 <?php
 
 /**
- * Genba\Stamp, Kirby-free (SPEC.md §9.1): read() (five cases, and more),
+ * Sayamaapps\Genba\Stamp, Kirby-free (SPEC.md §9.1): read() (five cases, and more),
  * meta(), info(), write(), fromGit(),
  * the CLI through run() with memory streams, and one run of bin/genba-stamp.
  */
-use Genba\Stamp;
+use Sayamaapps\Genba\Stamp;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\TestCase;
 

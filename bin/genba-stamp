@@ -22,4 +22,4 @@ if (PHP_SAPI !== 'cli') {
     exit;
 }
 require_once dirname(__DIR__) . '/src/Stamp.php';
-exit(Genba\Stamp::run(getenv(), $argv, (string) getcwd(), STDOUT, STDERR));
+exit(Sayamaapps\Genba\Stamp::run(getenv(), $argv, (string) getcwd(), STDOUT, STDERR));

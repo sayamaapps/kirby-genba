@@ -8,12 +8,12 @@
  *
  *   tests/fixtures/html-variants/<name>.html     the homepage for bin/genba-smoke: every variant
  *                                                must PASS and request exactly the same files
- *   tests/fixtures/precheck-variants/<name>.php  a template for Genba\Precheck: every variant must
+ *   tests/fixtures/precheck-variants/<name>.php  a template for Sayamaapps\Genba\Precheck: every variant must
  *                                                give exactly the same findings (rule names)
  *
  * A new spelling is a new file; this test picks it up by itself.
  */
-use Genba\Precheck;
+use Sayamaapps\Genba\Precheck;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\TestCase;
 

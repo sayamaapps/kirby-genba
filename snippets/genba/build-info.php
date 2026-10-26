@@ -10,10 +10,10 @@
  * Only genba-* classes; texts from the plugin's translations, every value escaped.
  */
 $genbaKirby = kirby();
-if (!\Genba\Options::active($genbaKirby)) {
+if (!\Sayamaapps\Genba\Options::active($genbaKirby)) {
 	return;
 }
-\Genba\Options::applyLanguage($genbaKirby);
+\Sayamaapps\Genba\Options::applyLanguage($genbaKirby);
 
 $genbaShowLabel = isset($label) ? (bool)$label : true;
 $genbaShowDate = isset($withDate) ? (bool)$withDate : false;
@@ -21,9 +21,9 @@ $genbaInfo = site()->genbaBuildInfo();
 
 if ($genbaInfo === null) {
 	?>
-<p class="genba-build genba-build--none"><?= esc(\Genba\I18n::t('build.none')) ?></p>
+<p class="genba-build genba-build--none"><?= esc(\Sayamaapps\Genba\I18n::t('build.none')) ?></p>
 <?php
 	return;
 }
 ?>
-<p class="genba-build" data-build="<?= esc($genbaInfo['hash']) ?>"><?php if ($genbaShowLabel): ?><span class="genba-build-label"><?= esc(\Genba\I18n::t('build.label')) ?></span> <?php endif ?><code class="genba-build-hash"><?= esc($genbaInfo['short']) ?></code><?php if ($genbaShowDate && $genbaInfo['writtenAt'] !== null): ?> <span class="genba-build-date"><?= esc(\Genba\I18n::t('build.writtenAt', ['date' => substr($genbaInfo['writtenAt'], 0, 10)])) ?></span><?php endif ?></p>
+<p class="genba-build" data-build="<?= esc($genbaInfo['hash']) ?>"><?php if ($genbaShowLabel): ?><span class="genba-build-label"><?= esc(\Sayamaapps\Genba\I18n::t('build.label')) ?></span> <?php endif ?><code class="genba-build-hash"><?= esc($genbaInfo['short']) ?></code><?php if ($genbaShowDate && $genbaInfo['writtenAt'] !== null): ?> <span class="genba-build-date"><?= esc(\Sayamaapps\Genba\I18n::t('build.writtenAt', ['date' => substr($genbaInfo['writtenAt'], 0, 10)])) ?></span><?php endif ?></p>
