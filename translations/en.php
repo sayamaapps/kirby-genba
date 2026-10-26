@@ -11,13 +11,13 @@
  * The command-line tools print English only (SPEC.md §11).
  */
 return [
-    // genba/build-info snippet: a visible build line, e.g. on a preview site.
-    'build.label' => 'Build',
-    'build.hash' => 'Build {short}',
-    'build.writtenAt' => 'deployed {date}',
-    'build.none' => 'no build stamp',
+	// genba/build-info snippet: a visible build line, e.g. on a preview site.
+	'build.label' => 'Build',
+	'build.hash' => 'Build {short}',
+	'build.writtenAt' => 'deployed {date}',
+	'build.none' => 'no build stamp',
 
-    // Panel-facing texts for a site's own blueprint (info field or label).
-    'panel.build.label' => 'Build stamp',
-    'panel.build.info' => 'The deploy writes the commit hash to {file}; the smoke test compares it with the live page.',
+	// Panel-facing texts for a site's own blueprint (info field or label).
+	'panel.build.label' => 'Build stamp',
+	'panel.build.info' => 'The deploy writes the commit hash to {file}; the smoke test compares it with the live page.',
 ];

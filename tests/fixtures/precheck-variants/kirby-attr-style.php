@@ -3,8 +3,8 @@
 <?php endif ?>
 <p<?= attr(['class' => 'lead', 'style' => 'color:red'], ' ') ?>>Text</p>
 <button<?= attr([
-    'type'    => 'button',
-    'onclick' => 'go()',
+	'type'    => 'button',
+	'onclick' => 'go()',
 ], ' ') ?>>Go</button>
 <script<?= attr(['src' => url('assets/js/app.js'), 'nonce' => $kirby->nonce(), 'defer' => true], ' ') ?>></script>
 <script <?= Html::attr(['type' => 'application/ld+json', 'nonce' => $kirby->nonce()], null, ' ') ?>><?= json_encode($page->schema()) ?></script>

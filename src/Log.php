@@ -16,22 +16,22 @@ namespace Genba;
  */
 final class Log
 {
-    /** @var array<string, true> */
-    private static array $seen = [];
+	/** @var array<string, true> */
+	private static array $seen = [];
 
-    /** Writes $message to the error log unless it was written before in this process. */
-    public static function error(string $message): void
-    {
-        if (isset(self::$seen[$message])) {
-            return;
-        }
-        self::$seen[$message] = true;
-        error_log($message);
-    }
+	/** Writes $message to the error log unless it was written before in this process. */
+	public static function error(string $message): void
+	{
+		if (isset(self::$seen[$message])) {
+			return;
+		}
+		self::$seen[$message] = true;
+		error_log($message);
+	}
 
-    /** Forgets the messages already written (tests only). */
-    public static function forget(): void
-    {
-        self::$seen = [];
-    }
+	/** Forgets the messages already written (tests only). */
+	public static function forget(): void
+	{
+		self::$seen = [];
+	}
 }

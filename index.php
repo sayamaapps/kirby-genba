@@ -39,64 +39,64 @@ use Genba\Stamp;
 /** Reads `genba.<key>`. Also meant for site snippets with their own markup. */
 function genba_option(string $key, mixed $default = null): mixed
 {
-    return Options::get(App::instance(), $key, $default);
+	return Options::get(App::instance(), $key, $default);
 }
 
 $genbaTranslations = [];
 foreach (I18n::LANGUAGES as $genbaLanguage) {
-    foreach (I18n::table($genbaLanguage) as $genbaKey => $genbaText) {
-        $genbaTranslations[$genbaLanguage]['genba.' . $genbaKey] = $genbaText;
-    }
+	foreach (I18n::table($genbaLanguage) as $genbaKey => $genbaText) {
+		$genbaTranslations[$genbaLanguage]['genba.' . $genbaKey] = $genbaText;
+	}
 }
 unset($genbaLanguage, $genbaKey, $genbaText);
 
 App::plugin('sayamaapps/genba', [
-    // All strings, also usable as t('genba.<key>') and as blueprint labels.
-    'translations' => $genbaTranslations,
+	// All strings, also usable as t('genba.<key>') and as blueprint labels.
+	'translations' => $genbaTranslations,
 
-    /**
-     * Plain defaults without CSS. A site with its own markup creates
-     * site/snippets/genba/<name>.php — Kirby looks there first — or uses
-     * the array method $site->genbaBuildInfo().
-     */
-    'snippets' => [
-        'genba/stamp'      => __DIR__ . '/snippets/genba/stamp.php',
-        'genba/build-info' => __DIR__ . '/snippets/genba/build-info.php',
-    ],
+	/**
+	 * Plain defaults without CSS. A site with its own markup creates
+	 * site/snippets/genba/<name>.php — Kirby looks there first — or uses
+	 * the array method $site->genbaBuildInfo().
+	 */
+	'snippets' => [
+		'genba/stamp'      => __DIR__ . '/snippets/genba/stamp.php',
+		'genba/build-info' => __DIR__ . '/snippets/genba/build-info.php',
+	],
 
-    'siteMethods' => [
-        /**
-         * The deployed commit hash from the stamp file (SPEC.md §3.1), or
-         * null: Genba off, file missing, empty, or not a 7–64 digit hex hash
-         * (nothing unchecked goes into the HTML).
-         */
-        'genbaBuild' => function (): ?string {
-            $kirby = $this->kirby();
-            if (!Options::active($kirby)) {
-                return null;
-            }
-            return Stamp::read(Options::stampFile($kirby));
-        },
+	'siteMethods' => [
+		/**
+		 * The deployed commit hash from the stamp file (SPEC.md §3.1), or
+		 * null: Genba off, file missing, empty, or not a 7–64 digit hex hash
+		 * (nothing unchecked goes into the HTML).
+		 */
+		'genbaBuild' => function (): string|null {
+			$kirby = $this->kirby();
+			if (!Options::active($kirby)) {
+				return null;
+			}
+			return Stamp::read(Options::stampFile($kirby));
+		},
 
-        /**
-         * Hash plus context for a site's own markup (SPEC.md §3.1), or null
-         * under the same conditions as genbaBuild():
-         *
-         *   ['hash' => '0123…4567', 'short' => '0123456', 'file' => 'site/config/build.txt',
-         *    'writtenAt' => '2026-10-11T03:12:45+00:00'|null]
-         *
-         * `file` is relative to the project root, never the absolute server
-         * path (a file outside the root: its name only).
-         *
-         * `writtenAt` is the file's modification time in ISO 8601 (UTC), or
-         * null when it cannot be read — never a made-up date.
-         */
-        'genbaBuildInfo' => function (): ?array {
-            $kirby = $this->kirby();
-            if (!Options::active($kirby)) {
-                return null;
-            }
-            return Stamp::info(Options::stampFile($kirby), Options::base($kirby));
-        },
-    ],
+		/**
+		 * Hash plus context for a site's own markup (SPEC.md §3.1), or null
+		 * under the same conditions as genbaBuild():
+		 *
+		 *   ['hash' => '0123…4567', 'short' => '0123456', 'file' => 'site/config/build.txt',
+		 *    'writtenAt' => '2026-10-11T03:12:45+00:00'|null]
+		 *
+		 * `file` is relative to the project root, never the absolute server
+		 * path (a file outside the root: its name only).
+		 *
+		 * `writtenAt` is the file's modification time in ISO 8601 (UTC), or
+		 * null when it cannot be read — never a made-up date.
+		 */
+		'genbaBuildInfo' => function (): array|null {
+			$kirby = $this->kirby();
+			if (!Options::active($kirby)) {
+				return null;
+			}
+			return Stamp::info(Options::stampFile($kirby), Options::base($kirby));
+		},
+	],
 ]);

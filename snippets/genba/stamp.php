@@ -7,6 +7,6 @@
  */
 $genbaKirby = kirby();
 if (!\Genba\Options::active($genbaKirby)) {
-    return;
+	return;
 }
 echo \Genba\Stamp::meta(site()->genbaBuild(), \Genba\Options::metaName($genbaKirby));
