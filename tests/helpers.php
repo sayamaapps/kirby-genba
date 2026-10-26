@@ -1,17 +1,10 @@
 <?php
 /**
- * Shared test helpers.
+ * Shared test helpers for the PHPUnit suite.
  *
- *   require_once __DIR__ . '/helpers.php';
- *
- * Loads NO src file: Kirby-free tests require the classes they need
- * themselves, Kirby tests load the plugin through Kirby (genba_site()). That
- * way a class is never declared twice.
- *
- * Every test file: call expect()/holds() as often as needed, then
- * finish('Suite name') at the end — it prints all failures and exits 1, or
- * prints the count and exits 0. A failing check does not stop the file, so
- * one run shows every problem.
+ * Loads NO src file: bootstrap.php loads the classes. Kirby tests load the
+ * plugin through Kirby (genba_site()). Every check is one PHPUnit assertion:
+ * expect(), holds() and contains().
  *
  * Several tests start processes (bin/* scripts, PHP's built-in server):
  * genba_php() is the PHP binary to use, genba_free_port() finds a port,
@@ -19,51 +12,24 @@
  * genba_run() runs a command and returns [exit code, combined output].
  */
 
-$GLOBALS['genbaChecks'] = 0;
-$GLOBALS['genbaFailures'] = [];
+use PHPUnit\Framework\Assert;
 
-/** Strict comparison ($expected === $actual). */
+/** Strict comparison ($expected === $actual): one assertion. */
 function expect(mixed $expected, mixed $actual, string $what): void
 {
-    $GLOBALS['genbaChecks']++;
-    if ($expected !== $actual) {
-        $GLOBALS['genbaFailures'][] = sprintf(
-            "  ✗ %s\n      expected: %s\n      actual:   %s",
-            $what,
-            var_export($expected, true),
-            var_export($actual, true)
-        );
-    }
+    Assert::assertSame($expected, $actual, $what);
 }
 
+/** One assertion: $ok must be true. */
 function holds(bool $ok, string $what): void
 {
-    $GLOBALS['genbaChecks']++;
-    if (!$ok) {
-        $GLOBALS['genbaFailures'][] = '  ✗ ' . $what;
-    }
+    Assert::assertTrue($ok, $what);
 }
 
-/** holds(str_contains(...)) with the haystack shown on failure. */
+/** One assertion: the haystack contains the needle. */
 function contains(string $needle, string $haystack, string $what): void
 {
-    $GLOBALS['genbaChecks']++;
-    if (!str_contains($haystack, $needle)) {
-        $GLOBALS['genbaFailures'][] = "  ✗ $what\n      missing:  " . var_export($needle, true) . "\n      in:\n" . preg_replace('/^/m', '        ', rtrim($haystack));
-    }
-}
-
-/** Prints the result and exits: 0 when every check passed, 1 otherwise. */
-function finish(string $suite): never
-{
-    $failures = $GLOBALS['genbaFailures'];
-    $checks = $GLOBALS['genbaChecks'];
-    if ($failures !== []) {
-        fwrite(STDERR, "$suite: " . count($failures) . " of $checks checks failed\n" . implode("\n", $failures) . "\n");
-        exit(1);
-    }
-    echo "$suite: all $checks checks passed\n";
-    exit(0);
+    Assert::assertStringContainsString($needle, $haystack, $what);
 }
 
 /* --------------------------------------------------------------------------
@@ -126,8 +92,7 @@ function genba_free_port(): int
 {
     $socket = stream_socket_server('tcp://127.0.0.1:0');
     if ($socket === false) {
-        fwrite(STDERR, "Cannot open a local socket\n");
-        exit(1);
+        throw new RuntimeException("Cannot open a local socket");
     }
     $port = (int) substr(strrchr(stream_socket_get_name($socket, false), ':'), 1);
     fclose($socket);
@@ -154,8 +119,7 @@ function genba_server(string $router, array $env = [], string $readyPath = '/'):
         $env + getenv()
     );
     if (!is_resource($process)) {
-        fwrite(STDERR, "Test server does not start\n");
-        exit(1);
+        throw new RuntimeException("Test server does not start");
     }
     fclose($pipes[0]);
     $base = "http://127.0.0.1:$port";
@@ -167,8 +131,7 @@ function genba_server(string $router, array $env = [], string $readyPath = '/'):
         }
     }
     proc_terminate($process);
-    fwrite(STDERR, "Test server not reachable at $base\n" . (string) @file_get_contents($log) . "\n");
-    exit(1);
+    throw new RuntimeException("Test server not reachable at $base\n" . (string) @file_get_contents($log));
 }
 
 /**
@@ -300,8 +263,7 @@ function genba_site(): string
 {
     $base = dirname(__DIR__);
     if (!is_file($base . '/vendor/autoload.php')) {
-        fwrite(STDERR, "Composer dependencies missing; run composer install first\n");
-        exit(1);
+        throw new RuntimeException("Composer dependencies missing; run composer install first");
     }
     require_once $base . '/vendor/autoload.php';
 
