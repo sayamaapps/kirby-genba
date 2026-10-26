@@ -3,7 +3,16 @@
     "description": "Build stamp, pre-deploy checks, smoke test and link check for deployed Kirby CMS sites.",
     "type": "kirby-plugin",
     "license": "MIT",
-    "keywords": ["kirby", "kirby-plugin", "kirby-5", "deployment", "smoke-test", "ci", "operations", "link-check"],
+    "keywords": [
+        "kirby",
+        "kirby-plugin",
+        "kirby-5",
+        "deployment",
+        "smoke-test",
+        "ci",
+        "operations",
+        "link-check"
+    ],
     "homepage": "https://github.com/sayamaapps/kirby-genba",
     "authors": [
         {
@@ -18,14 +27,45 @@
     "require": {
         "php": "^8.2",
         "ext-curl": "*",
+        "ext-dom": "*",
         "ext-json": "*",
         "ext-mbstring": "*",
-        "ext-dom": "*",
         "getkirby/composer-installer": "^1.2"
     },
     "require-dev": {
+        "ergebnis/composer-normalize": "^2.54",
         "getkirby/cms": "^5.0",
-        "phpunit/phpunit": "11.5.55"
+        "icanhazstring/composer-unused": "^0.9.7",
+        "maglnet/composer-require-checker": "^4.0",
+        "phpmd/phpmd": "^2.15",
+        "phpunit/phpunit": "11.5.55",
+        "vimeo/psalm": "^6.20"
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "allow-plugins": {
+            "ergebnis/composer-normalize": true,
+            "getkirby/composer-installer": true
+        },
+        "platform": {
+            "php": "8.2.27"
+        },
+        "sort-packages": true
+    },
+    "extra": {
+        "installer-name": "genba",
+        "kirby": {
+            "compatible": "^5.0"
+        },
+        "kirby-cms-path": false
+    },
+    "scripts": {
+        "analyze:phpmd": "vendor/bin/phpmd src,config,index.php,legacy.php,autoload.php github phpmd.xml.dist",
+        "analyze:psalm": "vendor/bin/psalm",
+        "analyze:require-checker": "vendor/bin/composer-require-checker check --config-file=composer-require-checker.json composer.json",
+        "analyze:unused": "vendor/bin/composer-unused",
+        "normalize:check": "@composer normalize --dry-run",
+        "test": "vendor/bin/phpunit"
     },
     "bin": [
         "bin/genba-stamp",
@@ -33,24 +73,5 @@
         "bin/genba-precheck",
         "bin/genba-smoke",
         "bin/genba-links"
-    ],
-    "scripts": {
-        "test": "vendor/bin/phpunit"
-    },
-    "config": {
-        "optimize-autoloader": true,
-        "allow-plugins": {
-            "getkirby/composer-installer": true
-        },
-        "platform": {
-            "php": "8.2.0"
-        }
-    },
-    "extra": {
-        "installer-name": "genba",
-        "kirby-cms-path": false,
-        "kirby": {
-            "compatible": "^5.0"
-        }
-    }
+    ]
 }

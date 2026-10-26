@@ -4,3 +4,5 @@
 .DS_Store
 
 /.phpunit.cache
+/.php-cs-fixer.cache
+/.psalm/
