@@ -64,11 +64,11 @@ final class KirbyTest extends TestCase
 				expect('', $off->snippet('genba/build-info', [], true), 'off by default: build-info snippet prints nothing');
 				expect('fallback', genba_option('active', 'fallback'), 'off by default: genba_option() returns the fallback for an unset key');
 
-				$yes = genba_kirby($tmp, ['genba.active' => 'yes']);
+				$yes = genba_kirby($tmp, ['sayamaapps.genba.active' => 'yes']);
 				expect(null, $yes->site()->genbaBuild(), '"yes" does not switch Genba on: genbaBuild() is null');
 				expect('', $yes->snippet('genba/stamp', [], true), '"yes" does not switch Genba on: stamp snippet prints nothing');
 
-				$on = genba_kirby($tmp, ['genba.active' => true]);
+				$on = genba_kirby($tmp, ['sayamaapps.genba.active' => true]);
 				expect(true, genba_option('active'), 'genba_option() reads genba.active');
 				expect('x', genba_option('gibts-nicht', 'x'), 'genba_option() returns the fallback for an unset key');
 				holds(is_string($on->translation('en')->get('genba.build.label')), 'translations are registered as genba.*');
@@ -78,7 +78,7 @@ final class KirbyTest extends TestCase
 			genbaWithSite(function (string $tmp) use ($hash, $short): void {
 				genba_write($tmp . '/site/config/build.txt', $hash . "\n");
 
-				$kirby = genba_kirby($tmp, ['genba.active' => true]);
+				$kirby = genba_kirby($tmp, ['sayamaapps.genba.active' => true]);
 				expect($hash, $kirby->site()->genbaBuild(), 'active: genbaBuild() is the hash');
 				$info = $kirby->site()->genbaBuildInfo();
 				expect($short, $info['short'] ?? null, 'active: genbaBuildInfo() short is the first 7 characters');
@@ -94,13 +94,13 @@ final class KirbyTest extends TestCase
 
 			genbaWithSite(function (string $tmp): void {
 				genba_write($tmp . '/site/config/build.txt', "main\n");
-				$kirby = genba_kirby($tmp, ['genba.active' => true]);
+				$kirby = genba_kirby($tmp, ['sayamaapps.genba.active' => true]);
 				expect(null, $kirby->site()->genbaBuild(), 'active, file "main": genbaBuild() is null');
 				expect(null, $kirby->site()->genbaBuildInfo(), 'active, file "main": genbaBuildInfo() is null');
 				expect('', $kirby->snippet('genba/stamp', [], true), 'active, file "main": stamp snippet prints nothing');
 
 				unlink($tmp . '/site/config/build.txt');
-				$kirby = genba_kirby($tmp, ['genba.active' => true]);
+				$kirby = genba_kirby($tmp, ['sayamaapps.genba.active' => true]);
 				expect(null, $kirby->site()->genbaBuild(), 'active, file missing: genbaBuild() is null');
 				expect('', $kirby->snippet('genba/stamp', [], true), 'active, file missing: stamp snippet prints nothing');
 			});
@@ -114,17 +114,17 @@ final class KirbyTest extends TestCase
 				$nested = genba_kirby($tmp, ['genba' => ['active' => true, 'stamp' => ['file' => 'site/config/stand.txt']]]);
 				expect($hash, $nested->site()->genbaBuild(), 'nested options: genba.stamp.file is read');
 
-				$flat = genba_kirby($tmp, ['genba.active' => true, 'genba.stamp.file' => 'site/config/stand.txt']);
+				$flat = genba_kirby($tmp, ['sayamaapps.genba.active' => true, 'sayamaapps.genba.stamp.file' => 'site/config/stand.txt']);
 				expect($hash, $flat->site()->genbaBuild(), 'flat options: genba.stamp.file is read');
 
-				$named = genba_kirby($tmp, ['genba.active' => true, 'genba.stamp.file' => 'site/config/stand.txt', 'genba.stamp.meta' => 'stand']);
+				$named = genba_kirby($tmp, ['sayamaapps.genba.active' => true, 'sayamaapps.genba.stamp.file' => 'site/config/stand.txt', 'sayamaapps.genba.stamp.meta' => 'stand']);
 				expect(
 					'<meta name="stand" content="' . $hash . '">' . "\n",
 					$named->snippet('genba/stamp', [], true),
 					'genba.stamp.meta => stand: meta name is stand'
 				);
 
-				$bad = genba_kirby($tmp, ['genba.active' => true, 'genba.stamp.meta' => 'bad name']);
+				$bad = genba_kirby($tmp, ['sayamaapps.genba.active' => true, 'sayamaapps.genba.stamp.meta' => 'bad name']);
 				$bad->plugins();
 				$logged = genbaErrorLog($tmp, function () use ($bad, $other): void {
 					\Sayamaapps\Genba\Log::forget();
@@ -133,7 +133,7 @@ final class KirbyTest extends TestCase
 				});
 				contains('genba.stamp.meta', $logged, 'invalid meta name: reported in the error log');
 
-				$debug = genba_kirby($tmp, ['genba.active' => true, 'genba.stamp.meta' => 'bad name', 'debug' => true]);
+				$debug = genba_kirby($tmp, ['sayamaapps.genba.active' => true, 'sayamaapps.genba.stamp.meta' => 'bad name', 'debug' => true]);
 				$threw = false;
 				try {
 					$debug->snippet('genba/stamp', [], true);
@@ -147,7 +147,7 @@ final class KirbyTest extends TestCase
 			genbaWithSite(function (string $tmp) use ($hash, $short): void {
 				genba_write($tmp . '/site/config/build.txt', $hash . "\n");
 
-				$en = genba_kirby($tmp, ['genba.active' => true]);
+				$en = genba_kirby($tmp, ['sayamaapps.genba.active' => true]);
 				$html = $en->snippet('genba/build-info', [], true);
 				contains('class="genba-build"', $html, 'build-info en: genba-build class');
 				contains('data-build="' . $hash . '"', $html, 'build-info en: data-build holds the hash');
@@ -155,30 +155,30 @@ final class KirbyTest extends TestCase
 				contains('<code class="genba-build-hash">' . $short . '</code>', $html, 'build-info en: short hash in code');
 				holds(!str_contains($html, 'genba-build-date'), 'build-info en: no date unless withDate');
 
-				$de = genba_kirby($tmp, ['genba.active' => true, 'genba.language' => 'de']);
+				$de = genba_kirby($tmp, ['sayamaapps.genba.active' => true, 'sayamaapps.genba.language' => 'de']);
 				contains('>Stand<', $de->snippet('genba/build-info', [], true), 'build-info de: label Stand');
 
-				$dated = genba_kirby($tmp, ['genba.active' => true]);
+				$dated = genba_kirby($tmp, ['sayamaapps.genba.active' => true]);
 				contains('deployed 2026-', $dated->snippet('genba/build-info', ['withDate' => true], true), 'build-info withDate: deployed <date>');
 
-				$unlabelled = genba_kirby($tmp, ['genba.active' => true]);
+				$unlabelled = genba_kirby($tmp, ['sayamaapps.genba.active' => true]);
 				$html = $unlabelled->snippet('genba/build-info', ['label' => false], true);
 				holds(!str_contains($html, 'genba-build-label'), 'build-info label=false: no label span');
 				contains('genba-build-hash', $html, 'build-info label=false: hash still shown');
 
 				unlink($tmp . '/site/config/build.txt');
-				$none = genba_kirby($tmp, ['genba.active' => true]);
+				$none = genba_kirby($tmp, ['sayamaapps.genba.active' => true]);
 				$html = $none->snippet('genba/build-info', [], true);
 				contains('genba-build--none', $html, 'build-info without stamp: genba-build--none');
 				contains('no build stamp', $html, 'build-info without stamp: text');
 
-				$noneDe = genba_kirby($tmp, ['genba.active' => true, 'genba.language' => 'de']);
+				$noneDe = genba_kirby($tmp, ['sayamaapps.genba.active' => true, 'sayamaapps.genba.language' => 'de']);
 				contains('kein Stand hinterlegt', $noneDe->snippet('genba/build-info', [], true), 'build-info without stamp de: text');
 			});
 			// --- 6. translations -----------------------------------------------------
 
 			genbaWithSite(function (string $tmp): void {
-				$kirby = genba_kirby($tmp, ['genba.active' => true, 'locale' => 'de_DE']);
+				$kirby = genba_kirby($tmp, ['sayamaapps.genba.active' => true, 'locale' => 'de_DE']);
 				$kirby->plugins();
 				expect('Stand', $kirby->translation('de')->get('genba.build.label'), 'translation genba.build.label in German');
 				expect('Build', $kirby->translation('en')->get('genba.build.label'), 'translation genba.build.label in English');
@@ -194,7 +194,7 @@ final class KirbyTest extends TestCase
 				genba_write($tmp . '/site/config/build.txt', $hash . "\n");
 				genba_write($tmp . '/site/snippets/genba/stamp.php', 'OWN SNIPPET');
 
-				$kirby = genba_kirby($tmp, ['genba.active' => true]);
+				$kirby = genba_kirby($tmp, ['sayamaapps.genba.active' => true]);
 				expect('OWN SNIPPET', $kirby->snippet('genba/stamp', [], true), 'a site\'s own snippets/genba/stamp.php wins');
 			});
 		} finally {
