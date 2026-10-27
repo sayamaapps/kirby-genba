@@ -1151,7 +1151,7 @@ final class SmokeTest extends TestCase
 						'the reader fails on the saved homepage',
 						'',
 						2,
-						'(?m)^::error::The homepage cannot be read: (PHP )?Fatal error: +Uncaught Error: Call to undefined function Sayamaapps\\\\Genba\\\\ini_set\\(\\)',
+						'(?m)^::error::The homepage cannot be read: (PHP )?Fatal error: +Uncaught Error: Call to undefined function Genba\\\\ini_set\\(\\)',
 						['PATH' => $failing . PATH_SEPARATOR . (string)getenv('PATH')]
 					);
 					holds(!str_contains($output, 'Homepage without <meta'), "a failed reader is not read as a page without the build meta:\n$output");

@@ -188,7 +188,7 @@ class Homepage
 			default => 1,
 		};
 		if ($value < $need) {
-			ini_set('memory_limit', (string)$need);
+			\Genba\raise_memory_limit((string)$need);
 		}
 	}
 
