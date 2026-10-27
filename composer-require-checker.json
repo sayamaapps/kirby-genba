@@ -12,6 +12,7 @@
 		"Kirby\\Cms\\Helpers",
 		"Kirby\\Cms\\Page",
 		"Kirby\\Cms\\Site",
+		"Kirby\\Exception\\InvalidArgumentException",
 		"Kirby\\Filesystem\\F"
 	]
 }
