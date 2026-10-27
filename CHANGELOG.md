@@ -9,7 +9,7 @@ All notable changes to this project are documented here. The format follows
   **major** version. Sites and their workflows match on these; a routine update
   must not change what a check reports or how a workflow reads its result.
 
-## [Unreleased]
+## [1.7.0] — 2026-10-27
 
 ### Changed — code layout after the Kirby plugin conventions; no change in behaviour
 
