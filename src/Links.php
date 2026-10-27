@@ -58,7 +58,7 @@ require_once __DIR__ . '/Tree.php';
  *
  * Requires ext-curl. Kirby-free.
  */
-final class Links
+class Links
 {
 	public const DEFAULT_DIGISTORE_BASE = 'https://www.digistore24.com/product/';
 	public const DEFAULT_DIGISTORE_FIELDS = ['digistoreid'];

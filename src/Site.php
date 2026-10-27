@@ -12,7 +12,7 @@ use Kirby\Cms\Site as KirbySite;
  * @copyright Simon Räder
  * @license   https://opensource.org/licenses/MIT
  */
-final class Site
+class Site
 {
 	/** The deployed commit hash, or null (see genbaBuild()). */
 	public static function build(KirbySite $site): string|null

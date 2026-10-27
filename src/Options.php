@@ -23,7 +23,7 @@ use Kirby\Cms\Helpers;
  * The command-line tools never load this class: they run without Kirby and
  * take their settings from environment variables and arguments (SPEC.md §3.0).
  */
-final class Options
+class Options
 {
 	/** Name of the <meta> element the stamp snippet prints; the smoke test and an external check read it. */
 	public const DEFAULT_META = 'build';

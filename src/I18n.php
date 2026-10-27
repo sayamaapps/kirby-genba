@@ -19,7 +19,7 @@ namespace Sayamaapps\Genba;
  * The language is set once per request (Options::applyLanguage()) and
  * defaults to English. Missing keys fall back to English, then to the key.
  */
-final class I18n
+class I18n
 {
 	/** Languages Genba ships. English is the default and the fallback. */
 	public const LANGUAGES = ['en', 'de'];

@@ -15,7 +15,7 @@ require_once __DIR__ . '/Tree.php';
  * Every rule carries a self-test sample that MUST match before the scan runs,
  * so a broken pattern cannot silently check nothing.
  */
-final class Precheck
+class Precheck
 {
 	/** What ends an address (address()): no URL holds these as they are. */
 	private const ADDRESS_STOP = " \t\n\r\f\v\"'<>()`,;{}|\\";

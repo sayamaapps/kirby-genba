@@ -15,7 +15,7 @@ namespace Sayamaapps\Genba;
  * `::error::` annotation. Control characters become spaces here, so the
  * text stays visible and the line stays one line.
  */
-final class Text
+class Text
 {
 	/** A cut text keeps this many characters, then "… (<n> characters)" (log_text of genba-smoke). */
 	public const KEEP = 60;

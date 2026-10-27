@@ -58,7 +58,7 @@ require_once __DIR__ . '/Text.php';
  * (C0, DEL, C1) are percent-encoded as the browser's URL parser encodes them (url()), so a value
  * never holds a tab, a line break or an escape sequence. Kirby-free; this file loads on PHP 8.2 (it says why it cannot run there).
  */
-final class Homepage
+class Homepage
 {
 	private const HTML_NS = 'http://www.w3.org/1999/xhtml';
 

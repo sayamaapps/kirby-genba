@@ -37,7 +37,7 @@ require_once __DIR__ . '/Text.php';
  * the directory relative to $project and as log text (an absolute path with
  * an ESC in its name would reach stderr and stdout raw).
  */
-final class Tree
+class Tree
 {
 	/**
 	 * The place (as shown) that $real equals or lies inside, or null.

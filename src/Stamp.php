@@ -17,7 +17,7 @@ require_once __DIR__ . '/Text.php';
  * file would be served by Apache past the preview protection, and it would
  * not prove that PHP renders the new code.
  */
-final class Stamp
+class Stamp
 {
 	/** Default stamp file, relative to the project root. Same value as Options::DEFAULT_STAMP_FILE. */
 	public const DEFAULT_FILE = 'site/config/build.txt';

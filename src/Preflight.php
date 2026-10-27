@@ -10,7 +10,7 @@ require_once __DIR__ . '/Text.php';
  * when it exists and says visibly when it does not, so the workflow line is
  * the same for every site. Kirby-free.
  */
-final class Preflight
+class Preflight
 {
 	private const ENV_HOOK = 'GENBA_PREFLIGHT_HOOK';
 

@@ -14,7 +14,7 @@ namespace Sayamaapps\Genba;
  * The command-line tools do NOT use this class: they write to STDOUT/STDERR
  * through the streams handed to their run() method (SPEC.md §3.0).
  */
-final class Log
+class Log
 {
 	/** @var array<string, true> */
 	private static array $seen = [];
