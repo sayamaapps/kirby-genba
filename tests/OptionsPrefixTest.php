@@ -13,90 +13,90 @@ use Sayamaapps\Genba\Options;
 #[CoversClass(Options::class)]
 final class OptionsPrefixTest extends TestCase
 {
-    public function testNewSpellingSwitchesGenbaOn(): void
-    {
-        $this->withApp(['sayamaapps.genba.active' => true], function (App $kirby): void {
-            $this->assertTrue(Options::active($kirby), 'sayamaapps.genba.active is read');
-        });
-    }
+	/** Runs $fn and returns the deprecation messages it triggered. */
+	private function collectDeprecations(callable $fn): array
+	{
+		$messages = [];
+		set_error_handler(function (int $level, string $message) use (&$messages): bool {
+			$messages[] = $message;
+			return true;
+		}, E_USER_DEPRECATED);
 
-    public function testNewSpellingWinsOverTheOldOneAndSilencesTheFallback(): void
-    {
-        $deprecations = $this->collectDeprecations(function (): void {
-            $this->withApp(['debug' => true, 'sayamaapps.genba.active' => false, 'genba.active' => true], function (App $kirby): void {
-                $this->assertFalse(Options::active($kirby), 'sayamaapps.genba.active wins when both are set');
-            });
-        });
+		try {
+			$fn();
+		} finally {
+			restore_error_handler();
+		}
 
-        $this->assertSame([], $deprecations, 'no fallback, no deprecation');
-    }
+		return $messages;
+	}
 
-    public function testOldSpellingStillWorksAndIsDeprecated(): void
-    {
-        $deprecations = $this->collectDeprecations(function (): void {
-            // Kirby reports deprecations in debug mode only.
-            $this->withApp(['debug' => true, 'genba.active' => true], function (App $kirby): void {
-                $this->assertTrue(Options::active($kirby), 'genba.active is read as fallback');
-            });
-        });
+	public function testLegacyFunctionReadsTheNewOptionAndIsDeprecated(): void
+	{
+		$deprecations = $this->collectDeprecations(function (): void {
+			$this->withApp(['debug' => true, 'sayamaapps.genba.active' => true], function (): void {
+				$this->assertTrue(genba_option('active'), 'genba_option() reads sayamaapps.genba.active');
+			});
+		});
 
-        $this->assertSame(
-            ['Genba: the option genba.active is deprecated, use sayamaapps.genba.active'],
-            array_values(array_filter($deprecations, fn (string $message): bool => str_contains($message, 'genba.active')))
-        );
-    }
+		$this->assertSame(
+			['genba_option() is deprecated, use Sayamaapps\\Genba\\Options::get()'],
+			array_values(array_filter($deprecations, fn (string $message): bool => str_contains($message, 'genba_option')))
+		);
+	}
 
-    public function testNotSetFallsBackToTheDefault(): void
-    {
-        $this->withApp([], function (App $kirby): void {
-            $this->assertFalse(Options::active($kirby), 'unset: default false');
-            $this->assertSame('build', Options::metaName($kirby), 'unset: default meta name');
-        });
-    }
+	public function testNewSpellingSwitchesGenbaOn(): void
+	{
+		$this->withApp(['sayamaapps.genba.active' => true], function (App $kirby): void {
+			$this->assertTrue(Options::active($kirby), 'sayamaapps.genba.active is read');
+		});
+	}
 
-    public function testLegacyFunctionReadsTheNewOptionAndIsDeprecated(): void
-    {
-        $deprecations = $this->collectDeprecations(function (): void {
-            $this->withApp(['debug' => true, 'sayamaapps.genba.active' => true], function (): void {
-                $this->assertTrue(genba_option('active'), 'genba_option() reads sayamaapps.genba.active');
-            });
-        });
+	public function testNewSpellingWinsOverTheOldOneAndSilencesTheFallback(): void
+	{
+		$deprecations = $this->collectDeprecations(function (): void {
+			$this->withApp(['debug' => true, 'sayamaapps.genba.active' => false, 'genba.active' => true], function (App $kirby): void {
+				$this->assertFalse(Options::active($kirby), 'sayamaapps.genba.active wins when both are set');
+			});
+		});
 
-        $this->assertSame(
-            ['genba_option() is deprecated, use Sayamaapps\\Genba\\Options::get()'],
-            array_values(array_filter($deprecations, fn (string $message): bool => str_contains($message, 'genba_option')))
-        );
-    }
+		$this->assertSame([], $deprecations, 'no fallback, no deprecation');
+	}
 
-    /** Runs $fn and returns the deprecation messages it triggered. */
-    private function collectDeprecations(callable $fn): array
-    {
-        $messages = [];
-        set_error_handler(function (int $level, string $message) use (&$messages): bool {
-            $messages[] = $message;
-            return true;
-        }, E_USER_DEPRECATED);
+	public function testNotSetFallsBackToTheDefault(): void
+	{
+		$this->withApp([], function (App $kirby): void {
+			$this->assertFalse(Options::active($kirby), 'unset: default false');
+			$this->assertSame('build', Options::metaName($kirby), 'unset: default meta name');
+		});
+	}
 
-        try {
-            $fn();
-        } finally {
-            restore_error_handler();
-        }
+	public function testOldSpellingStillWorksAndIsDeprecated(): void
+	{
+		$deprecations = $this->collectDeprecations(function (): void {
+			// Kirby reports deprecations in debug mode only.
+			$this->withApp(['debug' => true, 'genba.active' => true], function (App $kirby): void {
+				$this->assertTrue(Options::active($kirby), 'genba.active is read as fallback');
+			});
+		});
 
-        return $messages;
-    }
+		$this->assertSame(
+			['Genba: the option genba.active is deprecated, use sayamaapps.genba.active'],
+			array_values(array_filter($deprecations, fn (string $message): bool => str_contains($message, 'genba.active')))
+		);
+	}
 
-    /** Runs $fn with a Kirby app on a throwaway site and removes the site afterwards. */
-    private function withApp(array $options, callable $fn): void
-    {
-        $tmp = genba_site();
-        try {
-            $kirby = genba_kirby($tmp, $options);
-            $kirby->plugins();
-            $fn($kirby);
-        } finally {
-            App::destroy();
-            Dir::remove($tmp);
-        }
-    }
+	/** Runs $fn with a Kirby app on a throwaway site and removes the site afterwards. */
+	private function withApp(array $options, callable $fn): void
+	{
+		$tmp = genba_site();
+		try {
+			$kirby = genba_kirby($tmp, $options);
+			$kirby->plugins();
+			$fn($kirby);
+		} finally {
+			App::destroy();
+			Dir::remove($tmp);
+		}
+	}
 }

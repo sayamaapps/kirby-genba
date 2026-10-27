@@ -4,6 +4,15 @@ Operations checks for a deployed [Kirby CMS](https://getkirby.com) site: the bui
 
 Genba checks one deployed site from the inside, on every deploy. A status code alone proves little, so the smoke test measures the content: an old build or a half upload does not pass. The tools are command-line programs for CI; the Kirby part is a small plugin. No styling.
 
+## Requirements
+
+| | Supported |
+|---|---|
+| Kirby | 5 (the plugin part; the command-line tools need no Kirby) |
+| PHP | 8.2 to 8.5 with `curl`, `dom`, `json` and `mbstring` (declared by the package) |
+| `genba-smoke` | PHP 8.4 or newer on the machine that runs it, normally the CI runner |
+| Other | bash 3.2 or newer, `curl` and `git` for the commit hash |
+
 ## Features
 
 - Build stamp: the deployed commit hash in `<meta name="build">`, so a check can see that the new code is live.
@@ -13,20 +22,25 @@ Genba checks one deployed site from the inside, on every deploy. A status code a
 - No silent passes: a check that cannot run exits 2 or prints a visible `SKIPPED` line.
 - Off by default in Kirby, no cookies and no third-party requests; texts in English and German.
 
-## Requirements
-
-- PHP 8.2 or newer with `curl`, `json`, `mbstring` and `dom` (declared by the package).
-- `genba-smoke` needs PHP 8.4 or newer on the machine that runs it, normally the CI runner.
-- bash 3.2 or newer, `curl` and `git` for the commit hash.
-- Kirby 5, for the plugin part only.
-
 ## Installation
+
+Composer (recommended):
 
 ```sh
 composer require sayamaapps/kirby-genba
 ```
 
 Composer installs the plugin into `site/plugins/genba/` (through `getkirby/composer-installer`, a dependency of this package) and links the five tools into `vendor/bin/`. Add `/site/plugins/genba` to `.gitignore` and deploy it like `kirby/` and `vendor/`.
+
+ZIP: download the release archive from the GitHub release page and unpack it to `site/plugins/genba/`. The archive holds the plugin and the tools, nothing else.
+
+Git submodule:
+
+```sh
+git submodule add https://github.com/sayamaapps/kirby-genba.git site/plugins/genba
+```
+
+With the submodule the tools are in `site/plugins/genba/bin/`, run them from there.
 
 ## Usage
 
@@ -35,7 +49,7 @@ Switch on the Kirby part and print the stamp in `<head>` of the layout:
 ```php
 // site/config/config.php
 return [
-    'genba.active' => true,
+    'sayamaapps.genba.active' => true,
 ];
 ```
 
@@ -75,16 +89,28 @@ Run `genba-links` on its own schedule rather than in the deploy, so a slow YouTu
 
 ## Options
 
-The Kirby part reads these options from `site/config/config.php`. Flat (`'genba.active' => true`) and nested spellings both work; `null` means "not set".
+The Kirby part reads these options from `site/config/config.php`. Flat (`'sayamaapps.genba.active' => true`) and nested spellings both work; `null` means "not set". The keys are `sayamaapps.genba.*`; the former `genba.*` keys still work and are deprecated (see Deprecations).
 
-| Option | Default | Meaning |
-|---|---|---|
-| `genba.active` | `false` | Master switch. Only a real `true` enables the snippets and site methods. The tools do not read it. |
-| `genba.stamp.file` | `'site/config/build.txt'` | Stamp file, absolute or relative to the project root. |
-| `genba.stamp.meta` | `'build'` | `name` of the `<meta>` element. Only `[A-Za-z0-9_-]+` is accepted. |
-| `genba.language` | the site language, else `en` | `en` or `de`. A German single-language site without a `locale` must set `'de'`. |
+| Option | Type | Default | Meaning |
+|---|---|---|---|
+| `sayamaapps.genba.active` | bool | `false` | Master switch. Only a real `true` enables the snippets and site methods. The tools do not read it. |
+| `sayamaapps.genba.stamp.file` | string | `'site/config/build.txt'` | Stamp file, absolute or relative to the project root. |
+| `sayamaapps.genba.stamp.meta` | string | `'build'` | `name` of the `<meta>` element. Only `[A-Za-z0-9_-]+` is accepted. |
+| `sayamaapps.genba.language` | string | the site language, else `en` | `en` or `de`. A German single-language site without a `locale` must set `'de'`. |
 
 A broken value is logged once; with Kirby's `debug` option on, it throws instead. The tools' settings, checks and rules are in [docs/reference.md](docs/reference.md).
+
+## Deprecations
+
+Deprecated, removed in the next major version. With Kirby's `debug` option on, each use raises a deprecation notice.
+
+| Deprecated | Replacement |
+|---|---|
+| `genba_option($key)` | `Sayamaapps\Genba\Options::get($kirby, $key)` |
+| `genba.active`, `genba.stamp.file`, `genba.stamp.meta`, `genba.language` | `sayamaapps.genba.*` with the same meaning |
+| Classes `Genba\Stamp`, `Genba\Precheck`, `Genba\Preflight`, `Genba\Links`, `Genba\Homepage`, `Genba\Options`, `Genba\I18n`, `Genba\Log`, `Genba\Text`, `Genba\Tree` | `Sayamaapps\Genba\…` (same names; kept as class aliases) |
+
+The translation keys `genba.*` stay registered alongside `sayamaapps.genba.*`. The snippets `genba/stamp` and `genba/build-info` and the site methods `genbaBuild()` and `genbaBuildInfo()` are not deprecated.
 
 ## Privacy
 

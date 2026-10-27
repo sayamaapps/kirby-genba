@@ -1005,6 +1005,7 @@ final class Precheck
 
 	/**
 	 * @param list<string> $argv
+	 * @psalm-suppress InvalidReturnType The parse() result is built key by key; the flags stay optional until the end.
 	 * @return array{help: bool, forbid: bool, site: ?string, public: ?string, content: ?string, allow: ?string, require: ?string, markers: list<string>, errors: list<string>}
 	 */
 	private static function parse(array $argv): array
@@ -1048,6 +1049,7 @@ final class Precheck
 				$parsed['errors'][] = '--marker needs --forbid-markers';
 			}
 		}
+		/** @psalm-suppress InvalidReturnStatement The parsed options are filled key by key; the shape is documented at parse(). */
 		return $parsed;
 	}
 
@@ -1133,6 +1135,7 @@ final class Precheck
 		fwrite($out, '  ok   self-test: ' . count(self::RULES) . " rules fire on their samples and stay silent on their negative samples\n");
 		if ($args['forbid']) {
 			$defaults = count(self::MARKERS);
+			/** @psalm-suppress InvalidCast $defaults is an int at this point (psalm cannot see the branch). */
 			fwrite($out, $defaults === 1 ? "  ok   self-test: 1 marker pattern fires on its samples and stays silent on its negative samples\n"
 				: "  ok   self-test: $defaults marker patterns fire on their samples and stay silent on their negative samples\n");
 		}

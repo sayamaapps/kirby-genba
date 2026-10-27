@@ -2,6 +2,9 @@
 
 namespace Sayamaapps\Genba;
 
+use InvalidArgumentException;
+use RuntimeException;
+
 require_once __DIR__ . '/Text.php';
 
 /**
@@ -56,14 +59,14 @@ final class Stamp
 	 * `git rev-parse HEAD` in $directory, started with proc_open and an argv
 	 * array (no shell). Returns the 40-digit hash.
 	 *
-	 * @throws \RuntimeException with git's first stderr line ("not a git
-	 *                           repository …"), or "git not found" with the code GIT_MISSING when
-	 *                           git cannot be started (run() makes that an exit 2)
+	 * @throws RuntimeException with git's first stderr line ("not a git
+	 *                          repository …"), or "git not found" with the code GIT_MISSING when
+	 *                          git cannot be started (run() makes that an exit 2)
 	 */
 	public static function fromGit(string $directory): string
 	{
 		if (!is_dir($directory)) {
-			throw new \RuntimeException('Directory not found: ' . $directory);
+			throw new RuntimeException('Directory not found: ' . $directory);
 		}
 		$process = @proc_open(
 			['git', 'rev-parse', 'HEAD'],
@@ -72,7 +75,7 @@ final class Stamp
 			$directory
 		);
 		if (!is_resource($process)) {
-			throw new \RuntimeException('git not found', self::GIT_MISSING);
+			throw new RuntimeException('git not found', self::GIT_MISSING);
 		}
 		fclose($pipes[0]);
 		$stdout = (string)stream_get_contents($pipes[1]);
@@ -82,15 +85,15 @@ final class Stamp
 		$status = proc_close($process);
 
 		if ($status === 127) {
-			throw new \RuntimeException('git not found', self::GIT_MISSING);
+			throw new RuntimeException('git not found', self::GIT_MISSING);
 		}
 		if ($status !== 0) {
 			$firstLine = trim(strtok(trim($stderr), "\n") ?: '');
-			throw new \RuntimeException($firstLine !== '' ? $firstLine : 'git rev-parse HEAD exited with ' . $status);
+			throw new RuntimeException($firstLine !== '' ? $firstLine : 'git rev-parse HEAD exited with ' . $status);
 		}
 		$hash = trim($stdout);
 		if (preg_match(self::FULL_PATTERN, $hash) !== 1) {
-			throw new \RuntimeException('git rev-parse HEAD printed no full commit hash');
+			throw new RuntimeException('git rev-parse HEAD printed no full commit hash');
 		}
 		return $hash;
 	}
@@ -234,7 +237,7 @@ final class Stamp
 		} else {
 			try {
 				$hash = self::fromGit($cwd);
-			} catch (\RuntimeException $e) {
+			} catch (RuntimeException $e) {
 				if ($e->getCode() === self::GIT_MISSING) {
 					// A tool that is missing is "cannot run", exit 2 (SPEC §3.0) — as
 					// curl in genba-smoke, ext-curl in genba-links, sh in genba-preflight. A
@@ -254,7 +257,7 @@ final class Stamp
 
 		try {
 			self::write($file, $hash);
-		} catch (\RuntimeException $e) {
+		} catch (RuntimeException $e) {
 			fwrite($out, '::error::Cannot write ' . $display . ': ' . $e->getMessage() . "\n");
 			fwrite($out, "Genba stamp: FAILED — cannot write the stamp file\n");
 			return 1;
@@ -312,36 +315,36 @@ TEXT;
 	/**
 	 * Writes "$hash\n" to $file. Never creates directories.
 	 *
-	 * @throws \InvalidArgumentException when $hash is not a full 40-digit hash
-	 * @throws \RuntimeException when the directory does not exist or the write fails
+	 * @throws InvalidArgumentException when $hash is not a full 40-digit hash
+	 * @throws RuntimeException when the directory does not exist or the write fails
 	 */
 	public static function write(string $file, string $hash): void
 	{
 		if (preg_match(self::FULL_PATTERN, $hash) !== 1) {
-			throw new \InvalidArgumentException('Not a full commit hash: ' . $hash);
+			throw new InvalidArgumentException('Not a full commit hash: ' . $hash);
 		}
 		$dir = dirname($file);
 		if (!is_dir($dir)) {
-			throw new \RuntimeException('directory does not exist');
+			throw new RuntimeException('directory does not exist');
 		}
 		// A committed symlink (build.txt -> ../elsewhere) must not steer the
 		// write to another file. rename() below would replace the link itself
 		// anyway; refusing says so instead of silently dropping it.
 		if (is_link($file)) {
-			throw new \RuntimeException('it is a symbolic link, refusing to write through it');
+			throw new RuntimeException('it is a symbolic link, refusing to write through it');
 		}
 		// Temp file in the same directory, then rename(): atomic, and it never
 		// follows a link ('x' fails on any existing path, a link included).
 		$temp = $dir . '/.' . basename($file) . '.' . bin2hex(random_bytes(6)) . '.tmp';
 		$handle = @fopen($temp, 'x');
 		if ($handle === false) {
-			throw new \RuntimeException('write failed');
+			throw new RuntimeException('write failed');
 		}
 		$written = fwrite($handle, $hash . "\n") === strlen($hash) + 1;
 		$closed = fclose($handle);
 		if (!$written || !$closed || !@rename($temp, $file)) {
 			@unlink($temp);
-			throw new \RuntimeException('write failed');
+			throw new RuntimeException('write failed');
 		}
 	}
 }

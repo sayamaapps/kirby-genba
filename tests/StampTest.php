@@ -5,9 +5,9 @@
  * meta(), info(), write(), fromGit(),
  * the CLI through run() with memory streams, and one run of bin/genba-stamp.
  */
-use Sayamaapps\Genba\Stamp;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\TestCase;
+use Sayamaapps\Genba\Stamp;
 
 /** Runs Stamp::run() with memory streams and an empty environment unless given. */
 function stampCli(array $argv, string $cwd, array $env = []): array

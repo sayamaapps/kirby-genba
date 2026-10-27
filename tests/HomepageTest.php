@@ -6,9 +6,9 @@
  * The browser-level spellings are in the corpus (tests/HtmlCorpusTest.php); this file holds the
  * reader's own rules.
  */
-use Sayamaapps\Genba\Homepage;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\TestCase;
+use Sayamaapps\Genba\Homepage;
 
 #[CoversNothing]
 final class HomepageTest extends TestCase

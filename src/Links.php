@@ -2,6 +2,8 @@
 
 namespace Sayamaapps\Genba;
 
+use RuntimeException;
+
 require_once __DIR__ . '/Tree.php';
 
 /**
@@ -187,6 +189,7 @@ final class Links
 	public function check(array $ref): array
 	{
 		$key = self::targetKey($ref);
+		/** @psalm-suppress UnhandledMatchCondition The four kinds are the only ones that reach check(); an unknown kind throws earlier in reference() (no behaviour change). */
 		return $this->cache[$key] ??= match ($ref['kind']) {
 			self::KIND_YOUTUBE, self::KIND_YOUTUBE_EMBED => $this->youtube($ref['key'], $ref['kind'] === self::KIND_YOUTUBE_EMBED),
 			self::KIND_DIGISTORE => $this->digistore($ref['key'], $ref['expected']),
@@ -306,6 +309,7 @@ final class Links
 			return ['status' => self::FINDING, 'text' => "Digistore product $shown does not exist (HTTP {$a['code']})"];
 		}
 		if ($a['code'] !== 200) {
+			/** @psalm-suppress InvalidArgument describe() takes the fetch() result; the refused-shaped array is printed with its code 0 (documented shape union, see fetch()). */
 			return ['status' => self::DISRUPTION, 'text' => "Digistore product $shown: " . $this->describe($a)];
 		}
 		preg_match('~<title>\s*(.*?)\s*</title>~si', $a['body'], $t);
@@ -356,6 +360,7 @@ final class Links
 			}
 			$origin = $target['origin'];
 			if (!isset($pins[$origin])) {
+				/** @psalm-suppress InvalidArgument guard() takes the target shape with its keys set by normalize(); the optional keys are present here. */
 				$guard = $this->guard($target, $hop > 0 || $checkFirst, $hop === 0);
 				if (isset($guard['refused'])) {
 					return ['code' => 0, 'body' => '', 'final' => $target['url'], 'chain' => $chain, 'error' => '', 'refused' => $guard['refused']];
@@ -432,7 +437,7 @@ final class Links
 
 	/**
 	 * A directory that cannot be listed or a file that cannot be read throws
-	 * \RuntimeException: links left unread are never reported as checked.
+	 * RuntimeException: links left unread are never reported as checked.
 	 *
 	 * @param list<string> $paths
 	 * @return list<array{kind: string, key: string, url: string, expected: list<string>, place: string, product: ?string}>
@@ -447,7 +452,7 @@ final class Links
 				$display = $basis !== '' && str_starts_with($file, $basis . '/') ? substr($file, strlen($basis) + 1) : $file;
 				$text = @file_get_contents($file);
 				if ($text === false) {
-					throw new \RuntimeException('Cannot read file: ' . self::clean($display));
+					throw new RuntimeException('Cannot read file: ' . self::clean($display));
 				}
 				array_push($refs, ...$this->fromText($text, $display));
 				if (str_ends_with($file, '.txt')) {
@@ -598,6 +603,7 @@ final class Links
 				return true;
 			}
 			$mask = (0xff << (8 - $rest)) & 0xff;
+			/** @psalm-suppress InvalidArrayAccess inet_pton() returns false only for a malformed address, which network() has rejected before. */
 			if ((ord($packed[$bytes]) & $mask) === (ord($net[$bytes]) & $mask)) {
 				return true;
 			}
@@ -701,6 +707,7 @@ final class Links
 		if (in_array($a['code'], [404, 410], true) || ($a['code'] >= 300 && $a['code'] < 400)) {
 			return ['status' => self::FINDING, 'text' => "Purchase link ends with HTTP {$a['code']} ($chain)"];
 		}
+		/** @psalm-suppress InvalidArgument describe() takes the fetch() result; the refused-shaped array is printed with its code 0 (documented shape union, see fetch()). */
 		return ['status' => self::DISRUPTION, 'text' => 'Purchase link: ' . $this->describe($a) . " ($chain)"];
 	}
 
@@ -974,7 +981,7 @@ final class Links
 
 		try {
 			$refs = $links->find($existing, $base);
-		} catch (\RuntimeException $e) {
+		} catch (RuntimeException $e) {
 			// An unreadable directory or file: the links in it would go unchecked.
 			return self::cannotRun($out, $err, '::error::' . $e->getMessage());
 		}
@@ -1148,6 +1155,7 @@ final class Links
 			return ['status' => $embed ? self::FINDING : self::NOTICE,
 				'text' => "Video $video cannot be embedded (oEmbed 401)"];
 		}
+		/** @psalm-suppress InvalidArgument describe() takes the fetch() result; the refused-shaped array is printed with its code 0 (documented shape union, see fetch()). */
 		return ['status' => self::DISRUPTION, 'text' => 'YouTube unreachable: ' . $this->describe($a)];
 	}
 }

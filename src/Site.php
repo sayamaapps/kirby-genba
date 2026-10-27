@@ -15,7 +15,7 @@ use Kirby\Cms\Site as KirbySite;
 final class Site
 {
 	/** The deployed commit hash, or null (see genbaBuild()). */
-	public static function build(KirbySite $site): ?string
+	public static function build(KirbySite $site): string|null
 	{
 		$kirby = $site->kirby();
 		if (!Options::active($kirby)) {
@@ -25,7 +25,7 @@ final class Site
 	}
 
 	/** Hash plus context, or null (see genbaBuildInfo()). */
-	public static function buildInfo(KirbySite $site): ?array
+	public static function buildInfo(KirbySite $site): array|null
 	{
 		$kirby = $site->kirby();
 		if (!Options::active($kirby)) {

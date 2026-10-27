@@ -4,9 +4,9 @@
  * Translations: every language has the same keys and placeholders as
  * English, no value is empty, and the helpers follow the language.
  */
-use Sayamaapps\Genba\I18n;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\TestCase;
+use Sayamaapps\Genba\I18n;
 
 #[CoversNothing]
 final class I18nTest extends TestCase

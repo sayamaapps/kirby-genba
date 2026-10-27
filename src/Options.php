@@ -2,6 +2,7 @@
 
 namespace Sayamaapps\Genba;
 
+use InvalidArgumentException;
 use Kirby\Cms\App;
 use Kirby\Cms\Helpers;
 
@@ -30,11 +31,11 @@ final class Options
 	/** Where the deploy writes the commit hash, relative to the project root (SPEC.md §6). */
 	public const DEFAULT_STAMP_FILE = 'site/config/build.txt';
 
-	/** Option prefix since 2.x (OPT-1). */
-	public const PREFIX = 'sayamaapps.genba.';
-
 	/** Option prefix of 1.x, read as a fallback until the next major version. */
 	public const LEGACY_PREFIX = 'genba.';
+
+	/** Option prefix since 2.x (OPT-1). */
+	public const PREFIX = 'sayamaapps.genba.';
 
 	/** Master switch: only a real `true` switches the Kirby part on. */
 	public static function active(App $kirby): bool
@@ -84,7 +85,7 @@ final class Options
 	public static function invalid(App $kirby, string $message): void
 	{
 		if ($kirby->option('debug') === true) {
-			throw new \InvalidArgumentException($message);
+			throw new InvalidArgumentException($message);
 		}
 		Log::error($message);
 	}

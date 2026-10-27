@@ -3,6 +3,7 @@
 namespace Sayamaapps\Genba;
 
 use Dom\HTMLDocument;
+use SplObjectStorage;
 
 require_once __DIR__ . '/Text.php';
 
@@ -299,7 +300,7 @@ final class Homepage
 	 * RESERVED_CUSTOM), and the first such template of that host — otherwise the template stays
 	 * inert, as in the browser.
 	 */
-	private static function shadowRoot(object $template, \SplObjectStorage $hosts): bool
+	private static function shadowRoot(object $template, SplObjectStorage $hosts): bool
 	{
 		$mode = strtolower($template->getAttribute('shadowrootmode') ?? '');
 		$host = $template->parentNode;
@@ -428,7 +429,7 @@ final class Homepage
 	 */
 	private static function walk(object $root, string $meta, string|null &$build, string|null &$base, array &$records, bool $shadow): void
 	{
-		$hosts = new \SplObjectStorage();
+		$hosts = new SplObjectStorage();
 		$node = $root->firstChild;
 		while ($node !== null) {
 			$enter = true;

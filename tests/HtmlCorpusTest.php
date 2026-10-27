@@ -13,9 +13,9 @@
  *
  * A new spelling is a new file; this test picks it up by itself.
  */
-use Sayamaapps\Genba\Precheck;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\TestCase;
+use Sayamaapps\Genba\Precheck;
 
 #[CoversNothing]
 final class HtmlCorpusTest extends TestCase

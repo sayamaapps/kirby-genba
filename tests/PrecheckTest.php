@@ -4,9 +4,9 @@
  * Precheck (SPEC §9.4). Kirby-free: loads the class file directly.
  * Run: ASDF_PHP_VERSION=8.5.3 php tests/PrecheckTest.php
  */
-use Sayamaapps\Genba\Precheck;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\TestCase;
+use Sayamaapps\Genba\Precheck;
 
 /** Runs Precheck::run() with memory streams; returns [exit code, stdout, stderr]. */
 function precheck_run(string $cwd, array $argv, array $env = []): array

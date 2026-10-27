@@ -9,7 +9,7 @@ return [
 	 * off, file missing, empty, or not a 7–64 digit hex hash (nothing unchecked
 	 * goes into the HTML).
 	 */
-	'genbaBuild' => function (): ?string {
+	'genbaBuild' => function (): string|null {
 		return Site::build($this);
 	},
 
@@ -24,7 +24,7 @@ return [
 	 * file outside the root: its name only). `writtenAt` is the file's modification
 	 * time in ISO 8601 (UTC), or null when it cannot be read.
 	 */
-	'genbaBuildInfo' => function (): ?array {
+	'genbaBuildInfo' => function (): array|null {
 		return Site::buildInfo($this);
 	},
 ];
