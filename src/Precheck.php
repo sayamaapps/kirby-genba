@@ -842,10 +842,11 @@ class Precheck
 	 * does not enter (Tree::walk()). No rendering: the markers stand in the content files, and the check runs
 	 * before the upload, without Kirby. A file that is not valid UTF-8, a pattern that fails on a line
 	 * (backtrack limit) and a root that does not exist throw RuntimeException: the check could not run.
+	 * Findings carry the file and dir relative to $cwd, the match as found and the trimmed line (max 200 chars).
+	 * Files counts the content files read.
 	 *
 	 * @param array<string,array{pattern: string, message: string}> $patterns
 	 * @return array{findings: list<array{file: string, line: int, message: string, match: string, text: string}>, files: int, skipped: list<array{dir: string, reason: string}>}
-	 * Findings: file and dir relative to $cwd, match as found, text = the trimmed line (max 200 chars). Files: the content files read.
 	 */
 	public static function markers(string $content, string $cwd, array $patterns): array
 	{
