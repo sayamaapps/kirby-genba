@@ -8,8 +8,7 @@ namespace Sayamaapps\Genba;
  *
  * Every message is written once per process: a page renders the stamp and
  * the build info and reads the options several times, and a broken option
- * must not fill the log with copies. Tests call forget() to see a message
- * again.
+ * must not fill the log with copies.
  *
  * The command-line tools do NOT use this class: they write to STDOUT/STDERR
  * through the streams handed to their run() method (SPEC.md §3.0).
@@ -27,11 +26,5 @@ class Log
 		}
 		self::$seen[$message] = true;
 		error_log($message);
-	}
-
-	/** Forgets the messages already written (tests only). */
-	public static function forget(): void
-	{
-		self::$seen = [];
 	}
 }

@@ -127,7 +127,6 @@ final class KirbyTest extends TestCase
 				$bad = genba_kirby($tmp, ['sayamaapps.genba.active' => true, 'sayamaapps.genba.stamp.meta' => 'bad name']);
 				$bad->plugins();
 				$logged = genbaErrorLog($tmp, function () use ($bad, $other): void {
-					\Sayamaapps\Genba\Log::forget();
 					$html = $bad->snippet('genba/stamp', [], true);
 					expect('<meta name="build" content="' . $other . '">' . "\n", $html, 'invalid meta name: default build is used');
 				});
