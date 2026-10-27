@@ -25,8 +25,10 @@ composer test                     # PHPUnit
 composer analyze:psalm            # Psalm
 composer analyze:phpmd            # PHP Mess Detector
 composer analyze:unused           # unused Composer packages
+composer analyze:phpcpd           # duplicated code (needs phpcpd 6.0.3 on the PATH, see CI)
 composer analyze:require-checker  # undeclared dependencies
 composer normalize:check          # composer.json layout
+composer check-platform-reqs       # PHP and extensions of the platform
 ```
 
 Code style is checked with PHP-CS-Fixer and the Kirby rule set (`getkirby/php-cs`). The package is installed globally, because it needs PHP 8.3 or newer and this package supports PHP 8.2:

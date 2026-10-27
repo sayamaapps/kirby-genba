@@ -71,6 +71,7 @@
         "kirby-cms-path": false
     },
     "scripts": {
+        "analyze:phpcpd": "phpcpd --fuzzy --exclude tests --exclude vendor .",
         "analyze:phpmd": "vendor/bin/phpmd src,config,index.php,legacy.php,autoload.php github phpmd.xml.dist",
         "analyze:psalm": "vendor/bin/psalm",
         "analyze:require-checker": "vendor/bin/composer-require-checker check --config-file=composer-require-checker.json composer.json",
