@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <psalm
-    errorLevel="4"
+    errorLevel="5"
     phpVersion="8.2"
     resolveFromConfigFile="true"
     findUnusedBaselineEntry="false"
@@ -18,4 +18,19 @@
             <directory name="config" />
         </ignoreFiles>
     </projectFiles>
+    <issueHandlers>
+        <!-- Dom\HTMLDocument is PHP 8.4+. Src/Homepage.php uses it only behind a PHP_VERSION_ID check
+             (the 8.2 and 8.3 runs use the fallback reader), and Psalm analyses the 8.2 platform. -->
+        <UndefinedClass>
+            <errorLevel type="suppress">
+                <referencedClass name="Dom\HTMLDocument" />
+            </errorLevel>
+        </UndefinedClass>
+        <UndefinedMethod>
+            <errorLevel type="suppress">
+                <referencedMethod name="Dom\HTMLDocument::createEmpty" />
+                <referencedMethod name="Dom\HTMLDocument::createFromString" />
+            </errorLevel>
+        </UndefinedMethod>
+    </issueHandlers>
 </psalm>

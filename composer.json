@@ -1,8 +1,8 @@
 {
     "name": "sayamaapps/kirby-genba",
     "description": "Build stamp, pre-deploy checks, smoke test and link check for deployed Kirby CMS sites.",
-    "type": "kirby-plugin",
     "license": "MIT",
+    "type": "kirby-plugin",
     "keywords": [
         "kirby",
         "kirby-plugin",
@@ -13,23 +13,27 @@
         "operations",
         "link-check"
     ],
-    "homepage": "https://github.com/sayamaapps/kirby-genba",
     "authors": [
         {
             "name": "Simon Räder",
             "homepage": "https://sayamaapps.de"
         }
     ],
+    "homepage": "https://github.com/sayamaapps/kirby-genba",
     "support": {
         "issues": "https://github.com/sayamaapps/kirby-genba/issues",
         "source": "https://github.com/sayamaapps/kirby-genba"
     },
     "require": {
         "php": "^8.2",
+        "ext-ctype": "*",
         "ext-curl": "*",
         "ext-dom": "*",
+        "ext-filter": "*",
         "ext-json": "*",
+        "ext-libxml": "*",
         "ext-mbstring": "*",
+        "ext-tokenizer": "*",
         "getkirby/composer-installer": "^1.2"
     },
     "require-dev": {
@@ -41,12 +45,19 @@
         "phpunit/phpunit": "11.5.55",
         "vimeo/psalm": "^6.20"
     },
+    "bin": [
+        "bin/genba-links",
+        "bin/genba-precheck",
+        "bin/genba-preflight",
+        "bin/genba-smoke",
+        "bin/genba-stamp"
+    ],
     "config": {
-        "optimize-autoloader": true,
         "allow-plugins": {
             "ergebnis/composer-normalize": true,
             "getkirby/composer-installer": true
         },
+        "optimize-autoloader": true,
         "platform": {
             "php": "8.2.27"
         },
@@ -66,12 +77,5 @@
         "analyze:unused": "vendor/bin/composer-unused",
         "normalize:check": "@composer normalize --dry-run",
         "test": "vendor/bin/phpunit"
-    },
-    "bin": [
-        "bin/genba-stamp",
-        "bin/genba-preflight",
-        "bin/genba-precheck",
-        "bin/genba-smoke",
-        "bin/genba-links"
-    ]
+    }
 }
