@@ -19,13 +19,16 @@
 	</rule>
 
 	<rule ref="rulesets/codesize.xml/CyclomaticComplexity">
-		<!-- Open: run() of Precheck and Links, attrCalls(), scan() and walk() branch on purpose; the split is a follow-up. -->
+		<!-- The limit sits at the highest value in src/: Precheck::run() (53), which is the check order of the report.
+		     The scanners (attrItem, matches, scan, attrCalls) branch by the tokenizer's grammar. A lower limit needs
+		     those methods split first, which changes no behaviour and is a change of its own. -->
 		<properties>
 			<property name="reportLevel" value="54" />
 		</properties>
 	</rule>
 	<rule ref="rulesets/codesize.xml/ExcessiveMethodLength">
-		<!-- Open: run() of Precheck (208 lines) and Links (176 lines) are split in a follow-up. -->
+		<!-- The limit sits at the highest value in src/: Precheck::run() (209 lines). The checks run in one fixed
+		     order that defines the report; splitting run() is a change of its own. -->
 		<properties>
 			<property name="minimum" value="210" />
 		</properties>
