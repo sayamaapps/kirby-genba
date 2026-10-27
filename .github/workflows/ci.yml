@@ -31,7 +31,7 @@ jobs:
         # before the first request) and the corpus runs its precheck half.
         php: ['8.2', '8.3', '8.4', '8.5']
         deps: [highest]
-        # lowest: the oldest dependencies allowed by composer.json, run on the oldest PHP only (CI budget).
+        # lowest: the oldest dependencies allowed by composer.json, run on the oldest PHP only, to keep the matrix short.
         include:
           - php: '8.2'
             deps: lowest
