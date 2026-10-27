@@ -188,6 +188,8 @@ class Homepage
 			default => 1,
 		};
 		if ($value < $need) {
+			// Declared in legacy.php, which the reader and index.php load before this call.
+			/** @psalm-suppress UndefinedFunction */
 			\Genba\raise_memory_limit((string)$need);
 		}
 	}

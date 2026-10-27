@@ -32,9 +32,12 @@ jobs:
         php: ['8.2', '8.3', '8.4', '8.5']
         deps: [highest]
         # lowest: the oldest dependencies allowed by composer.json, run on the oldest PHP only, to keep the matrix short.
+        # locked: the versions in composer.lock, run on the newest PHP only.
         include:
           - php: '8.2'
             deps: lowest
+          - php: '8.5'
+            deps: locked
     steps:
       - uses: actions/checkout@v4
 
@@ -62,13 +65,17 @@ jobs:
 
       - name: Install dev dependencies, highest versions (Kirby as fixture)
         if: matrix.deps == 'highest'
+        run: composer update --no-interaction --no-progress --prefer-dist --ignore-platform-req=ext-gd
+
+      - name: Install dev dependencies, locked versions (composer.lock)
+        if: matrix.deps == 'locked'
         run: composer install --no-interaction --no-progress --prefer-dist --ignore-platform-req=ext-gd
 
       - name: Tests
         run: vendor/bin/phpunit
 
       # The tools must run without Kirby, without a site and without network,
-      # and must say what is missing instead of passing (SPEC.md §3.0).
+      # and must say what is missing instead of passing (docs/SPEC.md §3.0).
       - name: The CLI tools fail loudly outside a project
         run: |
           set +e
