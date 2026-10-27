@@ -43,7 +43,7 @@ kirby-cs fix --dry-run --diff     # the global bin directory must be in PATH
 - Tabs for indentation, LF line endings. `.editorconfig` lists the rest.
 - Classes live in `src/`, one class per file. The class map in `autoload.php` lists them, and `tests/AutoloadTest.php` checks it.
 - Keep public names stable. A rename gets a deprecation wrapper first, see the README section Deprecations.
-- Classes bound to Kirby throw Kirby's exceptions (`Kirby\Exception\…`). The command-line classes run without Kirby and throw PHP's `RuntimeException` instead.
+- Every class throws the PHP exception classes it threw in 1.x (`\InvalidArgumentException`, `\RuntimeException` …), also the ones bound to Kirby. Kirby's own exception classes do not extend them, so a change needs a major version.
 - Commit messages follow Conventional Commits (`feat:`, `fix:`, `refactor:`, `test:`, `docs:`, `style:`, `chore:`).
 
 ## Pull requests

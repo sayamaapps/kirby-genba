@@ -49,7 +49,7 @@ Switch on the Kirby part and print the stamp in `<head>` of the layout:
 ```php
 // site/config/config.php
 return [
-    'sayamaapps.genba.active' => true,
+    'genba.active' => true,
 ];
 ```
 
@@ -89,30 +89,37 @@ Run `genba-links` on its own schedule rather than in the deploy, so a slow YouTu
 
 ## Options
 
-The Kirby part reads these options from `site/config/config.php`. Flat (`'sayamaapps.genba.active' => true`) and nested spellings both work; `null` means "not set". The keys are `sayamaapps.genba.*`; the former `genba.*` keys still work and are deprecated (see Deprecations).
+The Kirby part reads these options from `site/config/config.php`. Flat (`'genba.active' => true`) and nested spellings both work; `null` means "not set".
 
-The plugin's `options` block lists the keys with `null`, not with a default: the defaults are applied when the option is read. A default in the block would hide the former `genba.*` spelling.
+| Option | Default | Meaning |
+|---|---|---|
+| `genba.active` | `false` | Master switch. Only a real `true` enables the snippets and site methods. The tools do not read it. |
+| `genba.stamp.file` | `'site/config/build.txt'` | Stamp file, absolute or relative to the project root. |
+| `genba.stamp.meta` | `'build'` | `name` of the `<meta>` element. Only `[A-Za-z0-9_-]+` is accepted. |
+| `genba.language` | the site language, else `en` | `en` or `de`. A German single-language site without a `locale` must set `'de'`. |
 
-| Option | Type | Default | Meaning |
-|---|---|---|---|
-| `sayamaapps.genba.active` | bool | `false` | Master switch. Only a real `true` enables the snippets and site methods. The tools do not read it. |
-| `sayamaapps.genba.stamp.file` | string | `'site/config/build.txt'` | Stamp file, absolute or relative to the project root. |
-| `sayamaapps.genba.stamp.meta` | string | `'build'` | `name` of the `<meta>` element. Only `[A-Za-z0-9_-]+` is accepted. |
-| `sayamaapps.genba.language` | string | the site language, else `en` | `en` or `de`. A German single-language site without a `locale` must set `'de'`. |
+A broken value is logged once; with Kirby's `debug` option on, it throws an `InvalidArgumentException` instead. The tools' settings, checks and rules are in [docs/reference.md](docs/reference.md).
 
-A broken value is logged once; with Kirby's `debug` option on, it throws instead. The tools' settings, checks and rules are in [docs/reference.md](docs/reference.md).
+The plugin's texts come from Genba's own tables (English and German), which the command-line tools share; they do not depend on Kirby's translation files. The keys `genba.*` are also registered with Kirby for blueprint labels.
 
 ## Deprecations
 
-Deprecated, removed in the next major version. With Kirby's `debug` option on, each use raises a deprecation notice.
+Deprecated in 1.x, removed in the next major version. No runtime notice is raised: each deprecation is marked `@deprecated` in the code and listed here.
 
 | Deprecated | Replacement |
 |---|---|
 | `genba_option($key)` | `Sayamaapps\Genba\Options::get($kirby, $key)` |
-| `genba.active`, `genba.stamp.file`, `genba.stamp.meta`, `genba.language` | `sayamaapps.genba.*` with the same meaning |
-| Classes `Genba\Stamp`, `Genba\Precheck`, `Genba\Preflight`, `Genba\Links`, `Genba\Homepage`, `Genba\Options`, `Genba\I18n`, `Genba\Log`, `Genba\Text`, `Genba\Tree` | `Sayamaapps\Genba\…` (same names; kept as class aliases) |
+| Classes `Genba\Stamp`, `Genba\Precheck`, `Genba\Preflight`, `Genba\Links`, `Genba\Homepage`, `Genba\Options`, `Genba\I18n`, `Genba\Log`, `Genba\Text`, `Genba\Tree` | `Sayamaapps\Genba\…` (same names; the old names stay as class aliases) |
+| `Genba\Log::forget()` (test helper, `@internal`) | none |
 
-The translation keys `genba.*` stay registered alongside `sayamaapps.genba.*`. The snippets `genba/stamp` and `genba/build-info` and the site methods `genbaBuild()` and `genbaBuildInfo()` are not deprecated.
+## Planned for 2.0
+
+Not in 1.x, because each one changes behaviour:
+
+- Options are read as `sayamaapps.genba.*` (the same keys as `genba.*`). `genba.*` stays readable as a fallback, with a deprecation notice in debug mode.
+- Runtime deprecation notices for `genba_option()`, the `Genba\` class names and the `genba.*` options.
+- Broken options throw Kirby's own `Kirby\Exception\InvalidArgumentException` in debug mode. It does not extend PHP's `InvalidArgumentException`, so code that catches the PHP class would miss it.
+- Removal of `genba_option()`, the `Genba\` class names and `Log::forget()`.
 
 ## Privacy
 

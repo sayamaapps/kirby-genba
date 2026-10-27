@@ -9,6 +9,24 @@ All notable changes to this project are documented here. The format follows
   **major** version. Sites and their workflows match on these; a routine update
   must not change what a check reports or how a workflow reads its result.
 
+## [Unreleased]
+
+### Changed — code layout after the Kirby plugin conventions; no change in behaviour
+
+- Classes live in the `Sayamaapps\Genba` namespace and are loaded through a class map (`autoload.php`).
+  The former `Genba\` names stay as class aliases (`legacy.php`), created when first used.
+- `index.php` only registers the plugin; the definitions are in `config/`.
+- Code style after Kirby's (`getkirby/php-cs`, tabs), PHPUnit instead of `tests/run.sh`, and analysis in CI
+  (Psalm, PHPMD, phpcpd, composer-require-checker, composer-unused). `LICENSE.md`, `.editorconfig` and `.gitattributes` added.
+- Messages, exit codes, environment variables, snippets, site methods, translation keys and the stamp file are unchanged.
+- No breaking change in 1.x. Breaking changes wait for the next major version (see README, "Planned for 2.0").
+
+### Deprecated — documentation only, no runtime notice
+
+- `genba_option()`: use `Sayamaapps\Genba\Options::get()`.
+- The `Genba\` class names: use `Sayamaapps\Genba\…`.
+- `Genba\Log::forget()`: test helper, `@internal`.
+
 ## [1.6.0] — 2026-10-24
 
 ### Added — `genba-precheck --forbid-markers`: no placeholder goes live

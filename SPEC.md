@@ -7,7 +7,7 @@ package for a deployed Kirby 5 site: the **build stamp** in the HTML, the
 **foreign-link check** against the source (YouTube, Digistore, purchase links).
 
 Package `sayamaapps/kirby-genba`, Kirby plugin id `sayamaapps/genba`, PHP
-namespace `Genba`, option prefix `genba.`, installed by Composer into
+namespace `Sayamaapps\Genba` (since 1.7; the former `Genba\` names are class aliases in `legacy.php`), option prefix `genba.`, installed by Composer into
 `site/plugins/genba/`, five command-line tools linked into `vendor/bin/`.
 
 It replaces the per-site files for the build stamp, the smoke test, the
@@ -1083,7 +1083,7 @@ Nothing when `genba.active` is off. Texts via `I18n::t()` after
 null), `build.none`. Every value through `esc()` except the hash in
 `data-build` (pattern-safe, but `esc()` it anyway — it costs nothing).
 
-### 3.7 Site methods and helper (index.php — written)
+### 3.7 Site methods and helper (index.php, legacy.php — written)
 
 `genba_option(string $key, mixed $default = null): mixed` ·
 `$site->genbaBuild(): ?string` · `$site->genbaBuildInfo(): ?array` (shape in
