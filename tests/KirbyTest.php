@@ -136,7 +136,7 @@ final class KirbyTest extends TestCase
 				$threw = false;
 				try {
 					$debug->snippet('genba/stamp', [], true);
-				} catch (InvalidArgumentException) {
+				} catch (\Kirby\Exception\InvalidArgumentException) {
 					$threw = true;
 				}
 				holds($threw, 'debug on: invalid genba.stamp.meta throws InvalidArgumentException');

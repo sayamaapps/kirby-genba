@@ -2,9 +2,9 @@
 
 namespace Sayamaapps\Genba;
 
-use InvalidArgumentException;
 use Kirby\Cms\App;
 use Kirby\Cms\Helpers;
+use Kirby\Exception\InvalidArgumentException;
 
 /**
  * Reads the options of the Kirby part of the plugin (SPEC.md §4): `sayamaapps.genba.<key>`,
@@ -91,7 +91,7 @@ class Options
 	public static function invalid(App $kirby, string $message): void
 	{
 		if ($kirby->option('debug') === true) {
-			throw new InvalidArgumentException($message);
+			throw new InvalidArgumentException(message: $message);
 		}
 		Log::error($message);
 	}
