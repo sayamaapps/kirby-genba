@@ -91,6 +91,8 @@ Run `genba-links` on its own schedule rather than in the deploy, so a slow YouTu
 
 The Kirby part reads these options from `site/config/config.php`. Flat (`'sayamaapps.genba.active' => true`) and nested spellings both work; `null` means "not set". The keys are `sayamaapps.genba.*`; the former `genba.*` keys still work and are deprecated (see Deprecations).
 
+The plugin's `options` block lists the keys with `null`, not with a default: the defaults are applied when the option is read. A default in the block would hide the former `genba.*` spelling.
+
 | Option | Type | Default | Meaning |
 |---|---|---|---|
 | `sayamaapps.genba.active` | bool | `false` | Master switch. Only a real `true` enables the snippets and site methods. The tools do not read it. |
