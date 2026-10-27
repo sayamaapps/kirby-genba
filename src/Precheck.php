@@ -158,7 +158,13 @@ class Precheck
 		// the name pattern, for every rule that forbids one (attrNames(): any call, a multi-line array
 		// literal, `'style' => $s ?: null` counts, `'style' => null` prints nothing). Reading attr()
 		// only to free a script would let a style or an onclick printed by it pass.
-		'inline-style'    => ['pattern' => '~(^|[\s"\'/]|\?>)style\s*=~i', 'wrapped' => true, 'attr' => '~^style$~',                                'roots' => ['site'],           'sample' => '<p style="x">',               'message' => 'inline style — the CSP forbids it',
+		'inline-style'    => [
+			'pattern' => '~(^|[\s"\'/]|\?>)style\s*=~i',
+			'wrapped' => true,
+			'attr' => '~^style$~',
+			'roots' => ['site'],
+			'sample' => '<p style="x">',
+			'message' => 'inline style — the CSP forbids it',
 			'positives' => ['<p class="a"style="color:red">', '<p/style="color:red">', '<p <?= $x ?>style="color:red">',
 				"<div<?= attr(['class' => 'card', 'style' => '--accent: ' . \$page->color()], ' ') ?>>",
 				"<div<?= Html::attr(['style' => \$s ?: null], null, ' ') ?>>", "<div<?= \$wide ? attr(['style' => \$s], ' ') : '' ?>>",
@@ -172,7 +178,11 @@ class Precheck
 				"<p style\n  class=\"a\">", "<p class=\"a\"\nstyle=\"x\">",
 				"<div<?= attr(['style' => null], ' ') ?>>", "<div<?= attr(['data-style' => \$s, 'class' => 'style'], ' ') ?>>",
 				"<div<?= Html::attr('style', null, ' ') ?>>"]],
-		'foreign-host'    => ['pattern' => '~(googleapis|gstatic|jimcdn|instagram\.com/embed|maps\.google|//fonts\.)~i',  'roots' => ['site', 'public'], 'sample' => 'https://fonts.gstatic.com/x', 'message' => 'foreign host — brings back the consent requirement',
+		'foreign-host'    => [
+			'pattern' => '~(googleapis|gstatic|jimcdn|instagram\.com/embed|maps\.google|//fonts\.)~i',
+			'roots' => ['site', 'public'],
+			'sample' => 'https://fonts.gstatic.com/x',
+			'message' => 'foreign host — brings back the consent requirement',
 			// A forbidden address next to the allowed one of the default entry,
 			// separated by a backtick, a comma — checked with the default allow list too.
 			'positives' => ['const a=`https://places.googleapis.com/v1/${id}`,b=`https://fonts.googleapis.com/css2?family=Inter`;',
@@ -183,7 +193,14 @@ class Precheck
 		// `var once = key` in a script and `const ONLINE = 'online'` in a class are code, not attributes.
 		// Any other on… name is printed as a `--` line (notCounted()), never passed in silence.
 		// A PHP closing tag right before the name is a boundary too (a block printing the attribute before).
-		'inline-handler'  => ['pattern' => '~(^|[\s"\'/]|\?>)(?<name>on[a-z]+)\s*=~i', 'wrapped' => true, 'attr' => '~^on[a-z]+$~', 'names' => self::EVENT_HANDLERS, 'roots' => ['site'], 'sample' => '<button onclick="x">', 'message' => 'inline event handler — the CSP forbids it',
+		'inline-handler'  => [
+			'pattern' => '~(^|[\s"\'/]|\?>)(?<name>on[a-z]+)\s*=~i',
+			'wrapped' => true,
+			'attr' => '~^on[a-z]+$~',
+			'names' => self::EVENT_HANDLERS,
+			'roots' => ['site'],
+			'sample' => '<button onclick="x">',
+			'message' => 'inline event handler — the CSP forbids it',
 			'positives' => ['<img src="x.png"/onerror="alert(1)">', '<a href="#"onclick="x()">', 'onclick="x()"', '<A ONCLICK="x()">',
 				'<svg><animate onbegin="x()"/></svg>', '<body onpageshow="init()">', '<div onpointerdown="x()">',
 				"el.innerHTML = '<button onclick=\"go()\">';", '<div once="x" onclick="go()">',
@@ -196,7 +213,11 @@ class Precheck
 				"<div<?= attr(['once' => \$x], ' ') ?>>", "<button onclick\n  class=\"b\">", "<p class=\"a\"\nonclick=\"x()\">"]],
 		// `on` directly followed by a PHP block (a printed name such as onclick built at runtime): the name is
 		// not known at scan time, so Genba cannot tell an event handler from anything else. A finding, with or without the `=`.
-		'inline-handler-runtime' => ['pattern' => '~(^|[\s"\'/]|\?>)on(?=<\?)~i', 'roots' => ['site'], 'sample' => '<div on<?= $event ?>="go()">', 'message' => 'inline event handler with a name built at runtime — the CSP forbids it',
+		'inline-handler-runtime' => [
+			'pattern' => '~(^|[\s"\'/]|\?>)on(?=<\?)~i',
+			'roots' => ['site'],
+			'sample' => '<div on<?= $event ?>="go()">',
+			'message' => 'inline event handler with a name built at runtime — the CSP forbids it',
 			'positives' => ['<div on<?= $event ?>="go()">', '<p on<?php echo $e ?>>x</p>', '<div class="a"on<?= $e ?>="x()">'],
 			'negatives' => ['<i one<?= $x ?>="y">', '<a href="?on=1">', '<p><?= $icon ?></p>']],
 		// Judged per <script …> tag (`each`), not per line — `src=` anywhere on the line would
@@ -212,7 +233,14 @@ class Precheck
 		// a quote opens a value only right behind an = (title=it's opens none) — and the exemption
 		// is bound to the attribute (`exempt`, attributes()): `src=` or `application/ld+json` in
 		// another attribute's value (data-hint="loaded with src=/a.js") frees no embedded script.
-		'embedded-script' => ['pattern' => '~<script~i', 'start' => '~<script\b~i', 'each' => '~<script\b' . self::START_TAG . '~is', 'exempt' => ['src' => '~~', 'type' => '~application/ld\+json~i'], 'roots' => ['site'], 'sample' => '<script>alert(1)</script>', 'message' => 'embedded <script> — the CSP forbids it',
+		'embedded-script' => [
+			'pattern' => '~<script~i',
+			'start' => '~<script\b~i',
+			'each' => '~<script\b' . self::START_TAG . '~is',
+			'exempt' => ['src' => '~~', 'type' => '~application/ld\+json~i'],
+			'roots' => ['site'],
+			'sample' => '<script>alert(1)</script>',
+			'message' => 'embedded <script> — the CSP forbids it',
 			// A PHP block without quotes around it (nonce=<?= …, unquoted) is read as a block too.
 			'positives' => ['<script src="/a.js"></script><script>x()</script>', '<script>el.src="/x.js"</script>', '<script nonce="<?= $kirby->nonce() ?>">x()</script>',
 				"<script\n  type=\"module\">", '<script', '<script nonce=<?= $kirby->nonce() ?>>x()</script>',
@@ -820,7 +848,7 @@ class Precheck
 	 *
 	 * @param array<string,array{pattern: string, message: string}> $patterns
 	 * @return array{findings: list<array{file: string, line: int, message: string, match: string, text: string}>, files: int, skipped: list<array{dir: string, reason: string}>}
-	 *                                                                                                                                                                            file and dir relative to $cwd, match as found, text = the trimmed line (max 200 chars), files = the content files read
+	 * Findings: file and dir relative to $cwd, match as found, text = the trimmed line (max 200 chars). Files: the content files read.
 	 */
 	public static function markers(string $content, string $cwd, array $patterns): array
 	{

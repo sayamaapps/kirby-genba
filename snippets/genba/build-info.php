@@ -25,5 +25,13 @@ if ($genbaInfo === null) {
 <?php
 	return;
 }
+$genbaLabel = $genbaShowLabel
+	? '<span class="genba-build-label">' . esc(\Sayamaapps\Genba\I18n::t('build.label')) . '</span> '
+	: '';
+$genbaDate = $genbaShowDate && $genbaInfo['writtenAt'] !== null
+	? ' <span class="genba-build-date">'
+		. esc(\Sayamaapps\Genba\I18n::t('build.writtenAt', ['date' => substr($genbaInfo['writtenAt'], 0, 10)]))
+		. '</span>'
+	: '';
 ?>
-<p class="genba-build" data-build="<?= esc($genbaInfo['hash']) ?>"><?php if ($genbaShowLabel): ?><span class="genba-build-label"><?= esc(\Sayamaapps\Genba\I18n::t('build.label')) ?></span> <?php endif ?><code class="genba-build-hash"><?= esc($genbaInfo['short']) ?></code><?php if ($genbaShowDate && $genbaInfo['writtenAt'] !== null): ?> <span class="genba-build-date"><?= esc(\Sayamaapps\Genba\I18n::t('build.writtenAt', ['date' => substr($genbaInfo['writtenAt'], 0, 10)])) ?></span><?php endif ?></p>
+<p class="genba-build" data-build="<?= esc($genbaInfo['hash']) ?>"><?= $genbaLabel ?><code class="genba-build-hash"><?= esc($genbaInfo['short']) ?></code><?= $genbaDate ?></p>

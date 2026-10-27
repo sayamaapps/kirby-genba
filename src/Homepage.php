@@ -204,7 +204,8 @@ class Homepage
 		if (PHP_VERSION_ID >= 80400) {
 			return 'PHP extension dom is missing (genba-smoke reads the homepage with Dom\HTMLDocument)';
 		}
-		return 'genba-smoke needs PHP ' . substr(self::PHP_MIN, 0, 3) . ' or later on the machine that runs it (it reads the homepage with Dom\HTMLDocument), this is PHP ' . PHP_VERSION
+		return 'genba-smoke needs PHP ' . substr(self::PHP_MIN, 0, 3) . ' or later on the machine that runs it '
+			. '(it reads the homepage with Dom\HTMLDocument), this is PHP ' . PHP_VERSION
 			. ' — usually the CI runner, not the web server: setup-php with php-version: \'8.4\'';
 	}
 
