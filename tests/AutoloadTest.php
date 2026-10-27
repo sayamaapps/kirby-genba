@@ -7,6 +7,7 @@ use PHPUnit\Framework\TestCase;
  * The class map in autoload.php matches src/: one entry per class file, the
  * file declares the namespace and the class, and every entry loads.
  */
+// autoload.php is an array, not a class: nothing to cover.
 #[CoversNothing]
 final class AutoloadTest extends TestCase
 {

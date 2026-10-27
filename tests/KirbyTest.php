@@ -1,7 +1,7 @@
 <?php
 
 /**
- * The Kirby part with real Kirby (SPEC.md §9.3), in throwaway site directories:
+ * The Kirby part with real Kirby (docs/SPEC.md §9.3), in throwaway site directories:
  *  1. registered, off by default: site methods, snippets, genba_option();
  *  2. active with a valid stamp: genbaBuild(), genbaBuildInfo(), stamp snippet;
  *  3. active with 'main' or no file: nothing;
@@ -13,7 +13,8 @@
  * Kirby loads the plugin through the symlink genba_site() creates, so no src
  * file is required here.
  */
-use PHPUnit\Framework\Attributes\CoversNothing;
+use Kirby\Cms\App;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
 /** Runs $fn with a fresh throwaway site directory, removes it afterwards. */
@@ -23,6 +24,7 @@ function genbaWithSite(callable $fn): void
 	try {
 		$fn($tmp);
 	} finally {
+		App::destroy();
 		genba_remove_tree($tmp);
 	}
 }
@@ -41,9 +43,17 @@ function genbaErrorLog(string $tmp, callable $fn): string
 	return is_file($file) ? (string)file_get_contents($file) : '';
 }
 
-#[CoversNothing]
+#[CoversClass(\Sayamaapps\Genba\Options::class)]
+#[CoversClass(\Sayamaapps\Genba\I18n::class)]
+#[CoversClass(\Sayamaapps\Genba\Stamp::class)]
 final class KirbyTest extends TestCase
 {
+	protected function tearDown(): void
+	{
+		App::destroy();
+		parent::tearDown();
+	}
+
 	public function testSuite(): void
 	{
 		// The standalone checks of the former script run in one test method.

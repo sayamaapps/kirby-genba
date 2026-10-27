@@ -1,11 +1,11 @@
 <?php
 
 /**
- * Sayamaapps\Genba\Stamp, Kirby-free (SPEC.md §9.1): read() (five cases, and more),
+ * Sayamaapps\Genba\Stamp, Kirby-free (docs/SPEC.md §9.1): read() (five cases, and more),
  * meta(), info(), write(), fromGit(),
  * the CLI through run() with memory streams, and one run of bin/genba-stamp.
  */
-use PHPUnit\Framework\Attributes\CoversNothing;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Sayamaapps\Genba\Stamp;
 
@@ -40,7 +40,7 @@ function stampRepo(string $dir): string
 	return trim($head);
 }
 
-#[CoversNothing]
+#[CoversClass(\Sayamaapps\Genba\Stamp::class)]
 final class StampTest extends TestCase
 {
 	public function testSuite(): void

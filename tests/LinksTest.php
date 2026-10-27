@@ -7,11 +7,11 @@
  * ID pointing to another own album, one to an empty page, one to a 404. The check must be
  * able to turn red — this test proves it.
  */
-use PHPUnit\Framework\Attributes\CoversNothing;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Sayamaapps\Genba\Links;
 
-#[CoversNothing]
+#[CoversClass(\Sayamaapps\Genba\Links::class)]
 final class LinksTest extends TestCase
 {
 	public function testSuite(): void

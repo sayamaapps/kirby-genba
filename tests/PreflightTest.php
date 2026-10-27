@@ -1,10 +1,10 @@
 <?php
 
 /**
- * Sayamaapps\Genba\Preflight, Kirby-free (SPEC.md §9.2): which hook is chosen (hook()),
+ * Sayamaapps\Genba\Preflight, Kirby-free (docs/SPEC.md §9.2): which hook is chosen (hook()),
  * the CLI through run() with memory streams, and one run of bin/genba-preflight.
  */
-use PHPUnit\Framework\Attributes\CoversNothing;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Sayamaapps\Genba\Preflight;
 
@@ -22,7 +22,7 @@ function preflightCli(array $argv, string $cwd, array $env = []): array
 	return $result;
 }
 
-#[CoversNothing]
+#[CoversClass(\Sayamaapps\Genba\Preflight::class)]
 final class PreflightTest extends TestCase
 {
 	public function testSuite(): void

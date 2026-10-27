@@ -16,7 +16,7 @@
  *   bash  the double-quoted argument of fail, warn, ok, note, cannot_run and echo, and
  *         message="…", split at every $name, ${…} and $(…).
  */
-use PHPUnit\Framework\Attributes\CoversNothing;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
 const MESSAGES_TOOLS = ['genba-stamp', 'genba-preflight', 'genba-precheck', 'genba-smoke', 'genba-links'];
@@ -158,7 +158,11 @@ function messages_missing(string $file, array $literals, array $tools, array $se
 	return $missing;
 }
 
-#[CoversNothing]
+#[CoversClass(\Sayamaapps\Genba\Stamp::class)]
+#[CoversClass(\Sayamaapps\Genba\Preflight::class)]
+#[CoversClass(\Sayamaapps\Genba\Precheck::class)]
+#[CoversClass(\Sayamaapps\Genba\Links::class)]
+#[CoversClass(\Sayamaapps\Genba\Homepage::class)]
 final class MessagesTest extends TestCase
 {
 	public function testSuite(): void

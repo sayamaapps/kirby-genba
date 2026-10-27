@@ -4,7 +4,7 @@
  * Precheck (SPEC §9.4). Kirby-free: loads the class file directly.
  * Run: ASDF_PHP_VERSION=8.5.3 php tests/PrecheckTest.php
  */
-use PHPUnit\Framework\Attributes\CoversNothing;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Sayamaapps\Genba\Precheck;
 
@@ -42,7 +42,7 @@ function precheck_fixture(string $tmp): void
 	genba_write($tmp . '/site/x.bin', "\0style=\"\n");
 }
 
-#[CoversNothing]
+#[CoversClass(\Sayamaapps\Genba\Precheck::class)]
 final class PrecheckTest extends TestCase
 {
 	public function testSuite(): void

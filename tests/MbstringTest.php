@@ -8,11 +8,15 @@
  * (`function_exists()` false) exactly as a PHP without mbstring has them.
  * Text::missingMbstring() counts a switched-off function as missing.
  */
-use PHPUnit\Framework\Attributes\CoversNothing;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Sayamaapps\Genba\Text;
 
-#[CoversNothing]
+#[CoversClass(\Sayamaapps\Genba\Stamp::class)]
+#[CoversClass(\Sayamaapps\Genba\Precheck::class)]
+#[CoversClass(\Sayamaapps\Genba\Preflight::class)]
+#[CoversClass(\Sayamaapps\Genba\Homepage::class)]
+#[CoversClass(\Sayamaapps\Genba\Links::class)]
 final class MbstringTest extends TestCase
 {
 	public function testSuite(): void

@@ -280,10 +280,15 @@ function genba_site(): string
 /**
  * A fresh Kirby instance on a genba_site() directory with these options.
  * Snippet paths are cached per process by Kirby, so the cache is reset.
+ * App::destroy() empties Kirby's plugin registry, and Kirby loads a plugin's
+ * index.php once per process: after a destroy the plugin is registered again.
  */
 function genba_kirby(string $tmp, array $options = []): Kirby\Cms\App
 {
 	Kirby\Template\Snippet::$cache = [];
+	if (Kirby\Cms\App::plugin('sayamaapps/genba') === null) {
+		require dirname(__DIR__) . '/index.php';
+	}
 	return new Kirby\Cms\App([
 		'roots' => [
 			'base'    => $tmp,

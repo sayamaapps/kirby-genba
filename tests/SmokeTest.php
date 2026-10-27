@@ -5,7 +5,7 @@
  * run matrix of SPEC §9.5. Every run starts the real bash script, so bash and
  * curl must be installed, as on every runner. Each run injects one fault.
  */
-use PHPUnit\Framework\Attributes\CoversNothing;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
 /** Below PHP 8.4 only the abort is checked. */
@@ -13,7 +13,7 @@ final class SmokeNeedsPhp84 extends Exception
 {
 }
 
-#[CoversNothing]
+#[CoversClass(\Sayamaapps\Genba\Homepage::class)]
 final class SmokeTest extends TestCase
 {
 	public function testSuite(): void
@@ -1166,7 +1166,7 @@ final class SmokeTest extends TestCase
 				// package whose Homepage.php drops every <link>.
 				$broken = genba_tmp('smoke-broken-reader');
 				try {
-					foreach (['bin/genba-smoke', 'bin/genba-smoke-read', 'src/Homepage.php', 'src/Text.php'] as $file) {
+					foreach (['bin/genba-smoke', 'bin/genba-smoke-read', 'legacy.php', 'src/Homepage.php', 'src/Text.php'] as $file) {
 						genba_write("$broken/$file", (string)file_get_contents(dirname(__DIR__) . "/$file"));
 					}
 					chmod("$broken/bin/genba-smoke", 0755);

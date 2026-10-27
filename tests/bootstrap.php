@@ -2,9 +2,8 @@
 
 require_once dirname(__DIR__) . '/vendor/autoload.php';
 
-// The plugin's classes come from the class map, as in production.
-Kirby\Filesystem\F::loadClasses(require dirname(__DIR__) . '/autoload.php', dirname(__DIR__));
-require_once dirname(__DIR__) . '/legacy.php';
+// The plugin as Kirby loads it: class map, legacy names and registration.
+require_once dirname(__DIR__) . '/index.php';
 
 require_once __DIR__ . '/helpers.php';
 

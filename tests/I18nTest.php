@@ -4,11 +4,11 @@
  * Translations: every language has the same keys and placeholders as
  * English, no value is empty, and the helpers follow the language.
  */
-use PHPUnit\Framework\Attributes\CoversNothing;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Sayamaapps\Genba\I18n;
 
-#[CoversNothing]
+#[CoversClass(\Sayamaapps\Genba\I18n::class)]
 final class I18nTest extends TestCase
 {
 	public function testSuite(): void
@@ -34,7 +34,7 @@ final class I18nTest extends TestCase
 				}
 			}
 			expect([], I18n::table('fr'), 'unknown language: no table');
-			// Every key the snippets rely on exists (SPEC.md §5).
+			// Every key the snippets rely on exists (docs/SPEC.md §5).
 			foreach (['build.label', 'build.hash', 'build.writtenAt', 'build.none', 'panel.build.label', 'panel.build.info'] as $key) {
 				holds(isset($en[$key]), "key $key exists");
 			}
