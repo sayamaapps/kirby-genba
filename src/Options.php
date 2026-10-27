@@ -22,6 +22,12 @@ use Kirby\Cms\Helpers;
  *
  * The command-line tools never load this class: they run without Kirby and
  * take their settings from environment variables and arguments (SPEC.md §3.0).
+ *
+ * @package   Sayamaapps Genba
+ * @author    Simon Räder
+ * @link      https://github.com/sayamaapps/kirby-genba
+ * @copyright Simon Räder
+ * @license   https://opensource.org/licenses/MIT
  */
 class Options
 {

@@ -16,6 +16,12 @@ require_once __DIR__ . '/Text.php';
  * Deliberately a file read through Kirby and not a file in public/: a real
  * file would be served by Apache past the preview protection, and it would
  * not prove that PHP renders the new code.
+ *
+ * @package   Sayamaapps Genba
+ * @author    Simon Räder
+ * @link      https://github.com/sayamaapps/kirby-genba
+ * @copyright Simon Räder
+ * @license   https://opensource.org/licenses/MIT
  */
 class Stamp
 {

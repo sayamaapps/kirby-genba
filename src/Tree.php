@@ -36,6 +36,12 @@ require_once __DIR__ . '/Text.php';
  * directory that cannot be listed at all throws `Cannot read directory: <dir>`,
  * the directory relative to $project and as log text (an absolute path with
  * an ESC in its name would reach stderr and stdout raw).
+ *
+ * @package   Sayamaapps Genba
+ * @author    Simon Räder
+ * @link      https://github.com/sayamaapps/kirby-genba
+ * @copyright Simon Räder
+ * @license   https://opensource.org/licenses/MIT
  */
 class Tree
 {
