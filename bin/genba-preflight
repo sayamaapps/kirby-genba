@@ -3,7 +3,7 @@
 /**
  * Runs the project's own generation step before the build (the npm script
  * `praeflug`): SVG motifs, font files, data imports. Run it from the
- * project root before `npm run build` (SPEC.md §3.2).
+ * project root before `npm run build` (docs/SPEC.md §3.2).
  *
  *   vendor/bin/genba-preflight                   package.json "preflight", else "praeflug"
  *   vendor/bin/genba-preflight --hook='node scripts/x.mjs'

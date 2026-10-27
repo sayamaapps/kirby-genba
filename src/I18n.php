@@ -3,7 +3,7 @@
 namespace Sayamaapps\Genba;
 
 /**
- * Strings of the Kirby part of the plugin, Kirby-free (SPEC.md §5).
+ * Strings of the Kirby part of the plugin, Kirby-free (docs/SPEC.md §5).
  *
  * The tables live in translations/<language>.php and are also registered as
  * Kirby plugin translations under `genba.<key>` (index.php), so a site's own
@@ -14,7 +14,7 @@ namespace Sayamaapps\Genba;
  * translated. The command-line tools print English only — their output is
  * CI log text, read by GitHub's annotations and by the person who deploys,
  * and the smoke test is a bash script that could not share these tables
- * (SPEC.md §11).
+ * (docs/SPEC.md §11).
  *
  * The language is set once per request (Options::applyLanguage()) and
  * defaults to English. Missing keys fall back to English, then to the key.
@@ -34,11 +34,13 @@ class I18n
 	/** @var array<string, array<string,string>> */
 	private static array $tables = [];
 
+	/** The language of the texts for this request: `en` or `de`. */
 	public static function language(): string
 	{
 		return self::$language;
 	}
 
+	/** Sets the language of the texts; anything but `en` or `de` falls back to `en`. */
 	public static function setLanguage(string $language): void
 	{
 		self::$language = in_array($language, self::LANGUAGES, true) ? $language : 'en';

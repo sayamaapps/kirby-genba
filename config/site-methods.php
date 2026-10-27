@@ -5,7 +5,7 @@ use Sayamaapps\Genba\Site;
 // Site methods. $this is the Kirby site; the logic lives in src/Site.php.
 return [
 	/**
-	 * The deployed commit hash from the stamp file (SPEC.md §3.1), or null: Genba
+	 * The deployed commit hash from the stamp file (docs/SPEC.md §3.1), or null: Genba
 	 * off, file missing, empty, or not a 7–64 digit hex hash (nothing unchecked
 	 * goes into the HTML).
 	 */
@@ -14,7 +14,7 @@ return [
 	},
 
 	/**
-	 * Hash plus context for a site's own markup (SPEC.md §3.1), or null under the
+	 * Hash plus context for a site's own markup (docs/SPEC.md §3.1), or null under the
 	 * same conditions as genbaBuild():
 	 *
 	 *   ['hash' => '0123…4567', 'short' => '0123456', 'file' => 'site/config/build.txt',

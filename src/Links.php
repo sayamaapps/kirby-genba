@@ -1113,6 +1113,7 @@ class Links
 		return $ref['kind'] . '|' . $ref['key'] . '|' . implode('|', $ref['expected']);
 	}
 
+	/** The usage text of genba-links, printed for --help and for a usage error. */
 	public static function usage(): string
 	{
 		return "Usage: genba-links [--digistore-field=a,b] [--youtube-field=a,b] [--shop-host=h1,h2]\n"

@@ -5,7 +5,7 @@
  * operations of a deployed Kirby 5 site.
  *
  * Kirby loads this file. It registers the class map, the legacy names and the
- * definitions in config/. The logic lives in src/ (SPEC.md §1, §3). Off by
+ * definitions in config/. The logic lives in src/ (docs/SPEC.md §1, §3). Off by
  * default: without `'genba.active' => true` the site methods return null and
  * the snippets print nothing.
  */

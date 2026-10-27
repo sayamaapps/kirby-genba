@@ -10,7 +10,7 @@ require_once __DIR__ . '/Text.php';
 /**
  * The build stamp: the commit hash the deploy writes to a file, which the
  * snippet prints as <meta name="build"> and the smoke test compares with
- * `git rev-parse HEAD` (SPEC.md §3.1). Kirby-free: bin/genba-stamp and
+ * `git rev-parse HEAD` (docs/SPEC.md §3.1). Kirby-free: bin/genba-stamp and
  * tests/StampTest.php load this file without Kirby.
  *
  * Deliberately a file read through Kirby and not a file in public/: a real
@@ -168,7 +168,7 @@ class Stamp
 	}
 
 	/**
-	 * CLI `genba-stamp` (SPEC.md §3.0, §3.1). Plain run: hash from --sha or
+	 * CLI `genba-stamp` (docs/SPEC.md §3.0, §3.1). Plain run: hash from --sha or
 	 * GENBA_SHA, else git in $cwd → write → read back and compare.
 	 * --show prints the hash in the file and writes nothing.
 	 *

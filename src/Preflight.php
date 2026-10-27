@@ -6,7 +6,7 @@ require_once __DIR__ . '/Text.php';
 
 /**
  * The project's own generation step before the build (SVG motifs, fonts, data
- * imports): an npm script named `praeflug` (SPEC.md §3.2). Genba runs it
+ * imports): an npm script named `praeflug` (docs/SPEC.md §3.2). Genba runs it
  * when it exists and says visibly when it does not, so the workflow line is
  * the same for every site. Kirby-free.
  *
@@ -178,7 +178,7 @@ class Preflight
 	}
 
 	/**
-	 * CLI `genba-preflight` (SPEC.md §3.0, §3.2). Runs the hook through
+	 * CLI `genba-preflight` (docs/SPEC.md §3.0, §3.2). Runs the hook through
 	 * `sh -c` in $cwd and streams its output to $out and $err.
 	 *
 	 * @param array<string,string> $env

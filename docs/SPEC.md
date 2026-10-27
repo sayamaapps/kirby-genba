@@ -75,7 +75,6 @@ kirby-genba/
 ├── .gitignore, .gitattributes
 ├── LICENSE                                 (MIT)
 ├── .github/workflows/ci.yml                (ubuntu-latest, fork guard, PHP 8.2–8.5, shellcheck)
-├── SPEC.md
 ├── index.php                               (complete registration, §3.7)
 ├── src/
 │   ├── I18n.php                            (§5)
@@ -115,6 +114,7 @@ kirby-genba/
 │   ├── fixtures/precheck-variants/         (template variants for genba-precheck, §9.4)
 │   └── LinksTest.php                       (§9.6)
 ├── README.md                               (§10)
+├── docs/SPEC.md                            (this file)
 ├── docs/reference.md                       (§10)
 ├── docs/messages.md                        (§10, read by tests/MessagesTest.php)
 └── CHANGELOG.md

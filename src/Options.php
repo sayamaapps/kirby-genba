@@ -6,7 +6,7 @@ use InvalidArgumentException;
 use Kirby\Cms\App;
 
 /**
- * Reads the options of the Kirby part of the plugin (SPEC.md §4): `genba.<key>`.
+ * Reads the options of the Kirby part of the plugin (docs/SPEC.md §4): `genba.<key>`.
  *
  * `null` counts as "not set", like Kirby's own option() (A::get() checks
  * isset() as well), so `'genba.stamp.meta' => null` falls back to the default.
@@ -19,7 +19,7 @@ use Kirby\Cms\App;
  * block of the plugin (Kirby would file them under sayamaapps.genba.*).
  *
  * The command-line tools never load this class: they run without Kirby and
- * take their settings from environment variables and arguments (SPEC.md §3.0).
+ * take their settings from environment variables and arguments (docs/SPEC.md §3.0).
  *
  * @author    Simon Räder
  * @link      https://github.com/sayamaapps/kirby-genba
@@ -31,7 +31,7 @@ class Options
 	/** Name of the <meta> element the stamp snippet prints; the smoke test and an external check read it. */
 	public const DEFAULT_META = 'build';
 
-	/** Where the deploy writes the commit hash, relative to the project root (SPEC.md §6). */
+	/** Where the deploy writes the commit hash, relative to the project root (docs/SPEC.md §6). */
 	public const DEFAULT_STAMP_FILE = 'site/config/build.txt';
 	public const PREFIX = 'genba.';
 

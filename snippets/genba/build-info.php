@@ -1,6 +1,6 @@
 <?php
 /**
- * A visible build line, e.g. in a preview footer (SPEC.md §3.6). Nothing when
+ * A visible build line, e.g. in a preview footer (docs/SPEC.md §3.6). Nothing when
  * genba.active is not true.
  *
  * Optional variables:

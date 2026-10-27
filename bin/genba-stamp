@@ -4,7 +4,7 @@
  * Writes the build stamp: the commit hash of the checkout (`git rev-parse HEAD`)
  * to site/config/build.txt, where the site's snippet reads it and prints
  * <meta name="build">. Run it from the project root after `composer install`
- * and before the deploy upload (SPEC.md §3.1, §6).
+ * and before the deploy upload (docs/SPEC.md §3.1, §6).
  *
  *   vendor/bin/genba-stamp                       write the hash of HEAD
  *   vendor/bin/genba-stamp --show                print the hash in the file

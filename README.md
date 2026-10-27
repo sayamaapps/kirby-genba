@@ -119,7 +119,9 @@ Not in 1.x, because each one changes behaviour:
 - Options are read as `sayamaapps.genba.*` (the same keys as `genba.*`). `genba.*` stays readable as a fallback, with a deprecation notice in debug mode.
 - Runtime deprecation notices for `genba_option()`, the `Genba\` class names and the `genba.*` options.
 - Broken options throw Kirby's own `Kirby\Exception\InvalidArgumentException` in debug mode. It does not extend PHP's `InvalidArgumentException`, so code that catches the PHP class would miss it.
-- Removal of `genba_option()`, the `Genba\` class names and `Log::forget()`.
+- Translation keys are `sayamaapps.genba.*`; `genba.*` stays readable as a fallback.
+- Snippets use Kirby's `t()`. The Kirby part keeps no translation tables of its own; the command-line tools keep theirs.
+- Removal of `genba_option()`, the `Genba\` class names, `Log::forget()` and the `Genba\raise_memory_limit()` helper in `legacy.php`.
 
 ## Privacy
 

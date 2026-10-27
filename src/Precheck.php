@@ -10,7 +10,7 @@ require_once __DIR__ . '/Tree.php';
  * Static pre-deploy checks under the site's Content Security Policy
  * ('unsafe-inline' forbidden, nothing foreign) plus "built assets are there",
  * and for the live deploy "no placeholder in the content" (MARKERS).
- * Kirby-free: no kirby(), no App, no option(). SPEC.md §3.3.
+ * Kirby-free: no kirby(), no App, no option(). docs/SPEC.md §3.3.
  *
  * Every rule carries a self-test sample that MUST match before the scan runs,
  * so a broken pattern cannot silently check nothing.
