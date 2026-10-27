@@ -710,6 +710,7 @@ class Precheck
 	private static function exempt(string $piece, array $unless): bool
 	{
 		foreach ($unless as $exception) {
+			/** @psalm-suppress ArgumentTypeCoercion The rule table's patterns are never empty; @ keeps a bad one quiet, as before. */
 			if (is_string($exception) && @preg_match($exception, $piece) === 1) {
 				return true;
 			}
@@ -729,15 +730,17 @@ class Precheck
 		if ($exempt === []) {
 			return false;
 		}
+		$blocks = [];
 		$attributes = self::attributes($tag, $blocks);
 		// A PHP block where an attribute stands (in the tag name or an
 		// attribute name, never in a value) that calls Kirby's attr() helper with an array literal
 		// prints those attributes: `<script` followed by such a block with 'src' => $url is an external script.
-		foreach ($blocks as $block) {
+		foreach ($blocks ?? [] as $block) {
 			$attributes += self::attrCall($block);
 		}
 		foreach ($attributes as $name => $value) {
 			$pattern = $exempt[$name] ?? null;
+			/** @psalm-suppress ArgumentTypeCoercion The rule table's patterns are never empty; @ keeps a bad one quiet, as before. */
 			if (is_string($pattern) && $value !== null && @preg_match($pattern, $value) === 1) {
 				return true;
 			}
@@ -876,13 +879,14 @@ class Precheck
 			$files++;
 			foreach (explode("\n", $text) as $index => $line) {
 				foreach ($patterns as $pattern) {
+					/** @psalm-suppress ArgumentTypeCoercion The rule table's patterns are never empty; @ keeps a bad one quiet, as before. */
 					$found = @preg_match($pattern['pattern'], $line, $match);
 					if ($found === false) {
 						throw new RuntimeException('Marker pattern failed on ' . Text::clean($relative) . ':' . ($index + 1) . ' (' . preg_last_error_msg() . ')');
 					}
 					if ($found === 1) {
 						$findings[] = ['file' => $relative, 'line' => $index + 1, 'message' => $pattern['message'],
-							'match' => (string)$match[0], 'text' => mb_substr(trim($line), 0, self::TEXT_MAX)];
+							'match' => $match[0], 'text' => mb_substr(trim($line), 0, self::TEXT_MAX)];
 						break;
 					}
 				}
@@ -933,6 +937,7 @@ class Precheck
 		if (is_string($each)) {
 			// The line itself; what follows the first "\n" is only where a tag may end.
 			$own = explode("\n", $line, 2)[0];
+			/** @psalm-suppress ArgumentTypeCoercion The rule table's patterns are never empty; @ keeps a bad one quiet, as before. */
 			if (!is_string($pattern) || @preg_match($pattern, $own) !== 1) {
 				return false;
 			}
@@ -941,7 +946,8 @@ class Precheck
 				return true;
 			}
 			foreach ($starts[0] as [, $offset]) {
-				$found = @preg_match($each, $line, $tag, PREG_OFFSET_CAPTURE, (int)$offset);
+				/** @psalm-suppress ArgumentTypeCoercion The rule table's patterns are never empty; @ keeps a bad one quiet, as before. */
+				$found = @preg_match($each, $line, $tag, PREG_OFFSET_CAPTURE, $offset);
 				if ($found !== 1 || $tag[0][1] !== $offset ||
 					!(self::exempt($tag[0][0], $unless) || self::exemptAttribute($tag[0][0], $rule['exempt'] ?? []))) {
 					return true;
@@ -949,6 +955,7 @@ class Precheck
 			}
 			return false;
 		}
+		/** @psalm-suppress ArgumentTypeCoercion The rule table's patterns are never empty; @ keeps a bad one quiet, as before. */
 		if (!is_string($pattern) || @preg_match($pattern, $line) !== 1) {
 			return false;
 		}
@@ -1030,6 +1037,7 @@ class Precheck
 	 */
 	private static function ownMatches(string $pattern, string $text): array|null
 	{
+		/** @psalm-suppress ArgumentTypeCoercion The rule table's patterns are never empty; @ keeps a bad one quiet, as before. */
 		if (@preg_match_all($pattern, $text, $all, PREG_SET_ORDER | PREG_OFFSET_CAPTURE) === false) {
 			return null;
 		}
@@ -1080,6 +1088,7 @@ class Precheck
 				$parsed['errors'][] = '--content needs --forbid-markers';
 			}
 			if ($parsed['markers'] !== []) {
+				/** @psalm-suppress PossiblyInvalidArrayAssignment The dynamic key above only takes the five option names of its regex. */
 				$parsed['errors'][] = '--marker needs --forbid-markers';
 			}
 		}
@@ -1169,7 +1178,7 @@ class Precheck
 		fwrite($out, '  ok   self-test: ' . count(self::RULES) . " rules fire on their samples and stay silent on their negative samples\n");
 		if ($args['forbid']) {
 			$defaults = count(self::MARKERS);
-			/** @psalm-suppress InvalidCast $defaults is an int at this point (psalm cannot see the branch). */
+			/** @psalm-suppress RedundantCondition, TypeDoesNotContainType, InvalidCast The marker list has one entry today; the plural text is for more. */
 			fwrite($out, $defaults === 1 ? "  ok   self-test: 1 marker pattern fires on its samples and stays silent on its negative samples\n"
 				: "  ok   self-test: $defaults marker patterns fire on their samples and stay silent on their negative samples\n");
 		}
@@ -1486,6 +1495,7 @@ class Precheck
 			return 0;
 		}
 		$from = $at - 1;
+		/** @psalm-suppress InvalidLiteralArgument The haystack is a constant set of sign characters; the needle is one byte. */
 		while ($from > 0 && $at - 1 - $from < 32 && (ctype_alnum($line[$from - 1]) || str_contains('+.-', $line[$from - 1]))) {
 			$from--;
 		}
@@ -1518,6 +1528,7 @@ class Precheck
 				$failures[] = "rule $name has no pattern or sample";
 				continue;
 			}
+			/** @psalm-suppress ArgumentTypeCoercion Checks that the pattern compiles; the empty subject is only a probe. */
 			if (@preg_match($pattern, '') === false) {
 				$failures[] = "rule $name: pattern does not compile";
 				continue;

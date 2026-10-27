@@ -197,7 +197,8 @@ class Links
 		$key = self::targetKey($ref);
 		/** @psalm-suppress UnhandledMatchCondition The four kinds are the only ones that reach check(); an unknown kind throws earlier in reference() (no behaviour change). */
 		return $this->cache[$key] ??= match ($ref['kind']) {
-			self::KIND_YOUTUBE, self::KIND_YOUTUBE_EMBED => $this->youtube($ref['key'], $ref['kind'] === self::KIND_YOUTUBE_EMBED),
+			self::KIND_YOUTUBE => $this->youtube($ref['key'], false),
+			self::KIND_YOUTUBE_EMBED => $this->youtube($ref['key'], true),
 			self::KIND_DIGISTORE => $this->digistore($ref['key'], $ref['expected']),
 			self::KIND_PURCHASE => $this->purchaseLink($ref['url'], $ref['product'] ?? null),
 		};
@@ -351,6 +352,8 @@ class Links
 	 * ends the chain with `refused` set (a finding for the caller), without
 	 * contacting the target.
 	 *
+	 * @psalm-suppress PossiblyUndefinedArrayOffset requestUrl() and guard() set origin, url, host, resolve and address
+	 * in every branch that gets past their refused and error results (checked above each access).
 	 * @return array{code: int, body: string, final: string, chain: list<string>, error: string, refused: ?string}
 	 */
 	public function fetch(string $url, bool $follow, string|null $untilText = null, bool $checkFirst = false): array
@@ -397,6 +400,7 @@ class Links
 	{
 		$fields = [];
 		$line = 1;
+		/** @psalm-suppress PossiblyFalseIterator The pattern is a constant and valid: preg_split() does not fail on it. */
 		foreach (preg_split('/^----\s*$/m', $text) as $block) {
 			if (preg_match('/^\s*([A-Za-z0-9_-]+)\s*:(.*)$/s', $block, $t)) {
 				$leading = strlen($block) - strlen(ltrim($block));
@@ -460,23 +464,29 @@ class Links
 				if ($text === false) {
 					throw new RuntimeException('Cannot read file: ' . self::clean($display));
 				}
-				array_push($refs, ...$this->fromText($text, $display));
+				$refs = [...$refs, ...$this->fromText($text, $display)];
 				if (str_ends_with($file, '.txt')) {
-					array_push($refs, ...$this->fromFields($text, $file, $display));
+					$refs = [...$refs, ...$this->fromFields($text, $file, $display)];
 				}
 			}
 		}
 		return $refs;
 	}
 
-	/** ID fields of a Kirby content file. */
+	/**
+	 * ID fields of a Kirby content file.
+	 *
+	 * @return list<array{kind: string, key: string, url: string, expected: list<string>, place: string, product: ?string}>
+	 */
 	public function fromFields(string $text, string $file, string $place): array
 	{
 		$fields = self::fields($text);
 		$refs = [];
 		foreach ($fields as $name => [$value, $line]) {
 			if (in_array($name, $this->digistoreFields, true) && preg_match('/^\s*(\d+)\s*$/', $value, $t)) {
-				$ref = self::reference(self::KIND_DIGISTORE, $t[1], $this->digistoreBase . $t[1], self::pageTitles($file));
+				/** @var list<string> $titles */
+				$titles = self::pageTitles($file);
+				$ref = self::reference(self::KIND_DIGISTORE, $t[1], $this->digistoreBase . $t[1], $titles);
 				$ref['place'] = "$place:$line";
 				$refs[] = $ref;
 			}
@@ -495,7 +505,11 @@ class Links
 		return $refs;
 	}
 
-	/** Every URL of a text, classified. */
+	/**
+	 * Every URL of a text, classified.
+	 *
+	 * @return list<array{kind: string, key: string, url: string, expected: list<string>, place: string, product: ?string}>
+	 */
 	public function fromText(string $text, string $place): array
 	{
 		$refs = [];
@@ -597,7 +611,7 @@ class Links
 		}
 		foreach (self::PRIVATE_RANGES as [$network, $bits]) {
 			$net = inet_pton($network);
-			if (strlen($net) !== strlen($packed)) {
+			if ($net === false || strlen($net) !== strlen($packed)) {
 				continue;
 			}
 			$bytes = intdiv($bits, 8);
@@ -717,7 +731,10 @@ class Links
 		return ['status' => self::DISRUPTION, 'text' => 'Purchase link: ' . $this->describe($a) . " ($chain)"];
 	}
 
-	/** @return array{kind: string, key: string, url: string, expected: list<string>, place: string, product: ?string} */
+	/**
+	 * @param list<string> $expected
+	 * @return array{kind: string, key: string, url: string, expected: list<string>, place: string, product: ?string}
+	 */
 	private static function reference(string $kind, string $key, string $url, array $expected = [], string|null $product = null): array
 	{
 		return ['kind' => $kind, 'key' => $key, 'url' => $url, 'expected' => $expected, 'place' => '', 'product' => $product];
@@ -727,14 +744,15 @@ class Links
 	 * One request, no redirect following, no proxy.
 	 *
 	 * @param list<string> $resolve CURLOPT_RESOLVE entries ("host:port:address"), [] = an address literal
+	 * @psalm-suppress PossiblyFalseArgument, RedundantCondition curl_init() returns a handle (the stubs allow false); $aborted is set by the write callback, which Psalm does not follow.
 	 * @return array{code: int, body: string, location: ?string, error: string, ip: string}
 	 */
 	private function request(string $url, string|null $untilText, array $resolve): array
 	{
 		$host = (string)parse_url($url, PHP_URL_HOST);
-		$wait = ($this->lastRequest[$host] ?? 0) + $this->pause - microtime(true);
+		$wait = (float)($this->lastRequest[$host] ?? 0) + $this->pause - microtime(true);
 		if ($wait > 0) {
-			usleep((int)($wait * 1_000_000));
+			usleep((int)($wait * 1_000_000.0));
 		}
 		$body = '';
 		$location = null;
@@ -910,7 +928,7 @@ class Links
 			}
 		}
 		foreach (['digistore-field', 'youtube-field', 'shop-host', 'oembed-base', 'digistore-base', 'pause'] as $flag) {
-			if (isset($flags[$flag]) && trim($flags[$flag]) === '') {
+			if (isset($flags[$flag]) && trim((string)$flags[$flag]) === '') {
 				// An empty value would switch a check off without a word.
 				return self::cannotRun($out, $err, "::error::--$flag needs a value", true);
 			}
@@ -948,6 +966,7 @@ class Links
 			$value = $env[$variable] ?? null;
 			return is_string($value) && trim($value) !== '' ? $value : null;
 		};
+		/** @var \Closure(string|null, list<string>): list<string> $list */
 		$list = static fn (string|null $raw, array $default): array => $raw === null ? $default
 			: array_values(array_filter(array_map(fn ($s) => strtolower(trim($s)), explode(',', $raw)), fn ($s) => $s !== ''));
 
@@ -979,8 +998,8 @@ class Links
 			$list($setting('digistore-field', 'GENBA_DIGISTORE_FIELDS'), self::DEFAULT_DIGISTORE_FIELDS),
 			$list($setting('youtube-field', 'GENBA_YOUTUBE_FIELDS'), self::DEFAULT_YOUTUBE_FIELDS),
 			$list($setting('shop-host', 'GENBA_SHOP_HOSTS'), []),
-			$flags['oembed-base'] ?? self::DEFAULT_OEMBED_BASE,
-			$flags['digistore-base'] ?? self::DEFAULT_DIGISTORE_BASE,
+			(string)($flags['oembed-base'] ?? self::DEFAULT_OEMBED_BASE),
+			(string)($flags['digistore-base'] ?? self::DEFAULT_DIGISTORE_BASE),
 			3,
 			$pause,
 		);
@@ -1119,7 +1138,7 @@ class Links
 			if (!$disrupted || $i >= $this->retries) {
 				return $a;
 			}
-			usleep((int)(1_000_000 * $this->pause * 5 * $i));
+			usleep((int)(1_000_000.0 * $this->pause * 5.0 * (float)$i));
 		}
 	}
 

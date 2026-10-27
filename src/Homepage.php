@@ -198,6 +198,7 @@ class Homepage
 	 */
 	public static function missingParser(): string|null
 	{
+		/** @psalm-suppress RedundantCondition Psalm analyses the PHP 8.2 platform, where the branches below are the ones that run. */
 		if (PHP_VERSION_ID >= 80400 && class_exists('Dom\HTMLDocument')) {
 			return null;
 		}
@@ -293,7 +294,7 @@ class Homepage
 		// 269 MB); PHP's default limit of 128 MB ended a 4.5 MB homepage with a fatal error. Raised for this
 		// page, never lowered.
 		self::memoryFor(strlen($html));
-		foreach (self::read($html, (string)$meta) as [$kind, $value]) {
+		foreach (self::read($html, $meta) as [$kind, $value]) {
 			fwrite($out, $kind . "\t" . $value . "\n");
 		}
 		return 0;

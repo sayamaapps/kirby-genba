@@ -61,19 +61,19 @@ class Tree
 	}
 
 	/**
-	 * @param $root directory to walk
-	 * @param $base $skip paths are relative to this directory (lexically, no realpath)
+	 * @param string $root directory to walk
+	 * @param string $base directory the $skip paths are relative to (lexically, no realpath)
 	 * @param array<string,string> $skip path relative to $base => reason; that one directory is not entered
 	 * @param array<string,string> $anywhere directory name => reason; skipped at any depth
-	 * @param $project symbolic links are followed only when their target is inside it
-	 * @param $package realpath of a directory that is never entered (Genba's own package)
+	 * @param string $project symbolic links are followed only when their target is inside it
+	 * @param string|null $package realpath of a directory that is never entered (Genba's own package)
 	 * @param array<string,string> $elsewhere absolute path => reason: further places never entered, compared by
 	 *                                        real path only (the skip places of another walk's root)
 	 * @param array<string,bool> $read real paths of files already listed, by reference: a caller that walks
 	 *                                 several roots passes the same array, so a file reached through a
 	 *                                 link in a later root (public/p -> ..) is listed once per run
 	 * @return array{files: list<string>, skipped: list<array{dir: string, reason: string, own: bool}>}
-	 *                                                                                                  files in walk order (sorted per directory); skipped entries as walked paths
+	 *   files in walk order (sorted per directory); skipped entries as walked paths
 	 */
 	public static function walk(string $root, string $base, array $skip, array $anywhere, string $project, string|null $package, array $elsewhere = [], array &$read = []): array
 	{

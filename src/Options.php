@@ -58,6 +58,7 @@ class Options
 	/** Project root: Kirby's `base` root, otherwise the directory above `site/`. */
 	public static function base(App $kirby): string
 	{
+		/** @psalm-suppress PossiblyNullArgument A Kirby app always has a site root. */
 		return $kirby->root('base') ?? dirname($kirby->root('site'));
 	}
 
