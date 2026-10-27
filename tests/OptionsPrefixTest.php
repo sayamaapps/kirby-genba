@@ -7,8 +7,9 @@ use PHPUnit\Framework\TestCase;
 use Sayamaapps\Genba\Options;
 
 /**
- * Options are read as sayamaapps.genba.<key>, with the 2.x spelling genba.<key>
- * as fallback (OPT-1). The fallback is reported as a deprecation.
+ * Options are read as genba.<key>, as in 1.x. The sayamaapps.genba.* spelling
+ * is not read before the next major version. Nothing is reported as a
+ * deprecation at runtime: the deprecations are in the README and the docblocks.
  */
 #[CoversClass(Options::class)]
 final class OptionsPrefixTest extends TestCase
@@ -31,36 +32,33 @@ final class OptionsPrefixTest extends TestCase
 		return $messages;
 	}
 
-	public function testLegacyFunctionReadsTheNewOptionAndIsDeprecated(): void
+	public function testGenbaSpellingIsRead(): void
 	{
-		$deprecations = $this->collectDeprecations(function (): void {
-			$this->withApp(['debug' => true, 'sayamaapps.genba.active' => true], function (): void {
-				$this->assertTrue(genba_option('active'), 'genba_option() reads sayamaapps.genba.active');
-			});
-		});
-
-		$this->assertSame(
-			['genba_option() is deprecated, use Sayamaapps\\Genba\\Options::get()'],
-			array_values(array_filter($deprecations, fn (string $message): bool => str_contains($message, 'genba_option')))
-		);
-	}
-
-	public function testNewSpellingSwitchesGenbaOn(): void
-	{
-		$this->withApp(['sayamaapps.genba.active' => true], function (App $kirby): void {
-			$this->assertTrue(Options::active($kirby), 'sayamaapps.genba.active is read');
+		$this->withApp(['genba.active' => true], function (App $kirby): void {
+			$this->assertTrue(Options::active($kirby), 'genba.active is read');
 		});
 	}
 
-	public function testNewSpellingWinsOverTheOldOneAndSilencesTheFallback(): void
+	public function testLegacyFunctionReadsGenbaSilently(): void
 	{
 		$deprecations = $this->collectDeprecations(function (): void {
-			$this->withApp(['debug' => true, 'sayamaapps.genba.active' => false, 'genba.active' => true], function (App $kirby): void {
-				$this->assertFalse(Options::active($kirby), 'sayamaapps.genba.active wins when both are set');
+			$this->withApp(['debug' => true, 'genba.active' => true], function (): void {
+				$this->assertTrue(genba_option('active'), 'genba_option() reads genba.active');
 			});
 		});
 
-		$this->assertSame([], $deprecations, 'no fallback, no deprecation');
+		$this->assertSame([], $deprecations, 'genba_option() raises no runtime deprecation');
+	}
+
+	public function testNewSpellingIsNotReadAndTriggersNoDeprecation(): void
+	{
+		$deprecations = $this->collectDeprecations(function (): void {
+			$this->withApp(['debug' => true, 'sayamaapps.genba.active' => true], function (App $kirby): void {
+				$this->assertFalse(Options::active($kirby), 'sayamaapps.genba.active is not read in this version');
+			});
+		});
+
+		$this->assertSame([], $deprecations, 'no runtime deprecation');
 	}
 
 	public function testNotSetFallsBackToTheDefault(): void
@@ -71,19 +69,9 @@ final class OptionsPrefixTest extends TestCase
 		});
 	}
 
-	public function testOldSpellingStillWorksAndIsDeprecated(): void
+	public function testOldClassNamesAreAliases(): void
 	{
-		$deprecations = $this->collectDeprecations(function (): void {
-			// Kirby reports deprecations in debug mode only.
-			$this->withApp(['debug' => true, 'genba.active' => true], function (App $kirby): void {
-				$this->assertTrue(Options::active($kirby), 'genba.active is read as fallback');
-			});
-		});
-
-		$this->assertSame(
-			['Genba: the option genba.active is deprecated, use sayamaapps.genba.active'],
-			array_values(array_filter($deprecations, fn (string $message): bool => str_contains($message, 'genba.active')))
-		);
+		$this->assertSame(Options::class, (new \ReflectionClass(\Genba\Options::class))->getName());
 	}
 
 	/** Runs $fn with a Kirby app on a throwaway site and removes the site afterwards. */

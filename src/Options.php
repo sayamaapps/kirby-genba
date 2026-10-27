@@ -2,26 +2,29 @@
 
 namespace Sayamaapps\Genba;
 
+use InvalidArgumentException;
 use Kirby\Cms\App;
-use Kirby\Cms\Helpers;
-use Kirby\Exception\InvalidArgumentException;
 
 /**
- * Reads the options of the Kirby part of the plugin (SPEC.md §4): `sayamaapps.genba.<key>`,
- * falling back to the 2.x name `genba.<key>` (OPT-1). The fallback is reported as a deprecation.
+ * Reads the options of the Kirby part of the plugin (SPEC.md §4): `genba.<key>`.
  *
  * `null` counts as "not set", like Kirby's own option() (A::get() checks
- * isset() as well), so `'sayamaapps.genba.stamp.meta' => null` falls back to the default.
+ * isset() as well), so `'genba.stamp.meta' => null` falls back to the default.
  *
- * Both spellings work, flat (`'sayamaapps.genba.stamp.file' => '…'`) and nested
- * (`'sayamaapps' => ['genba' => ['stamp' => ['file' => '…']]]`), because Kirby's option() finds
+ * Both spellings work, flat (`'genba.stamp.file' => '…'`) and nested
+ * (`'genba' => ['stamp' => ['file' => '…']]`), because Kirby's option() finds
  * both.
  *
- * Defaults are given here and at the call sites. The `options` block of the plugin lists
- * the keys with null: a default there would hide the 2.x spelling.
+ * Defaults are given here and at the call sites, never in an `options`
+ * block of the plugin (Kirby would file them under sayamaapps.genba.*).
  *
  * The command-line tools never load this class: they run without Kirby and
  * take their settings from environment variables and arguments (SPEC.md §3.0).
+ *
+ * @author    Simon Räder
+ * @link      https://github.com/sayamaapps/kirby-genba
+ * @copyright Simon Räder
+ * @license   https://opensource.org/licenses/MIT
  */
 class Options
 {
@@ -30,12 +33,7 @@ class Options
 
 	/** Where the deploy writes the commit hash, relative to the project root (SPEC.md §6). */
 	public const DEFAULT_STAMP_FILE = 'site/config/build.txt';
-
-	/** Option prefix of 1.x, read as a fallback until the next major version. */
-	public const LEGACY_PREFIX = 'genba.';
-
-	/** Option prefix since 2.x (OPT-1). */
-	public const PREFIX = 'sayamaapps.genba.';
+	public const PREFIX = 'genba.';
 
 	/** Master switch: only a real `true` switches the Kirby part on. */
 	public static function active(App $kirby): bool
@@ -56,26 +54,10 @@ class Options
 		return $kirby->root('base') ?? dirname($kirby->root('site'));
 	}
 
-	/**
-	 * `sayamaapps.genba.<key>`; when it is not set, `genba.<key>` (deprecated), otherwise $default.
-	 */
+	/** `genba.<key>`, or $default when it is not set. */
 	public static function get(App $kirby, string $key, mixed $default = null): mixed
 	{
-		$value = $kirby->option(self::PREFIX . $key);
-		if ($value !== null) {
-			return $value;
-		}
-
-		$legacy = $kirby->option(self::LEGACY_PREFIX . $key);
-		if ($legacy !== null) {
-			Helpers::deprecated(
-				'Genba: the option genba.' . $key . ' is deprecated, use sayamaapps.genba.' . $key,
-				'option-prefix'
-			);
-			return $legacy;
-		}
-
-		return $default;
+		return $kirby->option(self::PREFIX . $key) ?? $default;
 	}
 
 	/**
@@ -86,7 +68,7 @@ class Options
 	public static function invalid(App $kirby, string $message): void
 	{
 		if ($kirby->option('debug') === true) {
-			throw new InvalidArgumentException(message: $message);
+			throw new InvalidArgumentException($message);
 		}
 		Log::error($message);
 	}

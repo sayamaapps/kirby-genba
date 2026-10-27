@@ -12,6 +12,11 @@ namespace Sayamaapps\Genba;
  *
  * The command-line tools do NOT use this class: they write to STDOUT/STDERR
  * through the streams handed to their run() method (SPEC.md §3.0).
+ *
+ * @author    Simon Räder
+ * @link      https://github.com/sayamaapps/kirby-genba
+ * @copyright Simon Räder
+ * @license   https://opensource.org/licenses/MIT
  */
 class Log
 {
@@ -26,5 +31,16 @@ class Log
 		}
 		self::$seen[$message] = true;
 		error_log($message);
+	}
+
+	/**
+	 * Forgets the messages already written.
+	 *
+	 * @deprecated Test helper kept for 1.x callers. Not part of the public API; removed in the next major version.
+	 * @internal
+	 */
+	public static function forget(): void
+	{
+		self::$seen = [];
 	}
 }
