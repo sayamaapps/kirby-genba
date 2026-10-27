@@ -14,6 +14,11 @@ namespace Sayamaapps\Genba;
  * a CR reads as the last line) or a line break that starts a forged
  * `::error::` annotation. Control characters become spaces here, so the
  * text stays visible and the line stays one line.
+ *
+ * @author    Simon Räder
+ * @link      https://github.com/sayamaapps/kirby-genba
+ * @copyright Simon Räder
+ * @license   https://opensource.org/licenses/MIT
  */
 class Text
 {

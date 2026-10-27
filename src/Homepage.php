@@ -57,6 +57,11 @@ require_once __DIR__ . '/Text.php';
  * build first, the others in the order of the elements. Every value is log text: control characters
  * (C0, DEL, C1) are percent-encoded as the browser's URL parser encodes them (url()), so a value
  * never holds a tab, a line break or an escape sequence. Kirby-free; this file loads on PHP 8.2 (it says why it cannot run there).
+ *
+ * @author    Simon Räder
+ * @link      https://github.com/sayamaapps/kirby-genba
+ * @copyright Simon Räder
+ * @license   https://opensource.org/licenses/MIT
  */
 class Homepage
 {

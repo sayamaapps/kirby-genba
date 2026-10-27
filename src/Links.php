@@ -57,6 +57,11 @@ require_once __DIR__ . '/Tree.php';
  * annotation line.
  *
  * Requires ext-curl. Kirby-free.
+ *
+ * @author    Simon Räder
+ * @link      https://github.com/sayamaapps/kirby-genba
+ * @copyright Simon Räder
+ * @license   https://opensource.org/licenses/MIT
  */
 class Links
 {
@@ -738,7 +743,7 @@ class Links
 	 * One request, no redirect following, no proxy.
 	 *
 	 * @param list<string> $resolve CURLOPT_RESOLVE entries ("host:port:address"), [] = an address literal
-	 * @psalm-suppress PossiblyFalseArgument, RedundantCondition curl_init() returns a handle (the stubs allow false); $aborted is set by the write callback, which Psalm does not follow.
+	 * @psalm-suppress PossiblyFalseArgument, RedundantCondition curl_init() returns a handle (stubs allow false); the write callback sets $aborted, which Psalm does not follow.
 	 * @return array{code: int, body: string, location: ?string, error: string, ip: string}
 	 */
 	private function request(string $url, string|null $untilText, array $resolve): array

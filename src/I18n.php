@@ -18,6 +18,11 @@ namespace Sayamaapps\Genba;
  *
  * The language is set once per request (Options::applyLanguage()) and
  * defaults to English. Missing keys fall back to English, then to the key.
+ *
+ * @author    Simon Räder
+ * @link      https://github.com/sayamaapps/kirby-genba
+ * @copyright Simon Räder
+ * @license   https://opensource.org/licenses/MIT
  */
 class I18n
 {

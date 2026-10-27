@@ -14,6 +14,11 @@ require_once __DIR__ . '/Tree.php';
  *
  * Every rule carries a self-test sample that MUST match before the scan runs,
  * so a broken pattern cannot silently check nothing.
+ *
+ * @author    Simon Räder
+ * @link      https://github.com/sayamaapps/kirby-genba
+ * @copyright Simon Räder
+ * @license   https://opensource.org/licenses/MIT
  */
 class Precheck
 {
