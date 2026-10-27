@@ -50,4 +50,4 @@ if (PHP_SAPI !== 'cli') {
 
 require_once dirname(__DIR__) . '/src/Links.php';
 
-exit(Genba\Links::run(getenv(), $argv, (string) getcwd(), STDOUT, STDERR));
+exit(Sayamaapps\Genba\Links::run(getenv(), $argv, (string) getcwd(), STDOUT, STDERR));

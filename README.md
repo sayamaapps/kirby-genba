@@ -4,6 +4,15 @@ Operations checks for a deployed [Kirby CMS](https://getkirby.com) site: the bui
 
 Genba checks one deployed site from the inside, on every deploy. A status code alone proves little, so the smoke test measures the content: an old build or a half upload does not pass. The tools are command-line programs for CI; the Kirby part is a small plugin. No styling.
 
+## Requirements
+
+| | Supported |
+|---|---|
+| Kirby | 5 (the plugin part; the command-line tools need no Kirby) |
+| PHP | 8.2 to 8.5 with `curl`, `dom`, `json` and `mbstring` (declared by the package) |
+| `genba-smoke` | PHP 8.4 or newer on the machine that runs it, normally the CI runner |
+| Other | bash 3.2 or newer, `curl` and `git` for the commit hash |
+
 ## Features
 
 - Build stamp: the deployed commit hash in `<meta name="build">`, so a check can see that the new code is live.
@@ -13,20 +22,25 @@ Genba checks one deployed site from the inside, on every deploy. A status code a
 - No silent passes: a check that cannot run exits 2 or prints a visible `SKIPPED` line.
 - Off by default in Kirby, no cookies and no third-party requests; texts in English and German.
 
-## Requirements
-
-- PHP 8.2 or newer with `curl`, `json`, `mbstring` and `dom` (declared by the package).
-- `genba-smoke` needs PHP 8.4 or newer on the machine that runs it, normally the CI runner.
-- bash 3.2 or newer, `curl` and `git` for the commit hash.
-- Kirby 5, for the plugin part only.
-
 ## Installation
+
+Composer (recommended):
 
 ```sh
 composer require sayamaapps/kirby-genba
 ```
 
 Composer installs the plugin into `site/plugins/genba/` (through `getkirby/composer-installer`, a dependency of this package) and links the five tools into `vendor/bin/`. Add `/site/plugins/genba` to `.gitignore` and deploy it like `kirby/` and `vendor/`.
+
+ZIP: download the release archive from the GitHub release page and unpack it to `site/plugins/genba/`. The archive holds the plugin and the tools, nothing else.
+
+Git submodule:
+
+```sh
+git submodule add https://github.com/sayamaapps/kirby-genba.git site/plugins/genba
+```
+
+With the submodule the tools are in `site/plugins/genba/bin/`, run them from there.
 
 ## Usage
 
@@ -84,7 +98,30 @@ The Kirby part reads these options from `site/config/config.php`. Flat (`'genba.
 | `genba.stamp.meta` | `'build'` | `name` of the `<meta>` element. Only `[A-Za-z0-9_-]+` is accepted. |
 | `genba.language` | the site language, else `en` | `en` or `de`. A German single-language site without a `locale` must set `'de'`. |
 
-A broken value is logged once; with Kirby's `debug` option on, it throws instead. The tools' settings, checks and rules are in [docs/reference.md](docs/reference.md).
+A broken value is logged once; with Kirby's `debug` option on, it throws an `InvalidArgumentException` instead. The tools' settings, checks and rules are in [docs/reference.md](docs/reference.md).
+
+The plugin's texts come from Genba's own tables (English and German), which the command-line tools share; they do not depend on Kirby's translation files. The keys `genba.*` are also registered with Kirby for blueprint labels.
+
+## Deprecations
+
+Deprecated in 1.x, removed in the next major version. No runtime notice is raised: each deprecation is marked `@deprecated` in the code and listed here.
+
+| Deprecated | Replacement |
+|---|---|
+| `genba_option($key)` | `Sayamaapps\Genba\Options::get($kirby, $key)` |
+| Classes `Genba\Stamp`, `Genba\Precheck`, `Genba\Preflight`, `Genba\Links`, `Genba\Homepage`, `Genba\Options`, `Genba\I18n`, `Genba\Log`, `Genba\Text`, `Genba\Tree` | `Sayamaapps\Genba\…` (same names; the old names stay as class aliases) |
+| `Genba\Log::forget()` (test helper, `@internal`) | none |
+
+## Planned for 2.0
+
+Not in 1.x, because each one changes behaviour:
+
+- Options are read as `sayamaapps.genba.*` (the same keys as `genba.*`). `genba.*` stays readable as a fallback, with a deprecation notice in debug mode.
+- Runtime deprecation notices for `genba_option()`, the `Genba\` class names and the `genba.*` options.
+- Broken options throw Kirby's own `Kirby\Exception\InvalidArgumentException` in debug mode. It does not extend PHP's `InvalidArgumentException`, so code that catches the PHP class would miss it.
+- Translation keys are `sayamaapps.genba.*`; `genba.*` stays readable as a fallback.
+- Snippets use Kirby's `t()`. The Kirby part keeps no translation tables of its own; the command-line tools keep theirs.
+- Removal of `genba_option()`, the `Genba\` class names, `Log::forget()` and the `Genba\raise_memory_limit()` helper in `legacy.php`.
 
 ## Privacy
 

@@ -1,0 +1,53 @@
+<?xml version="1.0"?>
+<ruleset name="Genba"
+	xmlns="http://pmd.sf.net/ruleset/1.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://pmd.sf.net/ruleset/1.0.0 http://pmd.sf.net/ruleset_xml_schema.xsd"
+	xsi:noNamespaceSchemaLocation="http://pmd.sf.net/ruleset_xml_schema.xsd">
+	<description>PHP Mess Detector rules for Genba. Every exclusion and raised threshold has its reason here.</description>
+
+	<rule ref="rulesets/cleancode.xml">
+		<!-- The helper classes (Options, I18n, Log) are static by design, as in Kirby's own code. -->
+		<exclude name="StaticAccess" />
+		<!-- Public flags of the command-line tools are part of the public API. -->
+		<exclude name="BooleanArgumentFlag" />
+		<!-- The `@` operator silences the warnings of file and stream calls that the callers already turn into
+		     findings (Stamp, Preflight, Precheck, Tree, Links). Removing it changes the output; a separate review. -->
+		<exclude name="ErrorControlOperator" />
+		<!-- Early returns are not enforced; the guard-and-else form reads in the order of the checks. -->
+		<exclude name="ElseExpression" />
+	</rule>
+
+	<rule ref="rulesets/codesize.xml/CyclomaticComplexity">
+		<!-- The limit sits at the highest value in src/: Precheck::run() (53), which is the check order of the report.
+		     The scanners (attrItem, matches, scan, attrCalls) branch by the tokenizer's grammar. A lower limit needs
+		     those methods split first, which changes no behaviour and is a change of its own. -->
+		<properties>
+			<property name="reportLevel" value="54" />
+		</properties>
+	</rule>
+	<rule ref="rulesets/codesize.xml/ExcessiveMethodLength">
+		<!-- The limit sits at the highest value in src/: Precheck::run() (209 lines). The checks run in one fixed
+		     order that defines the report; splitting run() is a change of its own. -->
+		<properties>
+			<property name="minimum" value="210" />
+		</properties>
+	</rule>
+	<rule ref="rulesets/codesize.xml/ExcessiveParameterList" />
+
+	<rule ref="rulesets/design.xml">
+		<!-- The domain classes (Precheck, Links, Stamp) are large by design; splitting them changes the API. -->
+		<exclude name="TooManyPublicMethods" />
+		<exclude name="TooManyMethods" />
+		<exclude name="CouplingBetweenObjects" />
+	</rule>
+
+	<rule ref="rulesets/naming.xml">
+		<!-- Short names are the formulas and array keys of the checks. -->
+		<exclude name="ShortVariable" />
+		<!-- I18n::t() is the translation shorthand used in the snippets and tests. -->
+		<exclude name="ShortMethodName" />
+	</rule>
+
+	<rule ref="rulesets/unusedcode.xml" />
+</ruleset>

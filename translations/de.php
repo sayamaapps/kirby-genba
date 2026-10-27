@@ -7,13 +7,13 @@
  * "Stand" is the reference wording for the build stamp.
  */
 return [
-    // genba/build-info snippet: a visible build line, e.g. on a preview site.
-    'build.label' => 'Stand',
-    'build.hash' => 'Stand {short}',
-    'build.writtenAt' => 'ausgeliefert {date}',
-    'build.none' => 'kein Stand hinterlegt',
+	// genba/build-info snippet: a visible build line, e.g. on a preview site.
+	'build.label' => 'Stand',
+	'build.hash' => 'Stand {short}',
+	'build.writtenAt' => 'ausgeliefert {date}',
+	'build.none' => 'kein Stand hinterlegt',
 
-    // Panel-facing texts for a site's own blueprint (info field or label).
-    'panel.build.label' => 'Stand (Commit)',
-    'panel.build.info' => 'Der Deploy schreibt den Commit-Hash nach {file}; der Smoke-Test vergleicht ihn mit der ausgelieferten Seite.',
+	// Panel-facing texts for a site's own blueprint (info field or label).
+	'panel.build.label' => 'Stand (Commit)',
+	'panel.build.info' => 'Der Deploy schreibt den Commit-Hash nach {file}; der Smoke-Test vergleicht ihn mit der ausgelieferten Seite.',
 ];

@@ -27,48 +27,48 @@
 
 [, $port, $target, $mode] = $argv + [null, '0', '', 'cr-location'];
 $locations = [
-    'cr-location' => $target . "\x1b[31mRED\x1b[0m\rGenba smoke: PASSED.",
-    'lf-location' => $target . "\n::error::forged",
+	'cr-location' => $target . "\x1b[31mRED\x1b[0m\rGenba smoke: PASSED.",
+	'lf-location' => $target . "\n::error::forged",
 ];
 if (!isset($locations[$mode]) && !in_array($mode, ['empty-then-401', 'short-body'], true)) {
-    fwrite(STDERR, "unknown mode $mode\n");
-    exit(2);
+	fwrite(STDERR, "unknown mode $mode\n");
+	exit(2);
 }
 $connections = 0;
 $server = stream_socket_server("tcp://127.0.0.1:$port", $errno, $error);
 if ($server === false) {
-    fwrite(STDERR, "cannot listen on $port: $error\n");
-    exit(1);
+	fwrite(STDERR, "cannot listen on $port: $error\n");
+	exit(1);
 }
 echo "listening\n";
 
 while (true) {
-    $connection = @stream_socket_accept($server, 3600);
-    if ($connection === false) {
-        continue;
-    }
-    $connections++;
-    stream_set_timeout($connection, 5);
-    $request = '';
-    while (!str_contains($request, "\r\n\r\n")) {
-        $chunk = fread($connection, 8192);
-        if ($chunk === false || $chunk === '') {
-            break;
-        }
-        $request .= $chunk;
-    }
-    if ($mode === 'empty-then-401') {
-        if ($connections > 1) {
-            fwrite($connection, "HTTP/1.1 401 Unauthorized\r\nWWW-Authenticate: Basic realm=\"genba\"\r\nContent-Length: 0\r\nConnection: close\r\n\r\n");
-        }
-        fclose($connection);
-        continue;
-    }
-    if ($mode === 'short-body') {
-        fwrite($connection, "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: 9000\r\nConnection: close\r\n\r\n" . $target);
-        fclose($connection);
-        continue;
-    }
-    fwrite($connection, "HTTP/1.1 301 Moved Permanently\r\nLocation: " . $locations[$mode] . "\r\nContent-Length: 0\r\nConnection: close\r\n\r\n");
-    fclose($connection);
+	$connection = @stream_socket_accept($server, 3600);
+	if ($connection === false) {
+		continue;
+	}
+	$connections++;
+	stream_set_timeout($connection, 5);
+	$request = '';
+	while (!str_contains($request, "\r\n\r\n")) {
+		$chunk = fread($connection, 8192);
+		if ($chunk === false || $chunk === '') {
+			break;
+		}
+		$request .= $chunk;
+	}
+	if ($mode === 'empty-then-401') {
+		if ($connections > 1) {
+			fwrite($connection, "HTTP/1.1 401 Unauthorized\r\nWWW-Authenticate: Basic realm=\"genba\"\r\nContent-Length: 0\r\nConnection: close\r\n\r\n");
+		}
+		fclose($connection);
+		continue;
+	}
+	if ($mode === 'short-body') {
+		fwrite($connection, "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: 9000\r\nConnection: close\r\n\r\n" . $target);
+		fclose($connection);
+		continue;
+	}
+	fwrite($connection, "HTTP/1.1 301 Moved Permanently\r\nLocation: " . $locations[$mode] . "\r\nContent-Length: 0\r\nConnection: close\r\n\r\n");
+	fclose($connection);
 }

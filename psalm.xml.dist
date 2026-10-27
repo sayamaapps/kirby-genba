@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+<psalm
+    errorLevel="3"
+    phpVersion="8.2"
+    resolveFromConfigFile="true"
+    findUnusedBaselineEntry="false"
+    findUnusedCode="false"
+>
+    <projectFiles>
+        <directory name="src" />
+        <file name="index.php" />
+        <file name="legacy.php" />
+        <file name="autoload.php" />
+        <ignoreFiles>
+            <directory name="vendor" />
+            <directory name="tests" />
+            <!-- config/ returns closures that Kirby binds to the page or site at runtime -->
+            <directory name="config" />
+        </ignoreFiles>
+    </projectFiles>
+    <issueHandlers>
+        <!-- Dom\HTMLDocument is PHP 8.4+. Src/Homepage.php uses it only behind a PHP_VERSION_ID check
+             (the 8.2 and 8.3 runs use the fallback reader), and Psalm analyses the 8.2 platform. -->
+        <UndefinedClass>
+            <errorLevel type="suppress">
+                <referencedClass name="Dom\HTMLDocument" />
+            </errorLevel>
+        </UndefinedClass>
+        <UndefinedMethod>
+            <errorLevel type="suppress">
+                <referencedMethod name="Dom\HTMLDocument::createEmpty" />
+                <referencedMethod name="Dom\HTMLDocument::createFromString" />
+            </errorLevel>
+        </UndefinedMethod>
+    </issueHandlers>
+</psalm>

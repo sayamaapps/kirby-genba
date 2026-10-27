@@ -9,6 +9,27 @@ All notable changes to this project are documented here. The format follows
   **major** version. Sites and their workflows match on these; a routine update
   must not change what a check reports or how a workflow reads its result.
 
+## [Unreleased]
+
+### Changed — code layout after the Kirby plugin conventions; no change in behaviour
+
+- Classes live in the `Sayamaapps\Genba` namespace and are loaded through a class map (`autoload.php`).
+  The former `Genba\` names stay as class aliases (`legacy.php`), created at load time, so `instanceof` and `catch` work before the old name is used.
+- `index.php` only registers the plugin; the definitions are in `config/`.
+- Code style after Kirby's (`getkirby/php-cs`, tabs), PHPUnit instead of `tests/run.sh`, and analysis in CI
+  (Psalm, PHPMD, phpcpd, composer-require-checker, composer-unused). `LICENSE.md`, `.editorconfig` and `.gitattributes` added.
+- Messages, exit codes, environment variables, snippets, site methods, translation keys and the stamp file are unchanged.
+- `composer.lock` is tracked. CI runs the tests on the lowest, the highest and the locked dependency versions.
+- `SPEC.md` moved to `docs/SPEC.md`.
+- `composer ci` runs the analysis and the tests locally.
+- No breaking change in 1.x. Breaking changes wait for the next major version (see README, "Planned for 2.0").
+
+### Deprecated — documentation only, no runtime notice
+
+- `genba_option()`: use `Sayamaapps\Genba\Options::get()`.
+- The `Genba\` class names: use `Sayamaapps\Genba\…`.
+- `Genba\Log::forget()`: test helper, `@internal`.
+
 ## [1.6.0] — 2026-10-24
 
 ### Added — `genba-precheck --forbid-markers`: no placeholder goes live
@@ -401,7 +422,7 @@ README describes every rule in full.
    that runs it** (normally the CI runner, `setup-php` with
    `php-version: '8.4'`); below, it stops before the first request, exit 2, and
    names the version. The plugin part and the other four tools stay at PHP 8.2.
-   Why only `Dom\HTMLDocument`: see SPEC.md §11.
+   Why only `Dom\HTMLDocument`: see docs/SPEC.md §11.
 2. **A lost stylesheet is red.** When the marker is a `.css` address (the default
    `assets/css/tailwind.css`) and stands in the page, a stylesheet of the own
    origin with that address must have been read from the `<link>` elements, else

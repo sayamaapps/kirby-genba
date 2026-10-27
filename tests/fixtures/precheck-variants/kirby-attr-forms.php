@@ -3,8 +3,8 @@
 <?php endif ?>
 <p<?= Html::attr('style', 'color: ' . $page->color(), ' ') ?>>Text</p>
 <button<?= attr(before: ' ', attr: [
-    'type'    => 'button',
-    'onclick' => 'go()',
+	'type'    => 'button',
+	'onclick' => 'go()',
 ]) ?>>Go</button>
 <script<?= Html::attr('src', url('assets/js/app.js'), ' ') ?>></script>
 <script<?= Html::attr(name: 'type', value: 'application/ld+json', before: ' ') ?>><?= json_encode($page->schema()) ?></script>
