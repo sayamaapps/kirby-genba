@@ -12,12 +12,6 @@ namespace Sayamaapps\Genba;
  *
  * The command-line tools do NOT use this class: they write to STDOUT/STDERR
  * through the streams handed to their run() method (SPEC.md §3.0).
- *
- * @package   Sayamaapps Genba
- * @author    Simon Räder
- * @link      https://github.com/sayamaapps/kirby-genba
- * @copyright Simon Räder
- * @license   https://opensource.org/licenses/MIT
  */
 class Log
 {

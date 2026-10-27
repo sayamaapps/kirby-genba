@@ -7,7 +7,6 @@ use Kirby\Cms\Site as KirbySite;
 /**
  * The logic behind the site methods in config/site-methods.php.
  *
- * @package   Sayamaapps Genba
  * @author    Simon Räder
  * @link      https://github.com/sayamaapps/kirby-genba
  * @copyright Simon Räder

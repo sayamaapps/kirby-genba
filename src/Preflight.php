@@ -9,12 +9,6 @@ require_once __DIR__ . '/Text.php';
  * imports): an npm script named `praeflug` (SPEC.md §3.2). Genba runs it
  * when it exists and says visibly when it does not, so the workflow line is
  * the same for every site. Kirby-free.
- *
- * @package   Sayamaapps Genba
- * @author    Simon Räder
- * @link      https://github.com/sayamaapps/kirby-genba
- * @copyright Simon Räder
- * @license   https://opensource.org/licenses/MIT
  */
 class Preflight
 {

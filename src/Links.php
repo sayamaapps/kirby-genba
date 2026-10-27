@@ -57,12 +57,6 @@ require_once __DIR__ . '/Tree.php';
  * annotation line.
  *
  * Requires ext-curl. Kirby-free.
- *
- * @package   Sayamaapps Genba
- * @author    Simon Räder
- * @link      https://github.com/sayamaapps/kirby-genba
- * @copyright Simon Räder
- * @license   https://opensource.org/licenses/MIT
  */
 class Links
 {
