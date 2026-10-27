@@ -26,19 +26,31 @@ namespace Genba {
 }
 
 namespace {
+	use Kirby\Cms\App;
+	use Sayamaapps\Genba\Homepage;
+	use Sayamaapps\Genba\I18n;
+	use Sayamaapps\Genba\Links;
+	use Sayamaapps\Genba\Log;
+	use Sayamaapps\Genba\Options;
+	use Sayamaapps\Genba\Precheck;
+	use Sayamaapps\Genba\Preflight;
+	use Sayamaapps\Genba\Stamp;
+	use Sayamaapps\Genba\Text;
+	use Sayamaapps\Genba\Tree;
+
 	spl_autoload_register(static function (string $class): void {
 		/** @var array<string, class-string> */
 		static $aliases = [
-			'Genba\\Homepage'  => \Sayamaapps\Genba\Homepage::class,
-			'Genba\\I18n'      => \Sayamaapps\Genba\I18n::class,
-			'Genba\\Links'     => \Sayamaapps\Genba\Links::class,
-			'Genba\\Log'       => \Sayamaapps\Genba\Log::class,
-			'Genba\\Options'   => \Sayamaapps\Genba\Options::class,
-			'Genba\\Precheck'  => \Sayamaapps\Genba\Precheck::class,
-			'Genba\\Preflight' => \Sayamaapps\Genba\Preflight::class,
-			'Genba\\Stamp'     => \Sayamaapps\Genba\Stamp::class,
-			'Genba\\Text'      => \Sayamaapps\Genba\Text::class,
-			'Genba\\Tree'      => \Sayamaapps\Genba\Tree::class,
+			'Genba\\Homepage'  => Homepage::class,
+			'Genba\\I18n'      => I18n::class,
+			'Genba\\Links'     => Links::class,
+			'Genba\\Log'       => Log::class,
+			'Genba\\Options'   => Options::class,
+			'Genba\\Precheck'  => Precheck::class,
+			'Genba\\Preflight' => Preflight::class,
+			'Genba\\Stamp'     => Stamp::class,
+			'Genba\\Text'      => Text::class,
+			'Genba\\Tree'      => Tree::class,
 		];
 
 		if (isset($aliases[$class])) {
@@ -53,6 +65,6 @@ namespace {
 	 */
 	function genba_option(string $key, mixed $default = null): mixed
 	{
-		return Sayamaapps\Genba\Options::get(Kirby\Cms\App::instance(), $key, $default);
+		return Options::get(App::instance(), $key, $default);
 	}
 }
