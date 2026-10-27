@@ -19,5 +19,13 @@ if (PHP_SAPI !== 'cli') {
     exit;
 }
 require_once dirname(__DIR__) . '/src/Homepage.php';
+// The class map first: legacy.php's class_alias() calls load the other classes.
+$genbaClasses = require dirname(__DIR__) . '/autoload.php';
+spl_autoload_register(static function (string $class) use ($genbaClasses): void {
+    $key = strtolower($class);
+    if (isset($genbaClasses[$key])) {
+        require_once dirname(__DIR__) . '/' . $genbaClasses[$key];
+    }
+});
 require_once dirname(__DIR__) . '/legacy.php';
 exit(Sayamaapps\Genba\Homepage::run($argv, STDOUT, STDERR));

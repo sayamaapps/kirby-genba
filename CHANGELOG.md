@@ -14,7 +14,7 @@ All notable changes to this project are documented here. The format follows
 ### Changed — code layout after the Kirby plugin conventions; no change in behaviour
 
 - Classes live in the `Sayamaapps\Genba` namespace and are loaded through a class map (`autoload.php`).
-  The former `Genba\` names stay as class aliases (`legacy.php`), created when first used.
+  The former `Genba\` names stay as class aliases (`legacy.php`), created at load time, so `instanceof` and `catch` work before the old name is used.
 - `index.php` only registers the plugin; the definitions are in `config/`.
 - Code style after Kirby's (`getkirby/php-cs`, tabs), PHPUnit instead of `tests/run.sh`, and analysis in CI
   (Psalm, PHPMD, phpcpd, composer-require-checker, composer-unused). `LICENSE.md`, `.editorconfig` and `.gitattributes` added.

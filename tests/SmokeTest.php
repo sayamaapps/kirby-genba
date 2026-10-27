@@ -1166,7 +1166,12 @@ final class SmokeTest extends TestCase
 				// package whose Homepage.php drops every <link>.
 				$broken = genba_tmp('smoke-broken-reader');
 				try {
-					foreach (['bin/genba-smoke', 'bin/genba-smoke-read', 'legacy.php', 'src/Homepage.php', 'src/Text.php'] as $file) {
+					// The class map and every class: legacy.php's class_alias() calls load them all.
+					$copied = array_merge(['bin/genba-smoke', 'bin/genba-smoke-read', 'legacy.php', 'autoload.php'], array_map(
+						fn (string $file): string => 'src/' . basename($file),
+						glob(dirname(__DIR__) . '/src/*.php') ?: []
+					));
+					foreach ($copied as $file) {
 						genba_write("$broken/$file", (string)file_get_contents(dirname(__DIR__) . "/$file"));
 					}
 					chmod("$broken/bin/genba-smoke", 0755);

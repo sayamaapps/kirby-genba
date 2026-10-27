@@ -4,9 +4,11 @@
  * Names of the API before the Sayamaapps\Genba namespace, kept until the next major version (README, Deprecations).
  *
  * Loaded once by index.php, after the class map is registered; bin/genba-smoke-read
- * loads it too. The old class names are aliases, created when first used; nothing
- * is loaded before that. The old function behaves as in 1.x: no runtime
- * deprecation, only the @deprecated tag and the README.
+ * loads it too, after the class map as well. The old class names are aliases,
+ * created here, eagerly: instanceof and catch do not autoload, so an alias made
+ * on first use would be missing exactly when the old name is checked first.
+ * The old function behaves as in 1.x: no runtime deprecation, only the
+ * @deprecated tag and the README.
  */
 
 namespace Genba {
@@ -38,25 +40,17 @@ namespace {
 	use Sayamaapps\Genba\Text;
 	use Sayamaapps\Genba\Tree;
 
-	spl_autoload_register(static function (string $class): void {
-		/** @var array<string, class-string> */
-		static $aliases = [
-			'Genba\\Homepage'  => Homepage::class,
-			'Genba\\I18n'      => I18n::class,
-			'Genba\\Links'     => Links::class,
-			'Genba\\Log'       => Log::class,
-			'Genba\\Options'   => Options::class,
-			'Genba\\Precheck'  => Precheck::class,
-			'Genba\\Preflight' => Preflight::class,
-			'Genba\\Stamp'     => Stamp::class,
-			'Genba\\Text'      => Text::class,
-			'Genba\\Tree'      => Tree::class,
-		];
-
-		if (isset($aliases[$class])) {
-			class_alias($aliases[$class], $class);
-		}
-	});
+	// Eager: class_alias() autoloads the class, so the classes come from the class map.
+	class_alias(Homepage::class, 'Genba\\Homepage');
+	class_alias(I18n::class, 'Genba\\I18n');
+	class_alias(Links::class, 'Genba\\Links');
+	class_alias(Log::class, 'Genba\\Log');
+	class_alias(Options::class, 'Genba\\Options');
+	class_alias(Precheck::class, 'Genba\\Precheck');
+	class_alias(Preflight::class, 'Genba\\Preflight');
+	class_alias(Stamp::class, 'Genba\\Stamp');
+	class_alias(Text::class, 'Genba\\Text');
+	class_alias(Tree::class, 'Genba\\Tree');
 
 	/**
 	 * Reads `genba.<key>`.
