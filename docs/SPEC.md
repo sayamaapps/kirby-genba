@@ -326,6 +326,7 @@ loudly as a dead one.
 
 **Directory walk (`Genba\Tree::walk()`, shared with Links).** Directories are skipped by
 place: `site/cache|sessions|accounts|logs` and `public/media` only directly under their root,
+`site/templates/emails` (Kirby mail templates, no page under the CSP) only at that place,
 `node_modules` and `.git` at any depth. Symbolic links to directories are followed when their target
 (realpath) lies inside the project (`$cwd`); a link outside the project, to a directory already
 entered (ancestor, loop) or a broken link is not followed. Every directory not entered is named:
@@ -1242,7 +1243,7 @@ production on the staging origin ·
 reachability gate (`GENBA_EXPECT_PROTECTED`, `GENBA_NOT_READY`) and private paths
 (`GENBA_PRIVATE_PATHS`) are in the smoke test · the precheck ships the Koe allow entry by
 default and uses the anchored `//fonts\.` pattern · the precheck skips
-`site/cache|sessions|accounts|logs`, `public/media` (by place), `node_modules`, `.git`
+`site/cache|sessions|accounts|logs`, `site/templates/emails`, `public/media` (by place), `node_modules`, `.git`
 (anywhere), each named with a `--` line ·
 no references found is said out loud · all messages English.
 

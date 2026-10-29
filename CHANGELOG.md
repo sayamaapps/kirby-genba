@@ -9,6 +9,15 @@ All notable changes to this project are documented here. The format follows
   **major** version. Sites and their workflows match on these; a routine update
   must not change what a check reports or how a workflow reads its result.
 
+## [1.8.0] — 2026-10-29
+
+### Added
+
+- `genba-precheck` skips `site/templates/emails/`, Kirby's mail templates, with the line
+  `  --   not checked: site/templates/emails (Kirby mail templates, sent as mail, not served under the CSP)`.
+  A mail is no page under the site's CSP, and mail clients need inline styles. An `emails/` folder
+  anywhere else (`site/snippets/emails/`) is site code and is still scanned.
+
 ## [1.7.0] — 2026-10-27
 
 ### Changed — code layout after the Kirby plugin conventions; no change in behaviour

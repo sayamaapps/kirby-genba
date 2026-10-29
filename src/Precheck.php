@@ -274,11 +274,19 @@ class Precheck
 	public const SKIP_ANYWHERE = ['node_modules' => 'npm dependencies', '.git' => 'version control'];
 
 	/**
-	 * Directories skipped only directly under their root (generated or server-side state), with the reason
-	 * the log prints. By place, not by name: `site/snippets/media/` is site code and IS scanned.
+	 * Directories skipped only at their place under their root (generated or server-side state, mail
+	 * templates), with the reason the log prints. By place, not by name: `site/snippets/media/` is site
+	 * code and IS scanned. `site/templates/emails/` holds Kirby's mail templates: a mail is no page under
+	 * the site's CSP, and mail clients need inline styles.
 	 */
 	public const SKIP_ROOT_DIRS = [
-		'site'   => ['cache' => 'Kirby cache', 'sessions' => 'Kirby sessions', 'accounts' => 'Panel accounts', 'logs' => 'logs'],
+		'site'   => [
+			'cache'            => 'Kirby cache',
+			'sessions'         => 'Kirby sessions',
+			'accounts'         => 'Panel accounts',
+			'logs'             => 'logs',
+			'templates/emails' => 'Kirby mail templates, sent as mail, not served under the CSP',
+		],
 		'public' => ['media' => 'Kirby media folder, generated'],
 	];
 

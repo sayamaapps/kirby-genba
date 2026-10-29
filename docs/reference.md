@@ -61,7 +61,7 @@ Static checks of the built site under the Content Security Policy, a check that 
 | `inline-handler-runtime` | an `on` followed by a PHP block, so the handler name is built at runtime |
 | `embedded-script` | a `<script>` with neither `src` nor `application/ld+json` |
 
-Each rule has a self-test that runs before the scan. Not scanned: `site/cache`, `site/sessions`, `site/accounts`, `site/logs` and `public/media` (directly under their roots), `node_modules` and `.git` at any depth, Markdown under `site/plugins/`, and Genba's own directory. PHP comments are not read.
+Each rule has a self-test that runs before the scan. Not scanned: `site/cache`, `site/sessions`, `site/accounts`, `site/logs` and `public/media` (directly under their roots), `site/templates/emails` (Kirby's mail templates: a mail is no page under the CSP, and mail clients need inline styles), `node_modules` and `.git` at any depth, Markdown under `site/plugins/`, and Genba's own directory. PHP comments are not read.
 
 With `--forbid-markers`, every `*.txt` file under the content root is read line by line, except under `_drafts` (not delivered). The default marker is a placeholder: one of the words `TODO`, `FIXME`, `TBD`, `TBA`, `TBC`, `XXX`, `placeholder`, `Platzhalter`, `offen`, in any case, right behind `[` and followed by `]`, a colon or a dash: `[TODO]`, `[OFFEN] Text folgt`, `[TBD: date]`. A Markdown link (`[TODO](…)`) and a longer word (`[Todo-Liste]`) are no marker. A finding names file, line and the marker. The content is not rendered: the markers stand in the content files, and the check runs before the upload, without Kirby. Text a template prints itself is not checked.
 
