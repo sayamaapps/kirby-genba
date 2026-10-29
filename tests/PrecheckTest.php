@@ -333,6 +333,8 @@ final class PrecheckTest extends TestCase
 				$dirs[] = $place;
 				genba_write($place . '/site/snippets/media/image.php', "<img style=\"x\" onload=\"y()\">\n");
 				genba_write($place . '/site/cache/page.php', "<p style=\"x\">\n");
+				genba_write($place . '/site/templates/emails/order.html.php', "<p style=\"margin:0\">\n");
+				genba_write($place . '/site/snippets/emails/card.php', "<p style=\"x\">\n");
 				genba_write($place . '/site/plugins/x/node_modules/lib.js', "<p style=\"x\">\n");
 				genba_write($place . '/public/media/pages/x.php', "<p style=\"x\">\n");
 				genba_write($place . '/public/assets/css/tailwind.css', "body{margin:0}\n");
@@ -341,9 +343,11 @@ final class PrecheckTest extends TestCase
 				contains('::error::site/snippets/media/image.php:1: inline style', $out, 'inline style in site/snippets/media/ is a finding');
 				contains('::error::site/snippets/media/image.php:1: inline event handler', $out, 'inline handler in site/snippets/media/ is a finding');
 				contains('  --   not checked: site/cache (Kirby cache)', $out, 'site/cache is skipped with a visible line');
+				contains('  --   not checked: site/templates/emails (Kirby mail templates, sent as mail, not served under the CSP)', $out, 'mail templates are skipped with a visible line');
+				contains('::error::site/snippets/emails/card.php:1: inline style', $out, 'an emails/ folder elsewhere is site code and scanned');
 				contains('  --   not checked: public/media (Kirby media folder, generated)', $out, 'public/media is skipped with a visible line');
 				contains('  --   not checked: site/plugins/x/node_modules (npm dependencies)', $out, 'node_modules is skipped at any depth, visibly');
-				contains('FAILED — 2 findings', $out, 'exactly the two findings of site/snippets/media/image.php');
+				contains('FAILED — 3 findings', $out, 'exactly the findings of site/snippets/media/image.php and site/snippets/emails/card.php');
 
 				// Case does not matter: <P STYLE="x"> is the same CSP violation as <p style="x">,
 				// and <SCRIPT SRC="x"> is as much a script with a source as the lower-case one.
