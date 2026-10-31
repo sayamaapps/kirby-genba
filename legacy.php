@@ -53,7 +53,7 @@ namespace {
 	class_alias(Tree::class, 'Genba\\Tree');
 
 	/**
-	 * Reads `genba.<key>`.
+	 * Reads `sayamaapps.genba.<key>`, falling back to `genba.<key>`.
 	 *
 	 * @deprecated Use Sayamaapps\Genba\Options::get($kirby, $key) instead. Removed in the next major version.
 	 */

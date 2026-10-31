@@ -1078,7 +1078,7 @@ Variables (optional): `$label` (bool, default true: prefix "Build"/"Stand"),
 <p class="genba-build genba-build--none">no build stamp</p>      <!-- active, but genbaBuildInfo() is null -->
 ```
 
-Nothing when `genba.active` is off. Texts via `I18n::t()` after
+Nothing when `sayamaapps.genba.active` is off. Texts via `I18n::t()` after
 `Options::applyLanguage(kirby())`: `build.label`, `build.writtenAt` with
 `{date}` = `writtenAt` cut to `Y-m-d` (never printed when `writtenAt` is
 null), `build.none`. Every value through `esc()` except the hash in
@@ -1088,7 +1088,7 @@ null), `build.none`. Every value through `esc()` except the hash in
 
 `genba_option(string $key, mixed $default = null): mixed` ·
 `$site->genbaBuild(): ?string` · `$site->genbaBuildInfo(): ?array` (shape in
-§3.1 `info()`). Both null when `genba.active` is not `true`. Translations are
+§3.1 `info()`). Both null when `sayamaapps.genba.active` is not `true`. Translations are
 registered as `genba.<key>`.
 
 ---
@@ -1097,10 +1097,10 @@ registered as `genba.<key>`.
 
 | Option | Default | Meaning |
 |---|---|---|
-| `genba.active` | `false` | Master switch. Only `true` switches the snippets and site methods on. The tools do not read it. |
-| `genba.stamp.file` | `'site/config/build.txt'` | Stamp file, absolute or relative to Kirby's `base` root (else the directory above `site/`). Empty/non-string → reported, default used. |
-| `genba.stamp.meta` | `'build'` | `name` attribute of the `<meta>`. `[A-Za-z0-9_-]+` only; otherwise reported, default used. An external check outside this package and `genba-smoke` read `build` — change both ends if you change this. |
-| `genba.language` | site language → `en` | `en` or `de` for `genba/build-info`. Else the current language of a multi-language site, its default language, Kirby's `locale`, English. |
+| `sayamaapps.genba.active` | `false` | Master switch. Only `true` switches the snippets and site methods on. The tools do not read it. |
+| `sayamaapps.genba.stamp.file` | `'site/config/build.txt'` | Stamp file, absolute or relative to Kirby's `base` root (else the directory above `site/`). Empty/non-string → reported, default used. |
+| `sayamaapps.genba.stamp.meta` | `'build'` | `name` attribute of the `<meta>`. `[A-Za-z0-9_-]+` only; otherwise reported, default used. An external check outside this package and `genba-smoke` read `build` — change both ends if you change this. |
+| `sayamaapps.genba.language` | site language → `en` | `en` or `de` for `genba/build-info`. Else the current language of a multi-language site, its default language, Kirby's `locale`, English. |
 
 A broken value is logged once per process (`Log::error`), or thrown with
 Kirby's `debug` on (`Options::invalid()`).
@@ -1315,17 +1315,17 @@ With `genba_site()`/`genba_kirby()` in `try … finally genba_remove_tree()`:
 1. Plugin registered (`$kirby->plugin('sayamaapps/genba')` not null); off by
    default: `genbaBuild()` null, `genbaBuildInfo()` null, `snippet('genba/stamp', [], true)` === `''`,
    `snippet('genba/build-info', [], true)` === `''`; `genba_option('active', 'x')` === `'x'`.
-2. `'genba.active' => true`, `site/config/build.txt` = 40-hex + `"\n"` →
+2. `'sayamaapps.genba.active' => true`, `site/config/build.txt` = 40-hex + `"\n"` →
    `genbaBuild()` === hash; `genbaBuildInfo()['short']` === first 7;
    `snippet('genba/stamp')` === `'<meta name="build" content="<hash>">' . "\n"`.
 3. Active, file `main` → `genbaBuild()` null, stamp snippet `''`;
    file missing → same.
 4. Nested spelling `'genba' => ['active' => true, 'stamp' => ['file' => 'site/config/stand.txt']]`
-   reads the other file; `'genba.stamp.meta' => 'stand'` → `name="stand"`;
-   `'genba.stamp.meta' => 'bad name'` → logged, `name="build"`;
+   reads the other file; `'sayamaapps.genba.stamp.meta' => 'stand'` → `name="stand"`;
+   `'sayamaapps.genba.stamp.meta' => 'bad name'` → logged, `name="build"`;
    with `'debug' => true` → InvalidArgumentException.
 5. `build-info`: en → contains `class="genba-build"`, `data-build="<hash>"`,
-   `>Build<`, `<code class="genba-build-hash">0123456</code>`; `'genba.language' => 'de'`
+   `>Build<`, `<code class="genba-build-hash">0123456</code>`; `'sayamaapps.genba.language' => 'de'`
    → `>Stand<`; `['withDate' => true]` → `deployed 2026-` prefix present;
    `['label' => false]` → no `genba-build-label`; no file → `genba-build--none`
    with `no build stamp` / `kein Stand hinterlegt`.
@@ -1799,7 +1799,7 @@ The `GENBA_MAX_TIME` row of `docs/reference.md` must name both bounds.
 - **README.md** (English), at most 150 lines and 1,300 words: what it is (one tagline, a three-sentence intro), features (at most six
   bullets), requirements (PHP 8.2+, genba-smoke 8.4+, Kirby 5, bash + curl + git), installation
   (`composer require`, the vcs repository line until Packagist, `.gitignore` entry `/site/plugins/genba`,
-  "deploy it like kirby/ and vendor/"), usage (`genba.active`, `snippet('genba/stamp')` in `<head>`,
+  "deploy it like kirby/ and vendor/"), usage (`sayamaapps.genba.active`, `snippet('genba/stamp')` in `<head>`,
   `/site/config/build.txt` in `.gitignore`, the five tools in one table with exit codes, one preview step of
   `genba-smoke`), options table of the Kirby part (§4), privacy (short statement), links to the two files
   below, maintenance (tests, issues, security reporting, CHANGELOG), license.
@@ -1821,7 +1821,7 @@ The `GENBA_MAX_TIME` row of `docs/reference.md` must name both bounds.
 
 1. **Delivery shape** (§7): one Composer package, tools under `vendor/bin/`,
    no composite GitHub Action. Reversible later.
-2. **The Kirby part is off by default** (`genba.active`), like every family
+2. **The Kirby part is off by default** (`sayamaapps.genba.active`), like every family
    member — so a site that forgets the option gets a loud smoke-test failure
    ("Homepage without <meta name="build">") rather than a silent stamp. That
    is the right failure direction.

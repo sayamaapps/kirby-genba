@@ -7,9 +7,9 @@ use PHPUnit\Framework\TestCase;
 use Sayamaapps\Genba\Options;
 
 /**
- * Options are read as genba.<key>, as in 1.x. The sayamaapps.genba.* spelling
- * is not read before the next major version. Nothing is reported as a
- * deprecation at runtime: the deprecations are in the README and the docblocks.
+ * Options are read as sayamaapps.genba.<key>, with the 1.x spelling genba.<key>
+ * as a fallback until the next major version. The fallback is read without a
+ * runtime deprecation: the deprecation is in the README and the docblocks.
  */
 #[CoversClass(Options::class)]
 final class OptionsPrefixTest extends TestCase
@@ -32,33 +32,54 @@ final class OptionsPrefixTest extends TestCase
 		return $messages;
 	}
 
-	public function testGenbaSpellingIsRead(): void
+	public function testLegacyFunctionReadsNewSpelling(): void
 	{
-		$this->withApp(['genba.active' => true], function (App $kirby): void {
-			$this->assertTrue(Options::active($kirby), 'genba.active is read');
+		$this->withApp(['sayamaapps.genba.active' => true], function (): void {
+			$this->assertTrue(genba_option('active'), 'genba_option() reads sayamaapps.genba.active');
 		});
 	}
 
-	public function testLegacyFunctionReadsGenbaSilently(): void
+	public function testLegacySpellingIsReadSilently(): void
 	{
 		$deprecations = $this->collectDeprecations(function (): void {
-			$this->withApp(['debug' => true, 'genba.active' => true], function (): void {
-				$this->assertTrue(genba_option('active'), 'genba_option() reads genba.active');
+			$this->withApp(['debug' => true, 'genba.active' => true], function (App $kirby): void {
+				$this->assertTrue(Options::active($kirby), 'genba.active is read as fallback');
 			});
 		});
 
-		$this->assertSame([], $deprecations, 'genba_option() raises no runtime deprecation');
+		$this->assertSame([], $deprecations, 'the 1.x spelling raises no runtime deprecation');
 	}
 
-	public function testNewSpellingIsNotReadAndTriggersNoDeprecation(): void
+	public function testMessagesNameTheKeyAsTheSiteSpelledIt(): void
 	{
-		$deprecations = $this->collectDeprecations(function (): void {
-			$this->withApp(['debug' => true, 'sayamaapps.genba.active' => true], function (App $kirby): void {
-				$this->assertFalse(Options::active($kirby), 'sayamaapps.genba.active is not read in this version');
-			});
+		$this->withApp(['genba.stamp.meta' => 'x'], function (App $kirby): void {
+			$this->assertSame('genba.stamp.meta', Options::setKey($kirby, 'stamp.meta'), '1.x spelling is named');
 		});
+		$this->withApp(['sayamaapps.genba.stamp.meta' => 'x'], function (App $kirby): void {
+			$this->assertSame('sayamaapps.genba.stamp.meta', Options::setKey($kirby, 'stamp.meta'), 'new spelling is named');
+		});
+	}
 
-		$this->assertSame([], $deprecations, 'no runtime deprecation');
+	public function testNewSpellingIsRead(): void
+	{
+		$this->withApp(['sayamaapps.genba.active' => true], function (App $kirby): void {
+			$this->assertTrue(Options::active($kirby), 'sayamaapps.genba.active is read');
+		});
+	}
+
+	public function testNewSpellingOfNestedKeysIsRead(): void
+	{
+		$this->withApp(['sayamaapps.genba.stamp.meta' => 'stand', 'sayamaapps.genba.stamp.file' => 'site/config/stand.txt'], function (App $kirby): void {
+			$this->assertSame('stand', Options::metaName($kirby), 'sayamaapps.genba.stamp.meta is read');
+			$this->assertStringEndsWith('/site/config/stand.txt', Options::stampFile($kirby), 'sayamaapps.genba.stamp.file is read');
+		});
+	}
+
+	public function testNewSpellingWinsWhenBothAreSet(): void
+	{
+		$this->withApp(['genba.language' => 'en', 'sayamaapps.genba.language' => 'de'], function (App $kirby): void {
+			$this->assertSame('de', Options::language($kirby), 'the new spelling wins');
+		});
 	}
 
 	public function testNotSetFallsBackToTheDefault(): void
