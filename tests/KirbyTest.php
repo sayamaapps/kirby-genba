@@ -82,6 +82,9 @@ final class KirbyTest extends TestCase
 				expect(true, genba_option('active'), 'genba_option() reads genba.active');
 				expect('x', genba_option('gibts-nicht', 'x'), 'genba_option() returns the fallback for an unset key');
 				holds(is_string($on->translation('en')->get('genba.build.label')), 'translations are registered as genba.*');
+
+				$new = genba_kirby($tmp, ['sayamaapps.genba.active' => true]);
+				expect($hash, $new->site()->genbaBuild(), 'sayamaapps.genba.active switches Genba on');
 			});
 			// --- 2. active with a valid stamp ---------------------------------------
 

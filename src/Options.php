@@ -6,17 +6,20 @@ use InvalidArgumentException;
 use Kirby\Cms\App;
 
 /**
- * Reads the options of the Kirby part of the plugin (docs/SPEC.md §4): `genba.<key>`.
+ * Reads Genba's options: `sayamaapps.genba.<key>`, falling back to the 1.x name
+ * `genba.<key>` (docs/SPEC.md §4).
  *
  * `null` counts as "not set", like Kirby's own option() (A::get() checks
- * isset() as well), so `'genba.stamp.meta' => null` falls back to the default.
+ * isset() as well), so `'sayamaapps.genba.stamp.meta' => null` falls back to the default.
  *
- * Both spellings work, flat (`'genba.stamp.file' => '…'`) and nested
- * (`'genba' => ['stamp' => ['file' => '…']]`), because Kirby's option() finds
- * both.
+ * The flat form (`'sayamaapps.genba.active' => true`) is the one to use. The nested
+ * form (`'genba' => ['active' => true]`) works for the 1.x prefix only: Kirby resolves
+ * `sayamaapps.genba.*` through the plugin's own options block first, which shadows a
+ * nested `sayamaapps` array.
  *
- * Defaults are given here and at the call sites, never in an `options`
- * block of the plugin (Kirby would file them under sayamaapps.genba.*).
+ * Defaults are given here and at the call sites. The `options` block of the
+ * plugin (config/options.php) lists the keys with null: a default there would
+ * hide the 1.x spelling.
  *
  * The command-line tools never load this class: they run without Kirby and
  * take their settings from environment variables and arguments (docs/SPEC.md §3.0).
@@ -33,6 +36,15 @@ class Options
 
 	/** Where the deploy writes the commit hash, relative to the project root (docs/SPEC.md §6). */
 	public const DEFAULT_STAMP_FILE = 'site/config/build.txt';
+
+	/** Option prefix since 1.9. */
+	public const OPTION_PREFIX = 'sayamaapps.genba.';
+
+	/**
+	 * Option prefix of 1.x (`genba.<key>`). Still read as a fallback until 2.0.
+	 *
+	 * @deprecated 1.9 use OPTION_PREFIX; removal planned for 2.0
+	 */
 	public const PREFIX = 'genba.';
 
 	/** Master switch: only a real `true` switches the Kirby part on. */
@@ -54,9 +66,18 @@ class Options
 		return $kirby->root('base') ?? dirname($kirby->root('site'));
 	}
 
-	/** `genba.<key>`, or $default when it is not set. */
+	/**
+	 * Reads an option under the sayamaapps.genba.* spelling, then under the
+	 * 1.x genba.* spelling, which is read silently (README, Deprecations).
+	 * Returns $default when neither is set.
+	 */
 	public static function get(App $kirby, string $key, mixed $default = null): mixed
 	{
+		$value = $kirby->option(self::OPTION_PREFIX . $key);
+		if ($value !== null) {
+			return $value;
+		}
+
 		return $kirby->option(self::PREFIX . $key) ?? $default;
 	}
 
@@ -74,7 +95,7 @@ class Options
 	}
 
 	/**
-	 * Language of the plugin's text: `genba.language`, otherwise the current
+	 * Language of the plugin's text: `sayamaapps.genba.language`, otherwise the current
 	 * language of a multi-language site, otherwise its default language,
 	 * otherwise the first two letters of Kirby's `locale` option, otherwise
 	 * English. Only languages Genba ships (I18n::LANGUAGES) are returned.
@@ -103,7 +124,7 @@ class Options
 	}
 
 	/**
-	 * `genba.stamp.meta`: the name attribute of the stamp's <meta> element,
+	 * `sayamaapps.genba.stamp.meta`: the name attribute of the stamp's <meta> element,
 	 * default "build". Only [A-Za-z0-9_-] is accepted; anything else is
 	 * reported and the default is used (the value lands unescaped in HTML).
 	 */
@@ -113,7 +134,7 @@ class Options
 		if (is_string($name) && preg_match('/^[A-Za-z0-9_-]+$/', $name) === 1) {
 			return $name;
 		}
-		self::invalid($kirby, 'Genba: genba.stamp.meta must match [A-Za-z0-9_-]+ — using ' . self::DEFAULT_META . '.');
+		self::invalid($kirby, 'Genba: ' . self::setKey($kirby, 'stamp.meta') . ' must match [A-Za-z0-9_-]+ — using ' . self::DEFAULT_META . '.');
 		return self::DEFAULT_META;
 	}
 
@@ -127,7 +148,19 @@ class Options
 	}
 
 	/**
-	 * Absolute path of the stamp file. `genba.stamp.file` may be absolute or
+	 * The option name as the site spelled it, for messages: the 1.x genba.*
+	 * name only when the site sets no sayamaapps.genba.* value for it.
+	 */
+	public static function setKey(App $kirby, string $key): string
+	{
+		if ($kirby->option(self::OPTION_PREFIX . $key) === null && $kirby->option(self::PREFIX . $key) !== null) {
+			return self::PREFIX . $key;
+		}
+		return self::OPTION_PREFIX . $key;
+	}
+
+	/**
+	 * Absolute path of the stamp file. `sayamaapps.genba.stamp.file` may be absolute or
 	 * relative to the project root (NOT to the working directory, which is
 	 * public/ under Apache). Default: site/config/build.txt.
 	 */
@@ -135,7 +168,7 @@ class Options
 	{
 		$option = self::get($kirby, 'stamp.file', self::DEFAULT_STAMP_FILE);
 		if (!is_string($option) || trim($option) === '') {
-			self::invalid($kirby, 'Genba: genba.stamp.file must be a non-empty path — using ' . self::DEFAULT_STAMP_FILE . '.');
+			self::invalid($kirby, 'Genba: ' . self::setKey($kirby, 'stamp.file') . ' must be a non-empty path — using ' . self::DEFAULT_STAMP_FILE . '.');
 			$option = self::DEFAULT_STAMP_FILE;
 		}
 		return self::resolve(trim($option), self::base($kirby));

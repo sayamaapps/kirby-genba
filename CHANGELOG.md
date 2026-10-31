@@ -9,6 +9,13 @@ All notable changes to this project are documented here. The format follows
   **major** version. Sites and their workflows match on these; a routine update
   must not change what a check reports or how a workflow reads its result.
 
+## [1.9.0] — 2026-10-31
+
+### Changed
+
+- Options are read as `sayamaapps.genba.<name>`. The 1.x names `genba.<name>` keep working and are read without a warning. If both are set, the new one wins.
+- `Options::OPTION_PREFIX` is new. `Options::PREFIX` keeps its 1.x value.
+
 ## [1.8.0] — 2026-10-29
 
 ### Added

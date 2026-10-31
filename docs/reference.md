@@ -6,7 +6,7 @@ Settings, checks and rules of Genba. A setting takes its argument first, then it
 
 | Name | Kind | Meaning |
 |---|---|---|
-| `genba_option('stamp.file', 'site/config/build.txt')` | function | Reads any `genba.*` option in a snippet of your own, with a default. |
+| `genba_option('stamp.file', 'site/config/build.txt')` | function | Reads any Genba option (`sayamaapps.genba.*`, or the 1.x `genba.*`) in a snippet of your own, with a default. |
 | `$site->genbaBuild()` | site method | The deployed hash (40 hex characters) or `null`. |
 | `$site->genbaBuildInfo()` | site method | `['hash', 'short' (7 characters), 'file' (relative to the project root), 'writtenAt' (ISO 8601 UTC or null)]`, or `null`. |
 | `snippet('genba/stamp')` | snippet | `<meta name="build" content="…">`, nothing without a valid stamp. |
