@@ -109,6 +109,118 @@ final class LinksTest extends TestCase
 		}
 	}
 
+	/**
+	 * A directory named on the command line is read completely, even when it lies inside a place that
+	 * is skipped as a whole: site/plugins/<package> for a Composer plugin, vendor/<package>. Before, its
+	 * own files were read but every directory below it (docs/, examples/) was skipped as "reached through
+	 * a symbolic link", with no link anywhere. Places below the named directory, and links into other
+	 * skipped places, still count; a walk from above still skips the package. No network.
+	 */
+	public function testNamedPathInsideSkippedPlaceIsReadCompletely(): void
+	{
+		$tmp = genba_tmp('links-named');
+		try {
+			$bin = dirname(__DIR__) . '/bin/genba-links';
+			$project = "$tmp/musterstadt";
+			$installed = [
+				'packages' => [
+					['name' => 'example/shopkit', 'type' => 'kirby-plugin', 'install-path' => '../../site/plugins/shopkit'],
+					['name' => 'example/linked', 'type' => 'kirby-plugin', 'install-path' => '../../site/plugins/verlinkt'],
+					['name' => 'example/library', 'type' => 'library', 'install-path' => '../example/library'],
+				],
+				'dev' => false,
+			];
+			genba_write("$project/content/home/default.txt", "Title: Home\n\n----\n\nText: https://www.youtube.com/watch?v=siteVideo01\n");
+			genba_write("$project/site/plugins/shopkit/README.md", "https://www.digistore24.com/product/111111\n");
+			genba_write("$project/site/plugins/shopkit/docs/usage/checkout.md", "https://www.digistore24.com/product/222222\n");
+			genba_write("$project/site/plugins/shopkit/examples/index.php", "<?php\n// https://www.youtube.com/watch?v=packageVid1\n");
+			genba_write("$project/site/cache/page.html", "https://www.digistore24.com/product/999999\n");
+			genba_write("$project/vendor/example/library/README.md", "https://www.digistore24.com/product/333333\n");
+			genba_write("$project/vendor/example/library/docs/guide.md", "https://www.digistore24.com/product/444444\n");
+			// A plugin that Composer linked in from outside site/plugins (a path repository).
+			genba_write("$project/packages/verlinkt/README.md", "https://www.digistore24.com/product/555555\n");
+			genba_write("$project/packages/verlinkt/docs/guide.md", "https://www.digistore24.com/product/666666\n");
+			symlink('../../packages/verlinkt', "$project/site/plugins/verlinkt");
+			genba_write("$project/vendor/composer/installed.json", json_encode($installed, JSON_THROW_ON_ERROR));
+
+			// As the command line does: the real path of the project and of every path named.
+			$found = static function (array $paths) use ($project): array {
+				$base = (string)realpath($project);
+				$links = new Links();
+				$places = array_column($links->find(array_map(static fn (string $p): string => (string)realpath("$base/$p"), $paths), $base), 'place');
+				sort($places);
+				return [$places, $links->skipped()];
+			};
+			$shopkit = ['site/plugins/shopkit/README.md:1', 'site/plugins/shopkit/docs/usage/checkout.md:1', 'site/plugins/shopkit/examples/index.php:2'];
+
+			// The Composer plugin named on its own: every file, nothing skipped, no wrong reason.
+			[$places, $skipped] = $found(['site/plugins/shopkit']);
+			expect($shopkit, $places, 'a named Composer plugin is read completely, docs and examples too');
+			expect([], $skipped, 'nothing is reported as skipped: ' . json_encode($skipped));
+
+			// The same through a path that is a link (a path repository): the real directory is read.
+			[$places, $skipped] = $found(['site/plugins/verlinkt']);
+			expect(['packages/verlinkt/README.md:1', 'packages/verlinkt/docs/guide.md:1'], $places, 'a named, linked Composer plugin is read completely');
+			expect([], $skipped, 'a linked plugin: nothing skipped: ' . json_encode($skipped));
+
+			// vendor/<package> and vendor itself behave the same way.
+			[$places, $skipped] = $found(['vendor/example/library']);
+			expect(['vendor/example/library/README.md:1', 'vendor/example/library/docs/guide.md:1'], $places, 'a named vendor package is read completely');
+			expect([], $skipped, 'a vendor package: nothing skipped: ' . json_encode($skipped));
+			[$places, $skipped] = $found(['vendor']);
+			expect(['vendor/example/library/README.md:1', 'vendor/example/library/docs/guide.md:1'], $places, 'vendor named on its own is read completely');
+			expect([], $skipped, 'vendor: nothing skipped: ' . json_encode($skipped));
+
+			// Named together with another path: each path is judged on its own.
+			[$places, $skipped] = $found(['content', 'site/plugins/shopkit']);
+			expect(['content/home/default.txt:5', ...$shopkit], $places, 'a named plugin next to the content');
+
+			// Named next to the path above it: read, and no longer listed as not checked; the other plugin still is.
+			[$places, $skipped] = $found(['content', 'site', 'site/plugins/shopkit']);
+			expect(['content/home/default.txt:5', ...$shopkit], $places, 'content, site and a named plugin: the plugin is read once');
+			expect([['dir' => 'site/cache', 'reason' => 'Kirby cache'], ['dir' => 'site/plugins/verlinkt', 'reason' => 'Composer package: its docs and examples are not the site\'s']], $skipped, 'only the plugin that is not named is listed as not checked: ' . json_encode($skipped));
+
+			// From above, the package stays skipped, with the reason of its place.
+			[$places, $skipped] = $found(['site']);
+			expect([], $places, 'site: the Composer plugins and the cache are not read');
+			holds(in_array(['dir' => 'site/plugins/shopkit', 'reason' => 'Composer package: its docs and examples are not the site\'s'], $skipped, true), 'site: the plugin keeps its reason: ' . json_encode($skipped));
+			holds(in_array(['dir' => 'site/plugins/verlinkt', 'reason' => 'Composer package: its docs and examples are not the site\'s'], $skipped, true), 'site: the linked plugin keeps its reason: ' . json_encode($skipped));
+			foreach ($skipped as $entry) {
+				holds(!str_contains($entry['reason'], 'reached through a symbolic link'), 'no reason names a link that does not exist: ' . json_encode($entry));
+			}
+
+			// A link inside the named plugin into another skipped place is still not followed.
+			symlink('../../cache', "$project/site/plugins/shopkit/zwischenspeicher");
+			[$places, $skipped] = $found(['site/plugins/shopkit']);
+			expect($shopkit, $places, 'the link into the cache reads nothing of it');
+			expect([['dir' => 'site/plugins/shopkit/zwischenspeicher', 'reason' => 'symbolic link into site/cache']], $skipped, 'the link into the cache is named');
+			unlink("$project/site/plugins/shopkit/zwischenspeicher");
+
+			// The command line.
+			[$code, $out] = genba_run([genba_php(), $bin, '--list-only', 'site/plugins/shopkit'], $project);
+			expect(0, $code, "list-only over a Composer plugin exits 0:\n$out");
+			contains('3 external references found, 3 distinct targets.', $out, 'the plugin: three references');
+			contains('(site/plugins/shopkit/docs/usage/checkout.md:1)', $out, 'the documentation of the plugin is listed');
+			holds(!str_contains($out, 'not checked') && !str_contains($out, 'symbolic link'), "nothing is reported as not checked:\n$out");
+			[$code, $out] = genba_run([genba_php(), $bin, '--list-only', 'content', 'site', 'site/plugins/shopkit'], $project);
+			expect(0, $code, "list-only over content, site and a named plugin exits 0:\n$out");
+			contains('4 external references found, 4 distinct targets.', $out, 'the content link and the plugin: four references');
+			contains("  --   not checked: site/plugins/verlinkt (Composer package: its docs and examples are not the site's)\n", $out, 'the plugin that is not named is still listed');
+			holds(!str_contains($out, 'not checked: site/plugins/shopkit'), "the named plugin is not listed as not checked, it is read:\n$out");
+			[$code, $out] = genba_run([genba_php(), $bin, '--list-only', 'vendor/example/library'], $project);
+			expect(0, $code, "list-only over a vendor package exits 0:\n$out");
+			contains('2 external references found, 2 distinct targets.', $out, 'the vendor package: two references');
+			contains('(vendor/example/library/docs/guide.md:1)', $out, 'the documentation of the vendor package is listed');
+			holds(!str_contains($out, 'not checked') && !str_contains($out, 'symbolic link'), "nothing is reported as not checked:\n$out");
+			[$code, $out] = genba_run([genba_php(), $bin, '--list-only'], $project);
+			expect(0, $code, "list-only with the default paths exits 0:\n$out");
+			contains("  --   not checked: site/plugins/shopkit (Composer package: its docs and examples are not the site's)\n", $out, 'the default paths still skip the Composer plugin');
+			contains('1 external references found, 1 distinct targets.', $out, 'the default paths: the content link only');
+		} finally {
+			genba_remove_tree($tmp);
+		}
+	}
+
 	public function testSuite(): void
 	{
 		// The standalone checks of the former script run in one test method.
