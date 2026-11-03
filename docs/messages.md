@@ -291,6 +291,7 @@ Counter-check passed: a deleted video and a missing product are recognised.
   --   not checked: <dir> (cannot be resolved)
   --   not checked: public (default path, does not exist)
   --   not checked: <dir> (Genba's own package: its tests and docs carry sample links)
+  --   not checked: site/plugins/<name> (Composer package: its docs and examples are not the site's)
 ::error::Cannot read directory: <dir>
 ::error::Cannot read file: <file>
 ::error::Path argument is empty (omit it for the default paths)

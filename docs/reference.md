@@ -131,6 +131,8 @@ Checks where each external reference leads, not whether it answers 200.
 | `--help` | | Usage, exit 0. |
 | paths | `content`, `site`, `public` | Directories or files to scan, relative to the working directory. |
 
+Not read, each one named in the log as `not checked`: `vendor/`, Genba's own package, a plugin that Composer installed under `site/plugins/` (found by the `install-path` in `vendor/composer/installed.json`, so its README and examples do not count as the site's links), and places that are never site content (`site/cache`, `public/media` …). A plugin kept in `site/plugins/` without Composer is read. Without `vendor/composer/installed.json` every plugin is read.
+
 | Kind | Source | Finds |
 |---|---|---|
 | `youtube`, `youtube-embed` | YouTube oEmbed | Deleted, private or non-embeddable videos, a missing title |

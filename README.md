@@ -87,6 +87,8 @@ In the live deploy, run `vendor/bin/genba-precheck --forbid-markers`: a placehol
 
 Run `genba-links` on its own schedule rather than in the deploy, so a slow YouTube does not block a release.
 
+`genba-links` reads the site's own files: `content/`, `site/` and `public/`. It does not read `vendor/`, Genba's own package, or a plugin that Composer installed under `site/plugins/` (found in `vendor/composer/installed.json`): their README and examples hold sample links that are not the site's. Each is listed in the log as `not checked`. A plugin you keep in `site/plugins/` yourself, without Composer, is read.
+
 ## Options
 
 The Kirby part reads these options from `site/config/config.php`. Every option is `sayamaapps.genba.<name>`, written flat: `'sayamaapps.genba.active' => true`. The nested form `'genba' => ['active' => true]` works for the 1.x name only (see below). `null` means "not set".

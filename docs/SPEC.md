@@ -884,7 +884,13 @@ Names: class `Links`; constants `OK`, `FINDING`,
 `storage`, `site/cache|sessions|accounts|logs`, `public/media`) + `SKIP_ANYWHERE` (`node_modules`,
 `.git`) — by place through `Genba\Tree::walk()`: a page `content/media/` is read, symbolic
 links inside the project are followed (never into a skipped place, by real path), Genba's
-own package (realpath) is never read, and every directory not read is printed as
+own package (realpath) is never read, a plugin that Composer installed under `site/plugins/`
+is skipped like `vendor` (`composerPlugins()`, reason `Composer package: its docs and examples
+are not the site's`: the `install-path` of each package in `vendor/composer/installed.json`,
+relative to `vendor/composer`, lexically; only a path inside `site/plugins/` that exists as a
+directory counts, Genba's own package keeps its own line, a plugin checked into `site/plugins/`
+without Composer is read, and without a readable `installed.json` nothing is skipped on this
+account), and every directory not read is printed as
 `  --   not checked: <dir> (<reason>)`; an unreadable directory or file is
 `::error::Cannot read directory: <dir>` / `::error::Cannot read file: <file>` on stderr, exit 2,
 never a stack trace and never an empty text; a symbolic link to a file is treated like one to a
@@ -1750,7 +1756,11 @@ findings run exit 1 with `Digistore product 101 is called "Klang Chakra Aktivier
 `::warning::Disruption, not assessed`, `Counter-check passed`, `3 findings`,
 and NOT `AtlasChakra Cover`; disruptions-only run exit 0 with `1 disruptions`;
 blind run exit 1 with `::error::Counter-check`; `--list-only site` exit 0 with
-`0 external references`. New: a run with no existing paths
+`0 external references`. Composer plugins (`testComposerInstalledPluginsAreNotRead`): a project with a
+content link, a link in the site's own plugin, an example link in a Composer-installed plugin
+(`installed.json`) and documentation under `vendor` → the first two are found, the others are
+reported as skipped, a link into the plugin is named and not followed, without `installed.json`
+(or with an unusable one) the plugin is read, and Genba's own package keeps its own line. New: a run with no existing paths
 (`genba-links /nowhere`) → exit 2 `None of the paths exist`; an empty existing
 dir → exit 0 with `::notice::No external references found`; `--help` 0.
 
