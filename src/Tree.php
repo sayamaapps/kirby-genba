@@ -25,6 +25,11 @@ require_once __DIR__ . '/Text.php';
  * real path, not only by name. A file reached twice (through a link and
  * through its real place) is read once.
  *
+ * A skip place that holds the walk's root is lifted for that walk: a directory
+ * named on purpose, `vendor/<package>` or a Composer plugin in `site/plugins/`,
+ * is read completely, its subdirectories too. Places below the root, and links
+ * into other skipped places, still count.
+ *
  * A symbolic link to a FILE is treated the same way: a target
  * outside the project is `symbolic link to a file outside the project`, one
  * inside a skipped place `symbolic link into <place>` — reported, never read,
@@ -98,6 +103,16 @@ class Tree
 				continue;
 			}
 			$places[$real] = str_starts_with($real, $projectReal . '/') ? substr($real, strlen($projectReal) + 1) : (string)$shown;
+		}
+		// A place that holds the root itself is not a place of this walk: a directory named on purpose
+		// (vendor/<package>, site/plugins/<package>) is read completely. Only the places below it count.
+		$rootReal = realpath($root);
+		if ($rootReal !== false) {
+			foreach (array_keys($places) as $real) {
+				if ($rootReal === $real || str_starts_with($rootReal, $real . '/')) {
+					unset($places[$real]);
+				}
+			}
 		}
 
 		$projectGiven = rtrim($project, '/');

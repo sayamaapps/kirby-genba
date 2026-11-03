@@ -89,6 +89,8 @@ Run `genba-links` on its own schedule rather than in the deploy, so a slow YouTu
 
 `genba-links` reads the site's own files: `content/`, `site/` and `public/`. It does not read `vendor/`, Genba's own package, or a plugin that Composer installed under `site/plugins/` (found in `vendor/composer/installed.json`): their README and examples hold sample links that are not the site's. Each is listed in the log as `not checked`. A plugin you keep in `site/plugins/` yourself, without Composer, is read.
 
+This holds for your own package too: a plugin of yours that Composer installs into `site/plugins/` counts as a Composer package, and its files are not checked. To check it anyway, name its directory: `vendor/bin/genba-links site/plugins/<name>` reads that directory completely, subdirectories included, and so does `vendor/bin/genba-links vendor/<vendor>/<name>`. Next to the default paths: `vendor/bin/genba-links content site public site/plugins/<name>`; the plugin is then no longer listed as `not checked`.
+
 ## Options
 
 The Kirby part reads these options from `site/config/config.php`. Every option is `sayamaapps.genba.<name>`, written flat: `'sayamaapps.genba.active' => true`. The nested form `'genba' => ['active' => true]` works for the 1.x name only (see below). `null` means "not set".

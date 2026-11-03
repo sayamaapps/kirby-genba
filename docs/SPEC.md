@@ -335,7 +335,8 @@ The skip places are also compared by real path (resolved once per walk): a link 
 target equals or lies inside one is `symbolic link into <place>`, a directory reached through a
 link that lies inside one is `inside <place>, reached through a symbolic link` — for Precheck the
 places of BOTH roots (`Tree::walk()`'s `$elsewhere`), so `public/p -> ..` does not reach
-`site/cache`. A listed name whose `lstat()` fails (directory with read but no search permission)
+`site/cache`. A place that holds the walk's root itself is not a place of that walk (a root named on
+purpose, `genba-links vendor/<package>`, is read completely); only places below the root count. A listed name whose `lstat()` fails (directory with read but no search permission)
 is `cannot be read (permission denied)`; a directory that cannot be listed throws
 `Cannot read directory: <dir>` (exit 2).
 A symbolic link to a FILE follows the same rules — target outside the project
@@ -890,7 +891,11 @@ are not the site's`: the `install-path` of each package in `vendor/composer/inst
 relative to `vendor/composer`, lexically; only a path inside `site/plugins/` that exists as a
 directory counts, Genba's own package keeps its own line, a plugin checked into `site/plugins/`
 without Composer is read, and without a readable `installed.json` nothing is skipped on this
-account), and every directory not read is printed as
+account; this holds for the agency's own package too, which is checked by naming its directory as a path), a directory named
+as a path is read completely even when it lies inside a skipped place (`vendor/<package>`,
+`site/plugins/<package>`; `Tree::walk()` lifts the places that hold its root, real path against real path,
+and `find()` leaves a named directory out of the `not checked` lines of the other paths' walks; places below the
+root and links into other skipped places still count), and every directory not read is printed as
 `  --   not checked: <dir> (<reason>)`; an unreadable directory or file is
 `::error::Cannot read directory: <dir>` / `::error::Cannot read file: <file>` on stderr, exit 2,
 never a stack trace and never an empty text; a symbolic link to a file is treated like one to a
@@ -1760,7 +1765,12 @@ blind run exit 1 with `::error::Counter-check`; `--list-only site` exit 0 with
 content link, a link in the site's own plugin, an example link in a Composer-installed plugin
 (`installed.json`) and documentation under `vendor` → the first two are found, the others are
 reported as skipped, a link into the plugin is named and not followed, without `installed.json`
-(or with an unusable one) the plugin is read, and Genba's own package keeps its own line. New: a run with no existing paths
+(or with an unusable one) the plugin is read, and Genba's own package keeps its own line.
+A named path inside a skipped place (`testNamedPathInsideSkippedPlaceIsReadCompletely`): the Composer plugin named
+on its own, the same plugin as a link (path repository), `vendor/<package>` and `vendor` → every file below, docs
+and examples included, nothing reported as skipped; next to `content site` the named plugin is read and not
+listed, the other plugin still is; from above (`site`) both stay skipped with the Composer reason, and a link
+inside the named plugin into `site/cache` is still named and not followed. New: a run with no existing paths
 (`genba-links /nowhere`) → exit 2 `None of the paths exist`; an empty existing
 dir → exit 0 with `::notice::No external references found`; `--help` 0.
 

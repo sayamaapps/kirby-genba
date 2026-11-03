@@ -463,10 +463,14 @@ class Links
 	 * Files to read under $path. Genba's own package is never read: installed from source (a path
 	 * repository, or a vcs install with its tests/), its tests and docs carry sample links that are
 	 * not the site's. Nor are the plugins Composer installed under site/plugins (composerPlugins()).
+	 * A directory named as a path is read completely, whatever place it lies in (Tree::walk()), and
+	 * another path's walk that passes it by does not list it as not checked: $named holds the real
+	 * paths of all directories named.
 	 *
+	 * @param array<string, true> $named
 	 * @return list<string>
 	 */
-	private function files(string $path, string $basis): array
+	private function files(string $path, string $basis, array $named = []): array
 	{
 		if (is_file($path)) {
 			return [$path];
@@ -480,6 +484,9 @@ class Links
 		$skip = self::SKIP_PATHS + self::composerPlugins($base, $package);
 		$tree = Tree::walk($path, $base, $skip, self::SKIP_ANYWHERE, $base, $package, [], $this->readTargets);
 		foreach ($tree['skipped'] as $d) {
+			if (isset($named[(string)realpath($d['dir'])])) {
+				continue;
+			}
 			$dir = str_starts_with($d['dir'], $base . '/') ? substr($d['dir'], strlen($base) + 1) : $d['dir'];
 			$this->skipped[] = ['dir' => $dir, 'reason' => $d['own'] ? "Genba's own package: its tests and docs carry sample links" : $d['reason']];
 		}
@@ -507,8 +514,15 @@ class Links
 		$refs = [];
 		$this->skipped = [];
 		$this->readTargets = [];
+		$named = [];
 		foreach ($paths as $path) {
-			foreach ($this->files($path, $basis) as $file) {
+			$real = is_dir($path) ? realpath($path) : false;
+			if ($real !== false) {
+				$named[$real] = true;
+			}
+		}
+		foreach ($paths as $path) {
+			foreach ($this->files($path, $basis, $named) as $file) {
 				$display = $basis !== '' && str_starts_with($file, $basis . '/') ? substr($file, strlen($basis) + 1) : $file;
 				$text = @file_get_contents($file);
 				if ($text === false) {

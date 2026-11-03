@@ -9,6 +9,24 @@ All notable changes to this project are documented here. The format follows
   **major** version. Sites and their workflows match on these; a routine update
   must not change what a check reports or how a workflow reads its result.
 
+## [1.9.3] — 2026-11-03
+
+### Fixed — `genba-links`: a Composer plugin or `vendor/` package named as a path is read completely
+
+- `genba-links --list-only site/plugins/<name>` read the README at the top of a plugin that Composer
+  installed under `site/plugins/` but skipped every directory below it (`docs/`, `examples/`) with
+  `inside site/plugins/<name>, reached through a symbolic link`, although no link existed. A package
+  named as `vendor/<name>` behaved the same way. A directory named as a path is now read completely,
+  also when it lies inside a place that is skipped as a whole: `genba-links site/plugins/<name>` or
+  `genba-links vendor/<vendor>/<name>` checks the package, and the wrong reason is gone. Named
+  next to the default paths (`content site public site/plugins/<name>`), the directory is no longer
+  listed as `not checked`.
+- Nothing changes for a run without such a path: the default paths and a path above the package
+  (`site`, `.`) skip it as before, with the reason `Composer package: …` or `Composer dependencies`, and
+  a symbolic link into another skipped place (`site/cache`) is still named and not followed. A plugin of
+  your own that Composer installs into `site/plugins/` is skipped like any other; the README and the
+  reference now say so and how to check it: name its directory.
+
 ## [1.9.2] — 2026-11-03
 
 ### Fixed — `genba-smoke`: a font behind `url( "…" )` was never requested

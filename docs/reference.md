@@ -131,7 +131,7 @@ Checks where each external reference leads, not whether it answers 200.
 | `--help` | | Usage, exit 0. |
 | paths | `content`, `site`, `public` | Directories or files to scan, relative to the working directory. |
 
-Not read, each one named in the log as `not checked`: `vendor/`, Genba's own package, a plugin that Composer installed under `site/plugins/` (found by the `install-path` in `vendor/composer/installed.json`, so its README and examples do not count as the site's links), and places that are never site content (`site/cache`, `public/media` …). A plugin kept in `site/plugins/` without Composer is read. Without `vendor/composer/installed.json` every plugin is read.
+Not read, each one named in the log as `not checked`: `vendor/`, Genba's own package, a plugin that Composer installed under `site/plugins/` (found by the `install-path` in `vendor/composer/installed.json`, so its README and examples do not count as the site's links), and places that are never site content (`site/cache`, `public/media` …). A plugin kept in `site/plugins/` without Composer is read. Without `vendor/composer/installed.json` every plugin is read. The skip holds for the agency's own package too, when Composer installs it into `site/plugins/`. A directory named as a path is read completely, also one that lies inside a skipped place: `genba-links site/plugins/<name>` or `genba-links vendor/<vendor>/<name>` reads every file below it, and next to `content site public` the directory is no longer listed as `not checked`.
 
 | Kind | Source | Finds |
 |---|---|---|
