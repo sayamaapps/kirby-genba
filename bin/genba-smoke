@@ -518,6 +518,40 @@ encode_controls() {
     }'
 }
 
+# css_references FILE -> the addresses that the url() of a stylesheet names, one per line,
+# as encode_controls takes them. CSS allows white space inside the parentheses, around a
+# quoted address as around a bare one: url( "a.woff2" ), url(<TAB>'a.woff2'<TAB>), and a line
+# break: url(<LF>"a.woff2"<LF>). That white space is dropped before the quotes are; left on,
+# it keeps the quotes on the address, no type is found in it and the font is never requested.
+# What stands between the parentheses is read as before: everything up to the first ).
+# The line break is what grep, which reads line by line, cannot see across: sed joins the
+# lines of a url( that is open at the end of its line, but only when the next line goes on
+# with the address or the ), after nothing but white space. Every other line stays as it is,
+# so a url( in a comment does not swallow the lines behind it. A data: URI is not dropped
+# here (the caller skips it). Every tool runs in the C locale: the classes are byte-wise.
+# Ends with grep's exit 1 when there is no url() (pipefail): the caller says || true.
+css_references() {
+  local ws='[[:space:]]' address join
+  address="(\"[^\"]*\"|'[^']*'|[^()\"'[:space:]]+)"
+  # Two lines are looked at: the first ends in an open url(, the second goes on. Joined,
+  # they are looked at again with the line behind (url(, the address and the ) on three
+  # lines); if not, the first line is printed and the second starts the next pair.
+  IFS= read -r -d '' join <<EOF || true
+:join
+\$!N
+/url\\((${ws}*\\n${ws}*(${address}${ws}*)?(\\)|\$)|${ws}*${address}${ws}*\\n${ws}*(\\)|\$))/!b done
+s/\\n/ /
+b join
+:done
+P
+D
+EOF
+  LC_ALL=C sed -E -e "$join" "$1" \
+    | LC_ALL=C grep -aoE 'url\([^)]+\)' \
+    | LC_ALL=C sed -E -e "s/^url\\(${ws}*//" -e "s/${ws}*\\)\$//" -e 's/^["'\'']//' -e 's/["'\'']$//' \
+    | encode_controls
+}
+
 # log_text TEXT -> TEXT as one log line: every control character dropped, the
 # newline included, a value above LOC_MAX cut to its first 60 characters with
 # its length.
@@ -1392,8 +1426,7 @@ if (( HOME_READ )) && [[ -s "$TMP/start.html" ]]; then
       continue
     fi
     ok "Stylesheet: 200, text/css"
-    LC_ALL=C grep -aoE 'url\([^)]+\)' "$TMP/style.css" \
-      | LC_ALL=C sed -E -e 's/^url\(//' -e 's/\)$//' -e 's/^["'\'']//' -e 's/["'\'']$//' | encode_controls > "$TMP/cssrefs.txt" || true
+    css_references "$TMP/style.css" > "$TMP/cssrefs.txt" || true
     while IFS= read -r ref; do
       case "$ref" in ''|[Dd][Aa][Tt][Aa]:*) continue ;; esac
       add_asset "$(resolve "$css" "$ref")"

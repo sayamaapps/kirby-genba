@@ -9,6 +9,21 @@ All notable changes to this project are documented here. The format follows
   **major** version. Sites and their workflows match on these; a routine update
   must not change what a check reports or how a workflow reads its result.
 
+## [1.9.2] — 2026-11-03
+
+### Fixed — `genba-smoke`: a font behind `url( "…" )` was never requested
+
+- `genba-smoke` reads the `url()` of the site's stylesheets to find the `.webp`, `.avif` and `.woff2` files
+  it checks. CSS allows white space inside the parentheses, around a quoted address as around a bare one,
+  and a line break too: `url( "../fonts/sans.woff2" )`, `url( '../fonts/sans.woff2' )`, `url(` and the address
+  and the `)` on three lines. The quotes stayed on such an address, no `.woff2` was found in it and the file
+  was not requested: a missing or wrongly served font passed the run, and the log could say `no .woff2 file
+  found on the homepage, Content-Type not checked`. The white space and the line breaks are now dropped before the
+  quotes, and the file is requested like any other. A `data:` URI in quotes with white space is skipped like any other.
+- Everything else is read as before: an address ends at the first `)`, a bare address is taken as written, and a
+  `url(` that the next line does not complete joins nothing. Messages and exit codes are unchanged; a stylesheet that names such a font
+  has more references, so a run can now report the 404 or the wrong `Content-Type` it passed before.
+
 ## [1.9.1] — 2026-11-03
 
 ### Fixed — `genba-links`: the example links of a Composer plugin are no links of the site

@@ -200,6 +200,96 @@ final class SmokeTest extends TestCase
 					}
 				}
 
+				// The url() reader of the stylesheet, css_references(), called on its own, with every sed found
+				// (the PATH's own, GNU sed as gsed, busybox): CSS allows white space inside the parentheses, around a
+				// quoted address as around a bare one, and a line break. Left on the address, the quotes hid its
+				// type and the font was never requested. The rows are CSS and the addresses it names, one per line,
+				// as encode_controls takes them (a data: URI is passed on, the caller skips it); the second group
+				// is what was read before and stays as it is. Runs on every PHP version: bash, sed, grep, tr and awk only.
+				$cssRows = [
+					// White space and line breaks inside url().
+					'double quotes, spaces' => ['@font-face{src:url( "a.woff2" ) format("woff2")}', ['a.woff2']],
+					'single quotes, spaces' => ["@font-face{src:url( 'a.woff2' ) format('woff2')}", ['a.woff2']],
+					'quotes, space on one side only' => ['a{src:url("a.woff2" ),url( "b.woff2")}', ['a.woff2', 'b.woff2']],
+					'quotes, many spaces' => ['a{src:url(     "a.woff2"     )}', ['a.woff2']],
+					'double quotes, tabs' => ["a{src:url(\t\"a.woff2\"\t)format(\"woff2\")}", ['a.woff2']],
+					'single quotes, tabs and spaces' => ["a{src:url( \t'a.woff2'\t )}", ['a.woff2']],
+					'unquoted, tabs' => ["a{src:url(\ta.woff2\t)}", ['a.woff2']],
+					'double quotes, line breaks' => ["a{src:url(\n  \"a.woff2\"\n)}", ['a.woff2']],
+					'single quotes, line breaks' => ["a{src:url(\n  'a.woff2'\n)}", ['a.woff2']],
+					'double quotes, CRLF' => ["a{src:url(\r\n\t\"a.woff2\"\r\n) format(\"woff2\")}\r\n", ['a.woff2']],
+					'unquoted, line breaks' => ["a{src:url(\n  a.woff2\n)}", ['a.woff2']],
+					'blank lines around the address' => ["a{src:url(\n\n  \"a.woff2\"\n\n)}", ['a.woff2']],
+					'line break after the ( only' => ["a{src:url(\n\"a.woff2\")}", ['a.woff2']],
+					'line break before the ) only' => ["a{src:url(\"a.woff2\"\n)}", ['a.woff2']],
+					'form feed and CR as white space' => ["a{src:url(\f\"a.woff2\"\r)}", ['a.woff2']],
+					'a src list with format()' => [
+						"@font-face{src:url( \"a.woff2\" ) format(\"woff2\"),\n  url(\n    'b.woff' \n  ) format(\"woff\"),\n  url(\tc.ttf\t) format(\"truetype\"),\n  url(\"d.eot\") format(\"embedded-opentype\")}",
+						['a.woff2', 'b.woff', 'c.ttf', 'd.eot'],
+					],
+					'one line break, two addresses behind it' => ["a{src:url( \"a.woff2\" ),url(\n\"b.woff2\"\n)}.x{y:url('c.png')}", ['a.woff2', 'b.woff2', 'c.png']],
+					'a data: URI in quotes with spaces is a data: URI' => ['a{b:url( "data:image/png;base64,AAAA" )}', ['data:image/png;base64,AAAA']],
+					'an empty address in quotes with spaces' => ["a{b:url( '' )}a{c:url(\n\"\"\n)}", ['', '']],
+					// What was read before.
+					'bare, quoted with either quote' => ['a{b:url(a.woff2)c:url("b.woff2")d:url(\'c.woff2\')}', ['a.woff2', 'b.woff2', 'c.woff2']],
+					'bare, spaces around' => ['a{b:url( a.woff2 )}', ['a.woff2']],
+					'spaces inside the quotes' => ['a{b:url(" a b.woff2 ")}', ['a b.woff2']],
+					'a bare address with a space in it' => ['a{b:url(a b.woff2)}', ['a b.woff2']],
+					'an escape is not unescaped' => ['a{b:url(a\\ b.woff2)}', ['a\\ b.woff2']],
+					'the other quote inside the quotes' => ['a{b:url("it\'s.woff2")c:url(it\'s.png)}', ["it's.woff2", "it's.png"]],
+					'data: URIs' => ['a{b:url(data:image/png;base64,AAAA)}c{d:url(DATA:,y.woff2)}', ['data:image/png;base64,AAAA', 'DATA:,y.woff2']],
+					'empty url()' => ['a{b:url()}c{d:url( )}e{f:url("")}', ['', '']],
+					'a control character inside the quotes' => ["a{b:url(\"s\x01ans.woff2\")}", ['s%01ans.woff2']],
+					'a tab inside the address is dropped' => ["a{b:url(\"ta\tb.woff2\")}", ['tab.woff2']],
+					'url in capitals is not read' => ['a{b:URL(a.woff2)}', []],
+					'no url()' => ["a{b:c}\n.d{e:f}\n", []],
+					'an empty file' => ['', []],
+					// A url( that is not completed by the line behind it joins nothing.
+					'url( in a comment, the line behind it is no address' => ["/* see url(\n   below */ a{b:url(c.png)}", ['c.png']],
+					'url( at the end of a line, the next line is a rule' => ["a{b:url(\n}\nc{d:url(e.woff2)}", ['e.woff2']],
+					'url( at the end of a line, then a url()' => ["/* url(\nurl(c.png)", ['c.png']],
+					'an address, its ) not on the next line' => ["a{b:url(a.woff2\n.c{d:e})", []],
+					'two addresses in one url()' => ["a{b:url(a.woff2\nb.woff2)}", []],
+					'a quote that is not closed on its line' => ["a{b:url(\n\"a.woff2\n\")}", []],
+					'unterminated url( at the end of the file' => ["a{b:url(\n\n", []],
+					'unterminated address at the end of the file' => ["a{b:url(\n\"a.woff2\"", []],
+				];
+				preg_match('/^css_references\(\) \{\n.*?^\}\n/ms', (string)file_get_contents($bin), $cssFunction);
+				holds(isset($cssFunction[0]), 'css_references() is found in bin/genba-smoke');
+				$sedDirs = [];
+				$sedSeen = [];
+				foreach (['sed', 'gsed', 'busybox'] as $sed) {
+					$found = trim((string)shell_exec('command -v ' . escapeshellarg($sed) . ' 2>/dev/null'));
+					$real = $found === '' ? false : realpath($found);
+					if ($real === false || isset($sedSeen[$real])) {
+						continue;
+					}
+					$sedSeen[$real] = $sed . ($sed === 'busybox' || basename($real) === $sed ? '' : ' = ' . basename($real));
+					$dir = genba_tmp('sed-' . $sed);
+					genba_write("$dir/sed", "#!/bin/sh\nexec '" . $found . "'" . ($sed === 'busybox' ? ' sed' : '') . " \"\$@\"\n");
+					chmod("$dir/sed", 0755);
+					$sedDirs[$sed] = $dir;
+				}
+				try {
+					foreach ($sedDirs as $sed => $dir) {
+						foreach ($cssRows as $name => [$css, $expected]) {
+							genba_write("$dir/style.css", $css);
+							[$code, $references] = genba_run(
+								['bash', '-c', 'set -euo pipefail; ' . ($encodeFunction[0] ?? '') . ($cssFunction[0] ?? '') . 'css_references "$1" || true', '_', "$dir/style.css"],
+								$tmp,
+								['PATH' => $dir . PATH_SEPARATOR . getenv('PATH')]
+							);
+							expect(0, $code, "css_references with $sed ($name): exit 0");
+							expect($expected, $references === '' ? [] : explode("\n", substr($references, 0, -1)), "css_references with $sed: $name");
+						}
+					}
+					echo '  --   css_references checked with: ' . implode(', ', array_values($sedSeen)) . "\n";
+				} finally {
+					foreach ($sedDirs as $dir) {
+						genba_remove_tree($dir);
+					}
+				}
+
 				// genba-smoke reads the homepage with Dom\HTMLDocument, PHP 8.4 and later. Below, the
 				// run ends before the first request, exit 2, with the reason and the version — the fault matrix
 				// needs the reader and runs on 8.4 and 8.5 (CI).
@@ -979,6 +1069,31 @@ final class SmokeTest extends TestCase
 				}
 				contains('::error::Sitemap page http://127.0.0.1:' . parse_url($base, PHP_URL_PORT) . '/kon%EF%BF%BDtakt: HTTP 404 instead of 200', $output, 'a <loc> with a byte that is no UTF-8 is requested as U+FFFD');
 				holds(mb_check_encoding($output, 'UTF-8'), 'no raw byte outside UTF-8 reaches the log:' . "\n" . addcslashes($output, "\x80..\xff"));
+				// CSS allows white space inside the parentheses of a url(), around a quoted address as around a
+				// bare one, and a line break. With the quotes left on the address no type was found in it:
+				// a missing font was never requested, the run PASSED. The fake stylesheet names sans.woff2
+				// (there) and three fonts that are not, in three spellings; a data: URI is no address to ask for.
+				$output = $run(
+					'white space and line breaks inside url()',
+					'css-url-space',
+					1,
+					'(?m)^::error::http://127\\.0\\.0\\.1:\\d+/assets/fonts/missing-dq\\.woff2: HTTP 404 instead of 200$'
+				);
+				foreach (['missing-dq', 'missing-tab', 'missing-nl'] as $font) {
+					holds(
+						preg_match('~(?m)^::error::http://127\\.0\\.0\\.1:\\d+/assets/fonts/' . $font . '\\.woff2: HTTP 404 instead of 200$~', $output) === 1,
+						"$font.woff2, named in a url() with white space around its quotes, is requested and found missing:\n$output"
+					);
+				}
+				holds(
+					preg_match('~(?m)^  ok   http://127\\.0\\.0\\.1:\\d+/assets/fonts/sans\\.woff2: font/woff2$~', $output) === 1,
+					"sans.woff2 behind url( 'sans.woff2' ) is requested and fine:\n$output"
+				);
+				$requests = (string)file_get_contents($requestLog);
+				holds(
+					!str_contains($requests, 'data:') && !str_contains($requests, '"') && !str_contains($requests, "'"),
+					"no data: URI and no quote character reaches a request:\n$requests"
+				);
 				$output = $run(
 					'raw C1 bytes in the redirect target',
 					'raw-c1-redirect',

@@ -28,7 +28,9 @@
  * uppercase-css, foreign-numref, abrupt-comment, base-href, js-base, data-base, mailto-base,
  * prod-link, huge-home, huge-home-stream, and variant:<name> (the homepage from
  * tests/fixtures/html-variants/<name>.html, with its own stylesheet holding a url(DATA:,y.woff2)).
- * Faults of the stylesheet: esc-ctype; of the http redirect: esc-redirect, raw-c1-redirect.
+ * Faults of the stylesheet: esc-ctype, css-url-space (white space and line breaks inside url(), around
+ * a quoted address: sans.woff2 is there, three more fonts are not); of the http redirect: esc-redirect,
+ * raw-c1-redirect.
  * Panel and API under other slugs (panel.slug, api.slug): panel-slug (the Panel at /kontrolle, /panel
  * answers 404), api-slug (the API at /schnittstelle, /api answers 404).
  * ctrl-url: control characters and bytes that are no UTF-8 in addresses (homepage, stylesheet,
@@ -291,8 +293,15 @@ if ($path === '/assets/css/tailwind.css') {
 	respond(
 		200,
 		has('esc-ctype') ? "text/css\x1b[35mMAGENTA\x1b[0m" : 'text/css',
-		'@font-face{src:url("../fonts/sans.woff2") format("woff2")}'
+		(has('css-url-space') ? "@font-face{src:url( '../fonts/sans.woff2' ) format(\"woff2\")}" : '@font-face{src:url("../fonts/sans.woff2") format("woff2")}')
 		. '.x{background:url(data:image/png;base64,AAAA)}'
+		// css-url-space: CSS allows white space inside the parentheses, around a quoted address as around a
+		// bare one, a line break too. A browser asks for all three missing fonts; with the quotes left on the
+		// address no type was found in it and the tool never did. The data: URI is no address to ask for.
+		. (has('css-url-space') ? '@font-face{src:url( "../fonts/missing-dq.woff2" ) format("woff2")}'
+			. "@font-face{src:url(\t\"../fonts/missing-tab.woff2\"\t)format(\"woff2\")}"
+			. "@font-face{src:url(\n  \"../fonts/missing-nl.woff2\"\n) format(\"woff2\")}"
+			. '.y{background:url( "data:image/png;base64,AAAA" )}' : '')
 		. (has('ctrl-url') ? "@font-face{src:url(\"../fonts/s\x01ans.woff2\")}" : '')
 		// Bytes that are no UTF-8 in a url() — a stylesheet is read as UTF-8 whatever
 		// it declares (Kirby writes UTF-8), as the browser reads one without a charset parameter (this one has
