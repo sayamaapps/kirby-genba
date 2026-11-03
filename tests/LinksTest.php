@@ -14,6 +14,101 @@ use Sayamaapps\Genba\Links;
 #[CoversClass(\Sayamaapps\Genba\Links::class)]
 final class LinksTest extends TestCase
 {
+	/**
+	 * A plugin that Composer installed under site/plugins is somebody else's code, like vendor/: the
+	 * example link in its README is no link of the site. A plugin checked into site/plugins is the
+	 * site's own and is read. No network: find() and --list-only only read files.
+	 */
+	public function testComposerInstalledPluginsAreNotRead(): void
+	{
+		$tmp = genba_tmp('links-composer');
+		try {
+			$bin = dirname(__DIR__) . '/bin/genba-links';
+			$project = "$tmp/musterstadt";
+			$installed = [
+				'packages' => [
+					['name' => 'example/shopkit', 'type' => 'kirby-plugin', 'install-path' => '../../site/plugins/shopkit'],
+					['name' => 'example/library', 'type' => 'library', 'install-path' => '../example/library'],
+					// An install path that leaves the project names no plugin of the site: hausplugin stays read.
+					['name' => 'example/stray', 'type' => 'kirby-plugin', 'install-path' => '../../../site/plugins/hausplugin'],
+					['name' => 'example/unplaced'],
+				],
+				'dev' => false,
+			];
+			// (1) a real link in the content, (2) one in the site's own plugin,
+			genba_write("$project/content/home/default.txt", "Title: Home\n\n----\n\nText: https://www.youtube.com/watch?v=siteVideo01\n");
+			genba_write("$project/site/plugins/hausplugin/index.php", "<?php\n// https://www.youtube.com/watch?v=ownPlugin01\n");
+			// (3) the example of a Composer-installed plugin (README and code), (4) the documentation under vendor.
+			genba_write("$project/site/plugins/shopkit/README.md", "# Shopkit\n\nExample checkout, replace the ID with your own:\n\nhttps://www.digistore24.com/product/123456?voucher=CODE\n");
+			genba_write("$project/site/plugins/shopkit/index.php", "<?php\n// https://www.youtube.com/watch?v=packageVid1\n");
+			genba_write("$project/vendor/example/library/README.md", "# Library\n\nhttps://www.digistore24.com/product/234567\n");
+			genba_write("$project/vendor/composer/installed.json", json_encode($installed, JSON_THROW_ON_ERROR));
+
+			$found = static function (string $basis, array $paths): array {
+				$links = new Links();
+				$places = array_column($links->find($paths, $basis), 'place');
+				sort($places);
+				return [$places, $links->skipped()];
+			};
+
+			[$places, $skipped] = $found($project, [$project]);
+			expect(['content/home/default.txt:5', 'site/plugins/hausplugin/index.php:2'], $places, 'the content link and the site\'s own plugin are found, nothing else');
+			holds(in_array(['dir' => 'site/plugins/shopkit', 'reason' => 'Composer package: its docs and examples are not the site\'s'], $skipped, true), 'the Composer plugin is reported as skipped: ' . json_encode($skipped));
+			holds(in_array(['dir' => 'vendor', 'reason' => 'Composer dependencies'], $skipped, true), 'vendor is reported as skipped as before');
+			expect(2, count($skipped), 'nothing else is skipped (hausplugin is the site\'s)');
+
+			// A link into the plugin is named by real path, never followed; no reference is read twice.
+			symlink('../site/plugins/shopkit', "$project/content/verweis");
+			[$places, $skipped] = $found($project, [$project]);
+			expect(['content/home/default.txt:5', 'site/plugins/hausplugin/index.php:2'], $places, 'a link into the Composer plugin reads nothing of it');
+			holds(in_array(['dir' => 'content/verweis', 'reason' => 'symbolic link into site/plugins/shopkit'], $skipped, true), 'the link into the plugin is named: ' . json_encode($skipped));
+			unlink("$project/content/verweis");
+
+			// The command line: the default paths, and the project root as the path.
+			[$code, $out] = genba_run([genba_php(), $bin, '--list-only'], $project);
+			expect(0, $code, "list-only exits 0:\n$out");
+			contains('2 external references found, 2 distinct targets.', $out, 'two references are listed');
+			contains('(content/home/default.txt:5)', $out, 'the content link is listed');
+			contains('(site/plugins/hausplugin/index.php:2)', $out, 'the link in the site\'s own plugin is listed');
+			contains("  --   not checked: site/plugins/shopkit (Composer package: its docs and examples are not the site's)\n", $out, 'the Composer plugin is named in the log');
+			holds(!str_contains($out, '123456') && !str_contains($out, 'packageVid1'), "nothing of the Composer plugin is listed:\n$out");
+			[$code, $out] = genba_run([genba_php(), $bin, '--list-only', '.'], $project);
+			expect(0, $code, "list-only over the project root exits 0:\n$out");
+			contains('2 external references found, 2 distinct targets.', $out, 'the project root: two references');
+			contains("  --   not checked: vendor (Composer dependencies)\n", $out, 'vendor is named in the log');
+			holds(!str_contains($out, '234567') && !str_contains($out, '123456'), "nothing of vendor or of the Composer plugin is listed:\n$out");
+
+			// Without Composer's record the plugin is read, as before.
+			unlink("$project/vendor/composer/installed.json");
+			[$places, $skipped] = $found($project, [$project]);
+			expect(['content/home/default.txt:5', 'site/plugins/hausplugin/index.php:2', 'site/plugins/shopkit/README.md:5', 'site/plugins/shopkit/index.php:2'], $places, 'no installed.json: every plugin is read');
+			expect([['dir' => 'vendor', 'reason' => 'Composer dependencies']], $skipped, 'no installed.json: only vendor is skipped');
+			foreach (['{ not json', '[]', '{"packages": "none"}', '{"packages": [null, 3, {"install-path": 7}]}'] as $broken) {
+				genba_write("$project/vendor/composer/installed.json", $broken);
+				[$places, $skipped] = $found($project, [$project]);
+				expect(4, count($places), "an unusable installed.json ($broken) skips no plugin");
+			}
+
+			// Genba's own package keeps its line when Composer installed it: no "Composer package" for it.
+			$own = "$tmp/eigenes";
+			$plugin = "$own/site/plugins/genba";
+			foreach (['bin/genba-links', 'src/Links.php', 'src/Tree.php', 'src/Text.php', 'tests/LinksTest.php'] as $file) {
+				genba_write("$plugin/$file", (string)file_get_contents(dirname(__DIR__) . "/$file"));
+			}
+			genba_write("$own/site/plugins/shopkit/README.md", "https://www.digistore24.com/product/123456?voucher=CODE\n");
+			genba_write("$own/content/home/default.txt", "Title: Home\n");
+			$installed['packages'][] = ['name' => 'sayamaapps/kirby-genba', 'type' => 'kirby-plugin', 'install-path' => '../../site/plugins/genba'];
+			genba_write("$own/vendor/composer/installed.json", json_encode($installed, JSON_THROW_ON_ERROR));
+			[$code, $out] = genba_run([genba_php(), "$plugin/bin/genba-links", '--list-only'], $own);
+			expect(0, $code, "the installed copy runs:\n$out");
+			contains("  --   not checked: site/plugins/genba (Genba's own package: its tests and docs carry sample links)\n", $out, 'the own package keeps its line');
+			contains("  --   not checked: site/plugins/shopkit (Composer package: its docs and examples are not the site's)\n", $out, 'the other Composer plugin is named too');
+			contains('0 external references found', $out, 'neither package contributes a reference');
+		} finally {
+			genba_remove_tree($tmp);
+		}
+	}
+
 	public function testSuite(): void
 	{
 		// The standalone checks of the former script run in one test method.

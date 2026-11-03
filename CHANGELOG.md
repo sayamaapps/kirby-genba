@@ -9,6 +9,20 @@ All notable changes to this project are documented here. The format follows
   **major** version. Sites and their workflows match on these; a routine update
   must not change what a check reports or how a workflow reads its result.
 
+## [1.9.1] — 2026-11-03
+
+### Fixed — `genba-links`: the example links of a Composer plugin are no links of the site
+
+- `genba-links` skipped `vendor/` and Genba's own package, but read the plugins that Composer
+  installs under `site/plugins/`. A sample checkout URL in the README of such a plugin was checked like
+  a link on the site and turned the job red (HTTP 404 for a product that only exists as a placeholder).
+  A plugin that Composer installed under `site/plugins/` is now skipped like `vendor/`, found by the
+  `install-path` in `vendor/composer/installed.json`, and named in the log:
+  `  --   not checked: site/plugins/<name> (Composer package: its docs and examples are not the site's)`.
+- A plugin kept in `site/plugins/` without Composer is read as before, and so is every plugin when
+  `vendor/composer/installed.json` is missing or unusable. Messages and exit codes are unchanged; a run
+  has fewer references, and one `not checked` line more per Composer plugin.
+
 ## [1.9.0] — 2026-10-31
 
 ### Changed

@@ -36,6 +36,9 @@ require_once __DIR__ . '/Tree.php';
  *
  * Read: content/, site/ and public/ (texts, templates, blueprints,
  * llms-full.txt). Placeholders in templates ({$id}, <?= … ?>) are skipped.
+ * Not read, and named in the log: vendor/, the plugins Composer installed under
+ * site/plugins (their README and examples carry sample links), Genba's own
+ * package, and the places that are never site content (site/cache …).
  *
  * Exit codes (see bin/genba-links): 0 when nothing is wrong, also when there
  * are only disruptions (timeouts, 5xx, 429 after three attempts, 403 of a shop
@@ -65,6 +68,8 @@ require_once __DIR__ . '/Tree.php';
  */
 class Links
 {
+	/** Reason printed for a plugin that Composer installed under site/plugins. */
+	private const COMPOSER_PLUGIN = 'Composer package: its docs and examples are not the site\'s';
 	public const DEFAULT_DIGISTORE_BASE = 'https://www.digistore24.com/product/';
 	public const DEFAULT_DIGISTORE_FIELDS = ['digistoreid'];
 	public const DEFAULT_OEMBED_BASE = 'https://www.youtube.com/oembed';
@@ -265,6 +270,50 @@ class Links
 		return Text::clean($text, $max);
 	}
 
+	/**
+	 * Plugins that Composer installed under site/plugins, read from Composer's own record: the
+	 * "install-path" of each package in vendor/composer/installed.json (relative to vendor/composer).
+	 * Like vendor/, they are somebody else's code, and their README and examples carry sample links
+	 * that are not the site's. A plugin checked into site/plugins is no package and is not listed.
+	 * Genba's own package is left out: it has its own line. Without a readable installed.json (no
+	 * Composer, Composer 1, a broken file) nothing is listed and the plugins are read as before.
+	 *
+	 * @return array<string, string> path relative to $project => reason
+	 */
+	private static function composerPlugins(string $project, string|null $package): array
+	{
+		$project = rtrim($project, '/');
+		$json = @file_get_contents($project . '/vendor/composer/installed.json');
+		$data = $json === false ? null : json_decode($json, true);
+		$packages = is_array($data) && is_array($data['packages'] ?? null) ? $data['packages'] : [];
+		$plugins = [];
+		foreach ($packages as $entry) {
+			$installPath = is_array($entry) ? ($entry['install-path'] ?? null) : null;
+			if (!is_string($installPath) || str_starts_with($installPath, '/')) {
+				continue;
+			}
+			// Lexically, so that a plugin linked in from elsewhere (path repository) is named by the
+			// place it has in site/plugins, as the walk names it.
+			$parts = [];
+			foreach (explode('/', 'vendor/composer/' . $installPath) as $part) {
+				if ($part === '..') {
+					if (array_pop($parts) === null) {
+						// Leaves the project.
+						continue 2;
+					}
+				} elseif ($part !== '' && $part !== '.') {
+					$parts[] = $part;
+				}
+			}
+			$relative = implode('/', $parts);
+			$real = realpath($project . '/' . $relative);
+			if (str_starts_with($relative, 'site/plugins/') && $real !== false && is_dir($real) && $real !== $package) {
+				$plugins[$relative] = self::COMPOSER_PLUGIN;
+			}
+		}
+		return $plugins;
+	}
+
 	// ── Counter-check ───────────────────────────────────────────────────
 
 	/**
@@ -413,7 +462,7 @@ class Links
 	/**
 	 * Files to read under $path. Genba's own package is never read: installed from source (a path
 	 * repository, or a vcs install with its tests/), its tests and docs carry sample links that are
-	 * not the site's.
+	 * not the site's. Nor are the plugins Composer installed under site/plugins (composerPlugins()).
 	 *
 	 * @return list<string>
 	 */
@@ -427,7 +476,9 @@ class Links
 		}
 		$base = $basis !== '' ? $basis : $path;
 		$package = realpath(dirname(__DIR__));
-		$tree = Tree::walk($path, $base, self::SKIP_PATHS, self::SKIP_ANYWHERE, $base, $package === false ? null : $package, [], $this->readTargets);
+		$package = $package === false ? null : $package;
+		$skip = self::SKIP_PATHS + self::composerPlugins($base, $package);
+		$tree = Tree::walk($path, $base, $skip, self::SKIP_ANYWHERE, $base, $package, [], $this->readTargets);
 		foreach ($tree['skipped'] as $d) {
 			$dir = str_starts_with($d['dir'], $base . '/') ? substr($d['dir'], strlen($base) + 1) : $d['dir'];
 			$this->skipped[] = ['dir' => $dir, 'reason' => $d['own'] ? "Genba's own package: its tests and docs carry sample links" : $d['reason']];
@@ -1085,8 +1136,8 @@ class Links
 
 	/**
 	 * Directories the last find() did not read: a skipped place (vendor, site/cache, public/media,
-	 * node_modules …), Genba's own package, or a symbolic link it does not follow. Relative to the
-	 * $basis given to find().
+	 * node_modules …), a plugin Composer installed under site/plugins, Genba's own package, or a
+	 * symbolic link it does not follow. Relative to the $basis given to find().
 	 *
 	 * @return list<array{dir: string, reason: string}>
 	 */
