@@ -9,7 +9,7 @@ All notable changes to this project are documented here. The format follows
   **major** version. Sites and their workflows match on these; a routine update
   must not change what a check reports or how a workflow reads its result.
 
-## [Unreleased]
+## [1.10.0] — 2026-11-27
 
 ### Added
 
