@@ -1564,6 +1564,22 @@ if [[ "$PANEL_MODE" != off ]]; then
           fi
           : > "$TMP/panel-head.txt"
           fetch GET "$ORIGIN$panel_path" "$TMP/panel.html" '' "$TMP/panel-head.txt"
+          # Kirby 6 sends the login page on to the page of the login method
+          # (/panel/login/method/password). That one step is followed too, and
+          # only from the login page to a page below login/method/.
+          case "$CODE" in
+            301|302|303|307|308)
+              method_location=$(redirect_location "$TMP/panel-head.txt")
+              method_path=$(resolve "$ORIGIN$panel_path" "$method_location" \
+                | LC_ALL=C sed -E 's|^[a-zA-Z][a-zA-Z0-9+.-]*://[^/?#]*||; s|[?].*||')
+              if [[ "${panel_path%%\?*}" == "$panel_root/login" && "$method_path" == "$panel_root/login/method/"* ]]; then
+                note "$(log_text "$panel_path") sends on to $(log_text "$method_path") (Kirby 6: the page of the login method)"
+                panel_path=$method_path
+                : > "$TMP/panel-head.txt"
+                fetch GET "$ORIGIN$panel_path" "$TMP/panel.html" '' "$TMP/panel-head.txt"
+              fi
+              ;;
+          esac
           # On the first Panel page after an update Kirby links the Panel's
           # files into media/panel and sends the visitor back to the same
           # address (a Location, absolute from its url option, without the

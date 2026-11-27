@@ -198,6 +198,7 @@ Genba smoke: SKIPPED — build not verified, see the warning above.
 ::error::Panel without account: /panel shows the installer. Create the account on the server first
   ok   Panel: /panel answers 200, its <n> files arrive
   --   /panel sends on to <target> — checked as <path> on <origin> (Kirby's url option names another origin)
+  --   <path> sends on to <path> (Kirby 6: the page of the login method)
   --   <path> sends on to itself (Kirby links the Panel files on the first call after an update) — asked once more
 ::error::/panel names no JS or CSS under /media/panel — an empty Panel page?
 ::error::Panel file <path>: HTTP <code> instead of 200 — <curl's message>

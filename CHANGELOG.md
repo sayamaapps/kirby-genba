@@ -9,6 +9,19 @@ All notable changes to this project are documented here. The format follows
   **major** version. Sites and their workflows match on these; a routine update
   must not change what a check reports or how a workflow reads its result.
 
+## [Unreleased]
+
+### Added
+
+- Kirby 6 is supported next to Kirby 5 (`getkirby/cms` `^5.0 || ^6.0`). Kirby 6 itself
+  needs PHP 8.3 or newer; the plugin still runs on PHP 8.2 with Kirby 5.
+
+### Fixed
+
+- `genba-smoke` passes the Panel check on Kirby 6: its login page sends on to the page
+  of the login method (`/panel/login/method/password`), which was reported as
+  `/panel: HTTP 302 instead of 200`.
+
 ## [1.9.3] — 2026-11-03
 
 ### Fixed — `genba-links`: a Composer plugin or `vendor/` package named as a path is read completely

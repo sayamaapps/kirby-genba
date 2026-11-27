@@ -574,10 +574,20 @@ if ($path === $panelRoot) {
 // panel-reload: the first call after an update — Kirby links the Panel's files into
 // media/panel and sends the login page back to itself, absolute, with a Location (counted in
 // the request log); panel-reload-loop: on every call.
-if ($path === $panelRoot . '/login') {
-	$calls = $requestLog !== '' ? substr_count((string)file_get_contents($requestLog), "GET $panelRoot/login\n") : 0;
+// panel-kirby6: as Kirby 6, the login page sends on to the page of the login method, which
+// is the Panel page (and the one that reloads itself); panel-login-elsewhere: the login page
+// sends on to another Panel address.
+$panelPage = $panelRoot . (has('panel-kirby6') ? '/login/method/password' : '/login');
+if (has('panel-kirby6') && $path === $panelRoot . '/login') {
+	respond(302, 'text/html; charset=UTF-8', '', ['Location' => $base . $panelPage]);
+}
+if (has('panel-login-elsewhere') && $path === $panelRoot . '/login') {
+	respond(302, 'text/html; charset=UTF-8', '', ['Location' => $base . $panelRoot . '/site']);
+}
+if ($path === $panelPage) {
+	$calls = $requestLog !== '' ? substr_count((string)file_get_contents($requestLog), "GET $panelPage\n") : 0;
 	if (has('panel-reload-loop') || (has('panel-reload') && $calls === 1)) {
-		respond(302, 'text/html; charset=UTF-8', '', ['Location' => $base . $panelRoot . '/login']);
+		respond(302, 'text/html; charset=UTF-8', '', ['Location' => $base . $panelPage]);
 	}
 	$files = has('panel-no-files') ? '' : '<script src="/media/panel/js/app.js"></script>'
 		. '<link rel="stylesheet" href="/media/panel/css/app.css">';

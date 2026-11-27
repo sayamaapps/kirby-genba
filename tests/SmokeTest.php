@@ -347,6 +347,13 @@ final class SmokeTest extends TestCase
 				$run('Panel page reloads itself again', 'panel-reload-loop', 1, '(?m)^::error::/panel: HTTP 302 instead of 200$');
 				expect(2, substr_count((string)file_get_contents($requestLog), "GET /panel/login\n"), 'check 7b follows the reload once, not more');
 				$run('Panel page under its own slug reloads itself once', 'panel-slug panel-reload', 0, '(?m)^  ok   Panel: /kontrolle answers 200, its 2 files arrive$', ['GENBA_PANEL_PATH' => '/kontrolle']);
+				// Kirby 6 sends /panel/login on to /panel/login/method/password: that one step is followed,
+				// and the reload after an update comes from there. Any other target of the login page stays a finding.
+				$run('Kirby 6 login method page', 'panel-kirby6', 0, '(?s)  --   /panel/login sends on to /panel/login/method/password \\(Kirby 6: the page of the login method\\)\n.*its 2 files arrive');
+				$run('Kirby 6 login method page reloads itself once', 'panel-kirby6 panel-reload', 0, '(?s)  --   /panel/login/method/password sends on to itself .*its 2 files arrive');
+				$run('Kirby 6 login method page reloads itself again', 'panel-kirby6 panel-reload-loop', 1, '(?m)^::error::/panel: HTTP 302 instead of 200$');
+				$run('Kirby 6 login method page under its own slug', 'panel-slug panel-kirby6', 0, '(?m)^  ok   Panel: /kontrolle answers 200, its 2 files arrive$', ['GENBA_PANEL_PATH' => '/kontrolle']);
+				$run('Panel login page sends on elsewhere', 'panel-login-elsewhere', 1, '(?m)^::error::/panel: HTTP 302 instead of 200$');
 				// The target starts right after url=: an url= in its query is no second target.
 				$run('Panel redirect with url= in its query', 'panel-refresh-query', 1, "/panel: HTTP 302 to '/elsewhere\\?next=url=/panel/login', not to a page under /panel");
 				$run('Panel redirect target in quotes', 'panel-refresh-quoted', 0, 'its 2 files arrive');
